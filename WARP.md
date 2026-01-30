@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-StratumAI is [describe what the project does]. The project demonstrates [key capabilities and technologies].
+StratumAI is a production-ready Python module that provides a unified, abstracted interface for accessing multiple frontier LLM providers (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama) through a consistent API. The project demonstrates advanced API abstraction, design patterns (strategy, factory), multi-provider integration, production engineering (error handling, retry logic, cost tracking), and Python best practices (type hints, abstract base classes, decorators).
 
 ## Development Environment Setup
 
@@ -36,12 +36,31 @@ uv pip install -r requirements.txt
 
 ```txt
 stratumai/
-├── README.md              # Project overview
-├── project-status.md      # Project timeline and status
+├── README.md
 ├── WARP.md                # This file (development guidance)
 ├── requirements.txt       # Python dependencies
 ├── .venv/                 # Virtual environment
-└── [other directories]
+├── docs/
+│   ├── project-status.md              # 5-week timeline with detailed phases
+│   └── stratumai-technical-approach.md # Comprehensive technical design (1,232 lines)
+└── llm_abstraction/                    # Main package (to be implemented)
+    ├── __init__.py
+    ├── client.py                       # Unified LLMClient
+    ├── models.py                       # Data models (Message, ChatRequest, ChatResponse)
+    ├── config.py                       # Model catalogs and cost tables
+    ├── exceptions.py                   # Custom exceptions
+    ├── utils.py                        # Helper functions
+    ├── router.py                       # Intelligent routing
+    └── providers/
+        ├── base.py                     # BaseProvider abstract class
+        ├── openai.py                   # OpenAI implementation
+        ├── anthropic.py                # Anthropic implementation
+        ├── google.py                   # Google Gemini implementation
+        ├── deepseek.py                 # DeepSeek implementation
+        ├── groq.py                     # Groq implementation
+        ├── grok.py                     # Grok (X.AI) implementation
+        ├── openrouter.py               # OpenRouter implementation
+        └── ollama.py                   # Ollama local models
 ```
 
 ## Testing
@@ -85,37 +104,71 @@ pip freeze > requirements.txt
 
 ## Architecture Principles
 
-[Describe key architectural decisions and patterns]
+**Design Principles:**
+- **Abstraction First**: Hide provider-specific differences behind unified interface
+- **Strategy Pattern**: Each provider implements common BaseProvider interface
+- **Configuration-Driven**: Model catalogs, cost tables, capability matrices externalized
+- **Fail-Safe**: Automatic retry with exponential backoff and fallback models
+- **Cost-Aware**: Track every token and enforce budget limits
 
 ### Key Design Decisions
-1. [Decision 1]
-2. [Decision 2]
-3. [Decision 3]
+1. **Provider Strategy Pattern**: All providers inherit from BaseProvider abstract class, ensuring consistent interface
+2. **OpenAI-Compatible Pattern**: Providers with OpenAI-compatible APIs (Gemini, DeepSeek, Groq, Grok, Ollama) share common base class
+3. **Unified Message Format**: All providers use OpenAI-compatible message format internally
+4. **Cost Tracking**: Every request calculates cost based on provider-specific pricing tables
+5. **Type Safety**: Full type hints and dataclasses for all requests/responses
+6. **Lazy Provider Loading**: Providers are instantiated on-demand, not at client initialization
+7. **Router Independence**: Router is optional - core functionality works without it
 
 ## Project Status
 
-**Current Phase:** Initial Setup  
-**Progress:** 20% Phase 0  
-**Latest Updates:** Project initialized with virtual environment and documentation (Jan 30, 2026)
+**Current Phase:** Phase 1 - Core Implementation (Week 1)  
+**Progress:** 4% Complete (Day 1 of 25)  
+**Latest Updates:** Project initialized with comprehensive technical design (Jan 30, 2026)
 
 ### Completed Phases
-- ✅ Phase 0: Initial project setup (20%)
-  - Project structure created
-  - Virtual environment configured
-  - Documentation templates established
+- ✅ Phase 1 Day 1: Project setup + technical design (20% Phase 1)
+  - Project initialized with uv
+  - Virtual environment created
+  - Documentation structure established
+  - Technical approach document created (1,232 lines)
+  - 5-week implementation roadmap defined
 
-### Next Steps
-- 📝 Define project requirements
-- 📝 Design system architecture
-- 📝 Select technology stack
-- 📝 Begin implementation
+### Current Week (Week 1: Jan 30 - Feb 5)
+- Day 1: ✅ Project setup + technical design
+- Day 2: 📝 Base provider interface (BaseProvider abstract class)
+- Day 3: 📝 OpenAI provider implementation
+- Day 4: 📝 Unified client (LLMClient) implementation
+- Day 5: 📝 Error handling + unit tests
+
+### Implementation Phases
+1. **Week 1 (Phase 1):** Core Implementation - BaseProvider, OpenAI, unified client
+2. **Week 2 (Phase 2):** Provider Expansion - All 8 providers operational
+3. **Week 3 (Phase 3):** Advanced Features - Streaming, cost tracking, retry logic
+4. **Week 4 (Phase 4):** Router and Optimization - Intelligent model selection
+5. **Week 5 (Phase 5):** Production Readiness - Documentation, examples, PyPI package
+
+### Next Steps (Immediate)
+- 📝 Implement BaseProvider abstract class
+- 📝 Create data models (Message, ChatRequest, ChatResponse, Usage)
+- 📝 Implement OpenAI provider with cost tracking
+- 📝 Build unified LLMClient with provider registry
+- 📝 Create custom exception hierarchy
+- 📝 Write unit tests for core components
 
 ## Documentation
 
 ### Core Documentation
-- **README.md** - Project overview and setup instructions
-- **project-status.md** - Detailed project timeline and progress
-- **WARP.md** - This file (development environment guidance)
+- **README.md** - Project overview, setup instructions, and usage examples
+- **docs/project-status.md** - Detailed 5-week timeline with phase breakdowns (25 working days)
+- **docs/stratumai-technical-approach.md** - Comprehensive technical design (1,232 lines)
+- **WARP.md** - This file (development environment guidance for Warp AI)
+
+### Key Documentation Sections
+- **Technical Approach**: Complete architecture, component design, provider implementations
+- **Usage Examples**: Basic usage, streaming, cost tracking, retry with fallbacks
+- **Implementation Roadmap**: 5 phases with detailed task breakdowns
+- **Testing Strategy**: Unit tests, integration tests, mocking strategies
 
 ## Troubleshooting
 
@@ -185,16 +238,32 @@ Use conventional commit format: `type(scope): brief description`
 ## Technical Constraints
 
 ### Must Maintain
-- [Constraint 1]
-- [Constraint 2]
-- [Constraint 3]
+- Python 3.10+ compatibility
+- Type hints on all functions and methods
+- Consistent BaseProvider interface across all providers
+- Cost tracking accuracy to $0.0001
+- Response time < 2 seconds (p95)
+- Test coverage > 80%
 
 ### Security Requirements
 - Never commit secrets or credentials
-- Use environment variables for sensitive data
-- [Additional security requirements]
+- Use environment variables for API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+- Validate all inputs to prevent injection attacks
+- Sanitize error messages to avoid leaking API keys
+- Use secure vaults for production API key management
+- Implement rate limiting and budget enforcement
 
 ### Performance Targets
-- [Target 1]
-- [Target 2]
-- [Target 3]
+- Response time < 2 seconds (p95) for non-streaming requests
+- Cold start < 1 second for provider initialization
+- Memory usage < 100MB for client instance
+- Cache hit rate > 30% with caching decorator enabled
+- Cost reduction > 40% with cost-optimized routing
+
+### Code Quality Standards
+- Black formatting compliance (line length 88)
+- Ruff linting compliance (all rules enabled)
+- Mypy type checking passes with strict mode
+- Docstrings on all public classes and methods (Google style)
+- Unit test coverage > 80%
+- Integration test coverage for all providers
