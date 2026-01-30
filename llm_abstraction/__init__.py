@@ -29,6 +29,13 @@ from .exceptions import (
 from .models import ChatRequest, ChatResponse, Message, Usage
 from .providers.base import BaseProvider
 from .providers.openai import OpenAIProvider
+from .providers.anthropic import AnthropicProvider
+from .providers.google import GoogleProvider
+from .providers.deepseek import DeepSeekProvider
+from .providers.groq import GroqProvider
+from .providers.grok import GrokProvider
+from .providers.ollama import OllamaProvider
+from .providers.openrouter import OpenRouterProvider
 
 __all__ = [
     # Core client
@@ -42,6 +49,13 @@ __all__ = [
     # Providers
     "BaseProvider",
     "OpenAIProvider",
+    "AnthropicProvider",
+    "GoogleProvider",
+    "DeepSeekProvider",
+    "GroqProvider",
+    "GrokProvider",
+    "OllamaProvider",
+    "OpenRouterProvider",
     # Caching
     "ResponseCache",
     "cache_response",
