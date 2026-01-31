@@ -9,6 +9,10 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from llm_abstraction import LLMClient, ChatRequest, Message, ProviderType
 from llm_abstraction.cost_tracker import CostTracker
@@ -49,7 +53,7 @@ class ChatCompletionRequest(BaseModel):
     provider: str
     model: str
     messages: List[dict]
-    temperature: float = 0.7
+    temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     stream: bool = False
 
@@ -69,6 +73,13 @@ class ProviderInfo(BaseModel):
     """Provider information model."""
     name: str
     models: List[str]
+
+
+class ErrorResponse(BaseModel):
+    """Error response model."""
+    error: str
+    detail: str
+    error_type: str
 
 
 @app.get("/")
@@ -109,6 +120,29 @@ async def list_models(provider: str):
     return list(MODEL_CATALOG[provider].keys())
 
 
+@app.get("/api/model-info/{provider}/{model}")
+async def get_model_info(provider: str, model: str):
+    """Get detailed information about a specific model."""
+    if provider not in MODEL_CATALOG:
+        raise HTTPException(status_code=404, detail=f"Provider '{provider}' not found")
+    
+    if model not in MODEL_CATALOG[provider]:
+        raise HTTPException(status_code=404, detail=f"Model '{model}' not found for provider '{provider}'")
+    
+    model_info = MODEL_CATALOG[provider][model]
+    
+    return {
+        "provider": provider,
+        "model": model,
+        "fixed_temperature": model_info.get("fixed_temperature"),
+        "reasoning_model": model_info.get("reasoning_model", False),
+        "supports_vision": model_info.get("supports_vision", False),
+        "supports_tools": model_info.get("supports_tools", False),
+        "supports_caching": model_info.get("supports_caching", False),
+        "context": model_info.get("context", 0),
+    }
+
+
 @app.get("/api/provider-info", response_model=List[ProviderInfo])
 async def get_provider_info():
     """Get information about all providers and their models."""
@@ -139,17 +173,45 @@ async def chat_completion(request: ChatCompletionRequest):
             for msg in request.messages
         ]
         
+        # Determine temperature for reasoning models
+        model_info = MODEL_CATALOG.get(request.provider, {}).get(request.model, {})
+        is_reasoning_model = model_info.get("reasoning_model", False)
+        
+        # Also check model name patterns for OpenAI and DeepSeek
+        if not is_reasoning_model and request.provider in ["openai", "deepseek"]:
+            model_lower = request.model.lower()
+            is_reasoning_model = (
+                model_lower.startswith("o1") or
+                model_lower.startswith("o3") or
+                model_lower.startswith("gpt-5") or
+                "reasoner" in model_lower or
+                "reasoning" in model_lower or
+                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+            )
+        
+        # Set temperature based on model type and user input
+        if is_reasoning_model:
+            temperature = 1.0
+            if request.temperature is not None and request.temperature != 1.0:
+                logger.warning(f"Overriding temperature={request.temperature} to 1.0 for reasoning model {request.provider}/{request.model}")
+            else:
+                logger.info(f"Using temperature=1.0 for reasoning model {request.provider}/{request.model}")
+        else:
+            # Use provided temperature or default to 0.7
+            temperature = request.temperature if request.temperature is not None else 0.7
+            logger.info(f"Using temperature={temperature} for model {request.provider}/{request.model}")
+        
         # Create chat request
         chat_request = ChatRequest(
             model=request.model,
             messages=messages,
-            temperature=request.temperature,
+            temperature=temperature,
             max_tokens=request.max_tokens,
         )
         
         # Initialize client and make request
         client = LLMClient(provider=request.provider)
-        response = client.chat(chat_request)
+        response = client.chat_completion(chat_request)
         
         # Track cost
         cost_tracker.add_entry(
@@ -179,8 +241,41 @@ async def chat_completion(request: ChatCompletionRequest):
             cost_usd=response.usage.cost_usd,
         )
     except Exception as e:
-        logger.error(f"Chat completion error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        logger.error(f"Chat completion error: {error_msg}")
+        
+        # Determine error type and status code
+        status_code = 500
+        error_type = "internal_error"
+        
+        if "insufficient balance" in error_msg.lower():
+            status_code = 402
+            error_type = "insufficient_balance_error"
+        elif "authentication" in error_msg.lower() or "api key" in error_msg.lower():
+            status_code = 401
+            error_type = "authentication_error"
+        elif "rate limit" in error_msg.lower():
+            status_code = 429
+            error_type = "rate_limit_error"
+        elif "not found" in error_msg.lower():
+            status_code = 404
+            error_type = "not_found_error"
+        elif "invalid model" in error_msg.lower():
+            status_code = 400
+            error_type = "invalid_model_error"
+        elif "temperature" in error_msg.lower() and "not support" in error_msg.lower():
+            status_code = 400
+            error_type = "invalid_parameter_error"
+        
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "error": error_type,
+                "detail": error_msg,
+                "provider": request.provider,
+                "model": request.model
+            }
+        )
 
 
 @app.websocket("/api/chat/stream")
@@ -203,7 +298,7 @@ async def chat_stream(websocket: WebSocket):
         provider = request_data.get("provider")
         model = request_data.get("model")
         messages_data = request_data.get("messages", [])
-        temperature = request_data.get("temperature", 0.7)
+        requested_temperature = request_data.get("temperature")
         max_tokens = request_data.get("max_tokens")
         
         # Convert messages
@@ -211,6 +306,33 @@ async def chat_stream(websocket: WebSocket):
             Message(role=msg["role"], content=msg["content"])
             for msg in messages_data
         ]
+        
+        # Determine temperature for reasoning models
+        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        is_reasoning_model = model_info.get("reasoning_model", False)
+        
+        # Also check model name patterns for OpenAI and DeepSeek
+        if not is_reasoning_model and provider in ["openai", "deepseek"]:
+            model_lower = model.lower()
+            is_reasoning_model = (
+                model_lower.startswith("o1") or
+                model_lower.startswith("o3") or
+                "reasoner" in model_lower or
+                "reasoning" in model_lower or
+                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+            )
+        
+        # Set temperature based on model type and user input
+        if is_reasoning_model:
+            temperature = 1.0
+            if requested_temperature is not None and requested_temperature != 1.0:
+                logger.warning(f"Overriding temperature={requested_temperature} to 1.0 for reasoning model {provider}/{model}")
+            else:
+                logger.info(f"Using temperature=1.0 for reasoning model {provider}/{model}")
+        else:
+            # Use provided temperature or default to 0.7
+            temperature = requested_temperature if requested_temperature is not None else 0.7
+            logger.info(f"Using temperature={temperature} for model {provider}/{model}")
         
         # Create request
         chat_request = ChatRequest(
@@ -224,7 +346,7 @@ async def chat_stream(websocket: WebSocket):
         client = LLMClient(provider=provider)
         
         full_content = ""
-        for chunk in client.chat_stream(chat_request):
+        for chunk in client.chat_completion_stream(chat_request):
             full_content += chunk.content
             await websocket.send_json({
                 "content": chunk.content,

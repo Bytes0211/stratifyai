@@ -6,7 +6,7 @@ from typing import Iterator, List, Optional
 
 from anthropic import Anthropic
 
-from ..config import ANTHROPIC_MODELS
+from ..config import ANTHROPIC_MODELS, PROVIDER_CONSTRAINTS
 from ..exceptions import AuthenticationError, InvalidModelError, ProviderAPIError
 from ..models import ChatRequest, ChatResponse, Usage
 from .base import BaseProvider
@@ -77,6 +77,14 @@ class AnthropicProvider(BaseProvider):
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
         
+        # Validate temperature constraints for Anthropic (0.0 to 1.0)
+        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+        self.validate_temperature(
+            request.temperature,
+            constraints.get("min_temperature", 0.0),
+            constraints.get("max_temperature", 1.0)
+        )
+        
         # Convert messages to Anthropic format
         # Anthropic requires system message separate from messages array
         system_message = None
@@ -96,10 +104,21 @@ class AnthropicProvider(BaseProvider):
         anthropic_params = {
             "model": request.model,
             "messages": messages,
-            "temperature": request.temperature,
-            "top_p": request.top_p,
             "max_tokens": request.max_tokens or 4096,  # Anthropic requires max_tokens
         }
+        
+        # Anthropic only allows one of temperature or top_p
+        # Prefer temperature if it's not the default, otherwise use top_p if it's not default
+        # Default temperature is 0.7, default top_p is 1.0
+        if request.temperature != 0.7:
+            # Temperature was explicitly set, use it
+            anthropic_params["temperature"] = request.temperature
+        elif request.top_p != 1.0:
+            # top_p was explicitly set (not default), use it
+            anthropic_params["top_p"] = request.top_p
+        else:
+            # Both are defaults, use temperature
+            anthropic_params["temperature"] = request.temperature
         
         # Add system message if present
         if system_message:
@@ -142,6 +161,14 @@ class AnthropicProvider(BaseProvider):
         """
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
+        
+        # Validate temperature constraints for Anthropic (0.0 to 1.0)
+        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+        self.validate_temperature(
+            request.temperature,
+            constraints.get("min_temperature", 0.0),
+            constraints.get("max_temperature", 1.0)
+        )
         
         # Convert messages to Anthropic format
         system_message = None

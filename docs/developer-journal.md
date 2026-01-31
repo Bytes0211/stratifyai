@@ -1163,6 +1163,74 @@ python -m uvicorn api.main:app --reload
 # API Docs: http://localhost:8000/docs
 ```
 
+### Day 1.5 (Jan 30, Evening): OpenAI Reasoning Model Fix
+
+**Objective:** Fix 400 error when using OpenAI reasoning models (o1, o3 series)
+
+**Issue Discovered:**
+While testing the Web GUI with OpenAI models, encountered API error:
+```
+ERROR:api.main:Chat completion error: [openai] Chat completion failed: Error code: 400 - {'error': {'message': "Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.", 'type': 'invalid_request_error', 'param': 'temperature', 'code': 'unsupported_value'}}
+```
+
+**Root Cause Analysis:**
+OpenAI's reasoning models (o1, o1-mini, o3-mini, and their variants) do not support custom temperature values. The existing code checked for `reasoning_model: True` flag in the MODEL_CATALOG, but this didn't catch model variants that weren't explicitly listed (e.g., `o1-preview`, `o1-mini-2024-09-12`).
+
+**Solution Implemented:**
+Enhanced the reasoning model detection in `llm_abstraction/providers/openai.py` to check both:
+1. Explicit `reasoning_model` flag in MODEL_CATALOG
+2. Model name pattern matching (starts with "o1" or "o3")
+
+**Code Changes:**
+
+**File:** `llm_abstraction/providers/openai.py`
+
+**Location 1:** `chat_completion()` method (lines 94-105)
+```python
+# Before
+model_info = OPENAI_MODELS.get(request.model, {})
+is_reasoning_model = model_info.get("reasoning_model", False)
+
+# After
+model_info = OPENAI_MODELS.get(request.model, {})
+is_reasoning_model = model_info.get("reasoning_model", False)
+
+# Also check if model name starts with o1 or o3 (catch variants not in catalog)
+if not is_reasoning_model and request.model:
+    model_lower = request.model.lower()
+    is_reasoning_model = model_lower.startswith("o1") or model_lower.startswith("o3")
+```
+
+**Location 2:** `chat_completion_stream()` method (lines 166-173)
+Applied identical logic to streaming method.
+
+**Result:**
+- Temperature parameter is now correctly excluded for all o1/o3 model variants
+- Works for models not explicitly listed in MODEL_CATALOG
+- Compatible with future reasoning model releases
+- No API errors when using reasoning models
+
+**Technical Details:**
+- Detection is case-insensitive (`model_lower.startswith()`)
+- Falls back to config flag first, then pattern matching
+- Applies to both regular and streaming chat completions
+- Also excludes `top_p`, `frequency_penalty`, `presence_penalty` for reasoning models
+
+**Testing:**
+- Verified fix doesn't break existing tests (77 tests still passing)
+- Tested with reasoning models via Web GUI
+- Confirmed non-reasoning models still receive temperature parameter
+
+**Design Decision:**
+Chose prefix-based detection over maintaining exhaustive model list because:
+1. OpenAI may release new o1/o3 variants without notice
+2. Reduces maintenance burden (no need to update catalog for each variant)
+3. Pattern is reliable: OpenAI uses consistent naming (o1-*, o3-*)
+4. Degrades gracefully: if detection fails, API error is caught and reported
+
+**Time to Fix:** 15 minutes
+**Impact:** Resolves blocking issue for reasoning model usage
+
 ---
 
 ## Overall Project Status After Phase 3.5
@@ -1172,6 +1240,334 @@ python -m uvicorn api.main:app --reload
 **Total Tests:** 77 (100% passing)  
 **Total Code:** ~3,000 lines (excluding tests and docs)  
 **Providers Operational:** 8/8 (100%)
+
+**Remaining Work:**
+- Phase 4: Router and Optimization (5 tasks)
+- Phase 5: Production Readiness (5 tasks)
+
+---
+
+### Day 2 (Jan 30, Evening): Enhanced Error Handling and Temperature Restrictions
+
+**Objective:** Improve GUI error handling and implement dynamic temperature restriction detection
+
+**Session Duration:** ~1.5 hours
+
+#### Issue 1: Temperature Error for gpt-5 Model
+
+**Problem:**
+When testing with the placeholder `gpt-5` model (which doesn't exist yet), OpenAI API returned:
+```
+ERROR: Error code: 400 - {'error': {'message': "Unsupported value: 'temperature' does not support 0.5 with this model. Only the default (1) value is supported."}}
+```
+
+The error revealed that `gpt-5` (and potentially other future models) only supports `temperature=1.0`, but it's not a "reasoning model" in the traditional sense (not o1/o3 series).
+
+**Root Cause:**
+The system had multiple layers detecting reasoning models (frontend pattern matching + backend detection), but they all relied on hardcoded model name patterns (o1*, o3*). There was no mechanism to:
+1. Store temperature restrictions in the model catalog
+2. Communicate these restrictions to the frontend
+3. Dynamically disable the temperature slider based on server data
+
+#### Solution 1: Model Metadata System
+
+**Changes Made:**
+
+**1. Added `fixed_temperature` Field to Model Catalog** (`llm_abstraction/config.py`)
+```python
+# Added to all reasoning models
+"o1": {
+    "context": 200000,
+    "cost_input": 15.0,
+    "cost_output": 60.0,
+    "supports_vision": False,
+    "supports_tools": False,
+    "reasoning_model": True,
+    "fixed_temperature": 1.0,  # NEW
+},
+```
+
+Applied to:
+- All o1 variants (o1, o1-mini, o1-preview, o1-2024-12-17, o1-mini-2024-09-12)
+- All o3 variants (o3-mini)
+- deepseek-reasoner
+
+**2. Created Model Metadata API Endpoint** (`api/main.py`)
+```python
+@app.get("/api/model-info/{provider}/{model}")
+async def get_model_info(provider: str, model: str):
+    """Get detailed information about a specific model."""
+    model_info = MODEL_CATALOG[provider][model]
+    
+    return {
+        "provider": provider,
+        "model": model,
+        "fixed_temperature": model_info.get("fixed_temperature"),
+        "reasoning_model": model_info.get("reasoning_model", False),
+        "supports_vision": model_info.get("supports_vision", False),
+        "supports_tools": model_info.get("supports_tools", False),
+        "supports_caching": model_info.get("supports_caching", False),
+        "context": model_info.get("context", 0),
+    }
+```
+
+**3. Updated Frontend to Fetch Model Metadata** (`api/static/index.html`)
+```javascript
+// Changed from synchronous pattern matching to async API call
+async function updateTemperatureState() {
+    const provider = document.getElementById('provider').value;
+    const model = document.getElementById('model').value;
+    
+    // Fetch model metadata from API
+    const response = await fetch(`${API_BASE}/api/model-info/${provider}/${model}`);
+    const modelInfo = await response.json();
+    
+    // Check if model has fixed temperature
+    if (modelInfo.fixed_temperature !== null && modelInfo.fixed_temperature !== undefined) {
+        tempSlider.disabled = true;
+        tempSlider.value = modelInfo.fixed_temperature;
+        document.getElementById('temp-value').textContent = `${modelInfo.fixed_temperature} (fixed)`;
+        tempLabel.style.opacity = '0.5';
+    } else {
+        // Enable slider for models with variable temperature
+        tempSlider.disabled = false;
+        tempLabel.style.opacity = '1';
+    }
+}
+```
+
+**Benefits:**
+- Temperature restrictions now stored in single source of truth (model catalog)
+- Frontend automatically adapts to any model with `fixed_temperature` field
+- No need to update frontend code when new restricted models are added
+- Graceful fallback to pattern matching if API call fails
+
+#### Issue 2: Poor Error Messages in GUI
+
+**Problem:**
+When errors occurred (temperature unsupported, authentication failed, model not found), the GUI showed:
+1. Generic error messages without context
+2. Raw API error dumps in chat
+3. No visual distinction for errors vs normal messages
+
+**Solution 2: Comprehensive Error Handling System**
+
+**Changes Made:**
+
+**1. Added Error Message Styling** (`api/static/index.html` CSS)
+```css
+.message.error {
+    background: #fee;
+    border: 1px solid #fcc;
+    color: #c33;
+    max-width: 100%;
+}
+
+.error-details {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+```
+
+**2. Enhanced Frontend Error Parsing** (`api/static/index.html`)
+```javascript
+// Parse common error patterns
+if (errorMsg.includes('temperature') && errorMsg.includes('not support')) {
+    const selectedTemp = parseFloat(document.getElementById('temperature').value);
+    userFriendlyMsg = `${model} does not support temperature ${selectedTemp}. The default value is 1.0.`;
+    details = errorMsg;  // Technical details in separate section
+}
+```
+
+Error Categories:
+- ❌ **Temperature Not Supported** - Clear message with selected value
+- 🔑 **Authentication Error** - Missing/invalid API key
+- ⏱️ **Rate Limit Exceeded** - Too many requests
+- 🔍 **Model Not Found** - Invalid model name
+- 🌐 **Connection Error** - Server unreachable
+
+**3. Structured API Error Responses** (`api/main.py`)
+```python
+# Enhanced error handling with categorization
+try:
+    response = client.chat_completion(chat_request)
+except Exception as e:
+    error_msg = str(e)
+    status_code = 500
+    error_type = "internal_error"
+    
+    # Categorize error
+    if "temperature" in error_msg.lower() and "not support" in error_msg.lower():
+        status_code = 400
+        error_type = "invalid_parameter_error"
+    elif "authentication" in error_msg.lower():
+        status_code = 401
+        error_type = "authentication_error"
+    # ... additional categories
+    
+    raise HTTPException(
+        status_code=status_code,
+        detail={
+            "error": error_type,
+            "detail": error_msg,
+            "provider": request.provider,
+            "model": request.model
+        }
+    )
+```
+
+**4. Fixed Error Display Structure** (`api/static/index.html`)
+```javascript
+// Properly separate main message from technical details
+function addMessage(role, content, details = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    if (details && role === 'error') {
+        // Main message as text node
+        const mainText = document.createTextNode(content);
+        messageDiv.appendChild(mainText);
+        
+        // Details in separate styled div
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'error-details';
+        detailsDiv.textContent = details;
+        messageDiv.appendChild(detailsDiv);
+    } else {
+        messageDiv.textContent = content;
+    }
+}
+```
+
+**Issue Found During Implementation:**
+Initial error handling had bug where `errorMsg.includes is not a function` - the API was returning structured error object instead of string. Fixed by adding type checking:
+```javascript
+let errorMsg;
+if (typeof data.detail === 'object' && data.detail !== null) {
+    errorMsg = data.detail.detail || JSON.stringify(data.detail);
+} else {
+    errorMsg = data.detail || data.error || 'Unknown error occurred';
+}
+```
+
+#### Issue 3: Improved Provider Layer Error Handling
+
+**Problem:**
+The `OpenAICompatibleProvider` base class (used by DeepSeek, Google, Groq, etc.) was unconditionally sending temperature parameter to all models, causing failures for reasoning models from these providers.
+
+**Solution 3: Enhanced Provider Layer Detection** (`llm_abstraction/providers/openai_compatible.py`)
+
+```python
+def chat_completion(self, request: ChatRequest) -> ChatResponse:
+    # Check if model has fixed temperature
+    model_info = self.model_catalog.get(request.model, {})
+    is_reasoning_model = model_info.get("reasoning_model", False)
+    
+    # Pattern matching for reasoning models
+    if not is_reasoning_model and request.model:
+        model_lower = request.model.lower()
+        is_reasoning_model = (
+            model_lower.startswith("o1") or 
+            model_lower.startswith("o3") or
+            "reasoner" in model_lower or
+            "reasoning" in model_lower
+        )
+    
+    # Only add temperature for non-reasoning models
+    if not is_reasoning_model:
+        openai_params["temperature"] = request.temperature
+        openai_params["top_p"] = request.top_p
+        # ... other sampling parameters
+```
+
+Applied same logic to streaming method.
+
+#### Documentation Updates
+
+**Created:** `docs/error-handling-examples.md` (186 lines)
+- Complete error type catalog
+- Visual examples of each error category
+- Testing scenarios
+- Frontend/backend implementation details
+
+**Result:**
+- **4-layer protection** against parameter errors:
+  1. Frontend: Disables slider for restricted models
+  2. API layer: Validates and overrides temperature
+  3. Provider layer: Excludes parameter before API call
+  4. Error reporting: Clear, actionable messages if something slips through
+
+**Error Message Example:**
+```
+Main message (red box):
+gpt-5 does not support temperature 0.5. The default value is 1.0.
+
+Details (white box with monospace):
+[openai] Chat completion failed: Error code: 400 - {'error': {...}}
+```
+
+#### Impact
+
+**Code Changes:**
+- `llm_abstraction/config.py`: Added `fixed_temperature` to 7 models
+- `llm_abstraction/providers/openai_compatible.py`: Enhanced parameter handling (27 lines)
+- `api/main.py`: Added model metadata endpoint + enhanced error handling (43 lines)
+- `api/static/index.html`: Dynamic temperature control + comprehensive error display (62 lines)
+- `docs/error-handling-examples.md`: New documentation (186 lines)
+
+**Testing:**
+- All 77 existing tests continue to pass
+- Manual GUI testing with:
+  - Reasoning models (o1, o3, deepseek-reasoner)
+  - Non-existent models (gpt-5)
+  - Various error scenarios
+  - Temperature slider behavior
+
+**Time Investment:** 1.5 hours
+- Research and debugging: 30 minutes
+- Implementation: 45 minutes  
+- Testing and documentation: 15 minutes
+
+#### Lessons Learned
+
+**1. Single Source of Truth**
+Storing temperature restrictions in the model catalog eliminated duplicate logic and made the system more maintainable.
+
+**2. API-Driven UI**
+Fetching model metadata from the server allows the frontend to adapt without code changes. Much better than hardcoded model lists.
+
+**3. Layered Error Handling**
+Multiple validation layers (frontend, API, provider) provide defense in depth. If one layer fails, others catch the issue.
+
+**4. User-Friendly Error Messages**
+Separating user-facing messages from technical details improves UX while maintaining debuggability.
+
+**5. Structured Error Responses**
+Returning consistent error format (error type + details + context) enables smart error handling on frontend.
+
+---
+
+## Overall Project Status After Phase 3.5 Day 2
+
+**Completion:** 65% (22 of 33 tasks)  
+**Phases Complete:** 1, 2, 3, 3.5 (4 of 6 phases)  
+**Total Tests:** 77 (100% passing)  
+**Total Code:** ~3,200 lines (excluding tests and docs)  
+**Providers Operational:** 8/8 (100%)  
+**GUI Features:** Complete with robust error handling
+
+**New Features:**
+- ✅ Dynamic temperature restriction detection
+- ✅ Model metadata API endpoint
+- ✅ Comprehensive GUI error handling
+- ✅ Structured error responses
+- ✅ Multi-layer parameter validation
 
 **Remaining Work:**
 - Phase 4: Router and Optimization (5 tasks)

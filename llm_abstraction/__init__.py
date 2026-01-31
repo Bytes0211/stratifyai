@@ -17,6 +17,7 @@ from .client import LLMClient, ProviderType
 from .exceptions import (
     AuthenticationError,
     BudgetExceededError,
+    InsufficientBalanceError,
     InvalidModelError,
     InvalidProviderError,
     LLMAbstractionError,
@@ -76,6 +77,7 @@ __all__ = [
     "InvalidProviderError",
     "ProviderAPIError",
     "AuthenticationError",
+    "InsufficientBalanceError",
     "RateLimitError",
     "InvalidModelError",
     "BudgetExceededError",

@@ -81,20 +81,31 @@ User → LLMClient → Provider Detection → Provider Implementation → LLM AP
 
 ### Prerequisites
 - Python 3.12+ with venv support
-- [Other prerequisites]
+- uv (recommended) or pip for package management
 
 ### Initial Setup
 
-1. **Create virtual environment and install dependencies:**
+1. **Install dependencies:**
    ```bash
+   # Using uv (recommended)
+   uv sync
+   
+   # Or using pip
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
-2. **[Additional setup steps]:**
+2. **Configure API keys:**
    ```bash
-   # Add setup commands
+   # Create .env file with your API keys
+   cp .env.example .env
+   # Edit .env and add your keys
+   ```
+
+3. **Run the Web GUI:**
+   ```bash
+   uv run uvicorn api.main:app --reload
    ```
 
 ## Project Structure

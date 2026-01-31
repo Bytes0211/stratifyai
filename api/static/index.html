@@ -34,6 +34,14 @@
         .header h1 {
             color: #667eea;
             margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 img {
+            height: 50px;
+            width: auto;
         }
         
         .header p {
@@ -144,6 +152,24 @@
             max-width: 100%;
         }
         
+        .message.error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            max-width: 100%;
+        }
+        
+        .error-details {
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
         .cost-tracker {
             background: #f9f9f9;
             padding: 15px;
@@ -187,7 +213,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 StratumAI</h1>
+            <h1><img src="/static/stratum_logo.png" alt="StratumAI Logo"></h1>
             <p>Unified Intelligence Across Every Model Layer</p>
         </div>
         
@@ -276,6 +302,82 @@
             });
         }
         
+        // List of reasoning models that don't support temperature
+        const REASONING_MODELS = [
+            'o1', 'o1-mini', 'o1-preview', 'o3-mini',
+            'o1-2024-12-17', 'o1-mini-2024-09-12',
+            'deepseek-reasoner', 'gpt-5'
+        ];
+        
+        // Check if model is a reasoning model
+        function isReasoningModel(model) {
+            if (!model) return false;
+            const modelLower = model.toLowerCase();
+            // Check explicit list or patterns
+            return REASONING_MODELS.some(rm => modelLower.includes(rm.toLowerCase())) ||
+                   modelLower.startsWith('o1') ||
+                   modelLower.startsWith('o3') ||
+                   modelLower.startsWith('gpt-5') ||
+                   modelLower.includes('reasoner') ||
+                   modelLower.includes('reasoning');
+        }
+        
+        // Update temperature slider state based on model
+        async function updateTemperatureState() {
+            const provider = document.getElementById('provider').value;
+            const model = document.getElementById('model').value;
+            const tempSlider = document.getElementById('temperature');
+            const tempLabel = tempSlider.previousElementSibling;
+            
+            if (!provider || !model) return;
+            
+            try {
+                // Fetch model metadata from API
+                const response = await fetch(`${API_BASE}/api/model-info/${provider}/${model}`);
+                if (!response.ok) {
+                    // Fallback to pattern matching if API fails
+                    if (isReasoningModel(model)) {
+                        tempSlider.disabled = true;
+                        tempSlider.value = 1.0;
+                        document.getElementById('temp-value').textContent = '1.0 (fixed)';
+                        tempLabel.style.opacity = '0.5';
+                    } else {
+                        tempSlider.disabled = false;
+                        tempLabel.style.opacity = '1';
+                        document.getElementById('temp-value').textContent = tempSlider.value;
+                    }
+                    return;
+                }
+                
+                const modelInfo = await response.json();
+                
+                // Check if model has fixed temperature
+                if (modelInfo.fixed_temperature !== null && modelInfo.fixed_temperature !== undefined) {
+                    tempSlider.disabled = true;
+                    tempSlider.value = modelInfo.fixed_temperature;
+                    document.getElementById('temp-value').textContent = `${modelInfo.fixed_temperature} (fixed)`;
+                    tempLabel.style.opacity = '0.5';
+                } else {
+                    tempSlider.disabled = false;
+                    tempLabel.style.opacity = '1';
+                    document.getElementById('temp-value').textContent = tempSlider.value;
+                }
+            } catch (error) {
+                console.error('Error fetching model info:', error);
+                // Fallback to pattern matching
+                if (isReasoningModel(model)) {
+                    tempSlider.disabled = true;
+                    tempSlider.value = 1.0;
+                    document.getElementById('temp-value').textContent = '1.0 (fixed)';
+                    tempLabel.style.opacity = '0.5';
+                } else {
+                    tempSlider.disabled = false;
+                    tempLabel.style.opacity = '1';
+                    document.getElementById('temp-value').textContent = tempSlider.value;
+                }
+            }
+        }
+        
         // Load models for selected provider
         document.getElementById('provider').addEventListener('change', async (e) => {
             const provider = e.target.value;
@@ -293,7 +395,13 @@
                 option.textContent = model;
                 select.appendChild(option);
             });
+            
+            // Reset temperature state when provider changes
+            updateTemperatureState();
         });
+        
+        // Update temperature state when model changes
+        document.getElementById('model').addEventListener('change', updateTemperatureState);
         
         // Update temperature display
         document.getElementById('temperature').addEventListener('input', (e) => {
@@ -301,15 +409,34 @@
         });
         
         // Add message to chat
-        function addMessage(role, content) {
+        function addMessage(role, content, details = null) {
             const container = document.getElementById('chat-container');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-            messageDiv.textContent = content;
+            
+            // Add error details if provided
+            if (details && role === 'error') {
+                // Create main message text node
+                const mainText = document.createTextNode(content);
+                messageDiv.appendChild(mainText);
+                
+                // Create details section
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'error-details';
+                detailsDiv.textContent = details;
+                messageDiv.appendChild(detailsDiv);
+            } else {
+                // For non-error messages, just set text content
+                messageDiv.textContent = content;
+            }
+            
             container.appendChild(messageDiv);
             container.scrollTop = container.scrollHeight;
             
-            messages.push({role, content});
+            // Don't add error messages to conversation history
+            if (role !== 'error' && role !== 'system') {
+                messages.push({role, content});
+            }
         }
         
         // Send message
@@ -335,9 +462,14 @@
             
             try {
                 // Prepare request
-                const temperature = parseFloat(document.getElementById('temperature').value);
+                let temperature = parseFloat(document.getElementById('temperature').value);
                 const maxTokensInput = document.getElementById('max-tokens').value;
                 const maxTokens = maxTokensInput ? parseInt(maxTokensInput) : null;
+                
+                // Force temperature to 1.0 for reasoning models
+                if (isReasoningModel(model)) {
+                    temperature = 1.0;
+                }
                 
                 const response = await fetch(`${API_BASE}/api/chat`, {
                     method: 'POST',
@@ -353,20 +485,56 @@
                 
                 const data = await response.json();
                 
+                // Check for API errors
+                if (!response.ok) {
+                    // Handle structured error response (object) or simple error (string)
+                    let errorMsg;
+                    if (typeof data.detail === 'object' && data.detail !== null) {
+                        // Structured error response from our API
+                        errorMsg = data.detail.detail || JSON.stringify(data.detail);
+                    } else {
+                        // Simple string error
+                        errorMsg = data.detail || data.error || 'Unknown error occurred';
+                    }
+                    
+                    let userFriendlyMsg = 'API Error';
+                    let details = errorMsg;
+                    
+                    // Parse common error patterns
+                    if (errorMsg.includes('temperature') && errorMsg.includes('not support')) {
+                        const selectedTemp = parseFloat(document.getElementById('temperature').value);
+                        userFriendlyMsg = `${model} does not support temperature ${selectedTemp}. The default value is 1.0.`;
+                        details = errorMsg;
+                    } else if (errorMsg.includes('authentication') || errorMsg.includes('api key')) {
+                        userFriendlyMsg = '🔑 Authentication Error';
+                        details = `API key is missing or invalid for ${provider}.\n\nError: ${errorMsg}\n\nPlease check your .env file.`;
+                    } else if (errorMsg.includes('rate limit')) {
+                        userFriendlyMsg = '⏱️ Rate Limit Exceeded';
+                        details = `Too many requests to ${provider}.\n\nError: ${errorMsg}\n\nPlease wait a moment and try again.`;
+                    } else if (errorMsg.includes('model') && errorMsg.includes('not found')) {
+                        userFriendlyMsg = '🔍 Model Not Found';
+                        details = `The model "${model}" is not available.\n\nError: ${errorMsg}`;
+                    }
+                    
+                    addMessage('error', userFriendlyMsg, details);
+                    return;
+                }
+                
                 // Add assistant response
                 addMessage('assistant', data.content);
                 
                 // Update cost tracking
                 totalCalls++;
-                totalTokens += data.usage.total_tokens;
-                totalCost += data.cost_usd;
+                totalTokens += data.usage?.total_tokens || 0;
+                totalCost += data.cost_usd || 0;
                 
                 document.getElementById('cost-calls').textContent = totalCalls;
                 document.getElementById('cost-tokens').textContent = totalTokens.toLocaleString();
                 document.getElementById('cost-total').textContent = `$${totalCost.toFixed(4)}`;
                 
             } catch (error) {
-                addMessage('system', `Error: ${error.message}`);
+                // Network or parsing errors
+                addMessage('error', '🌐 Connection Error', `Failed to communicate with the API.\n\nError: ${error.message}\n\nPlease check if the server is running.`);
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.textContent = 'Send Message';

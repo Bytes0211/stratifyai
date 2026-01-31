@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Iterator, List, Optional
 
 from ..models import ChatRequest, ChatResponse, Usage
+from ..exceptions import ValidationError
 
 
 class BaseProvider(ABC):
@@ -149,3 +150,21 @@ class BaseProvider(ABC):
         """
         # Base implementation returns 0, override in providers that support caching
         return 0.0
+    
+    def validate_temperature(self, temperature: float, min_temp: float = 0.0, max_temp: float = 2.0) -> None:
+        """
+        Validate temperature parameter is within provider constraints.
+        
+        Args:
+            temperature: Temperature value to validate
+            min_temp: Minimum allowed temperature (provider-specific)
+            max_temp: Maximum allowed temperature (provider-specific)
+            
+        Raises:
+            ValidationError: If temperature is out of range
+        """
+        if not (min_temp <= temperature <= max_temp):
+            raise ValidationError(
+                f"{self.provider_name} temperature must be between {min_temp} and {max_temp}, "
+                f"got {temperature}"
+            )

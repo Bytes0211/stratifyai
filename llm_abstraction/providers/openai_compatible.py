@@ -3,9 +3,10 @@
 from datetime import datetime
 from typing import Dict, Iterator, List
 
-from openai import OpenAI
+from openai import OpenAI, APIStatusError, APIError
 
-from ..exceptions import ProviderAPIError, InvalidModelError
+from ..config import PROVIDER_CONSTRAINTS
+from ..exceptions import ProviderAPIError, InvalidModelError, InsufficientBalanceError, AuthenticationError
 from ..models import ChatRequest, ChatResponse, Usage
 from .base import BaseProvider
 
@@ -77,6 +78,14 @@ class OpenAICompatibleProvider(BaseProvider):
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
         
+        # Validate temperature constraints (most OpenAI-compatible providers use 0.0 to 2.0)
+        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+        self.validate_temperature(
+            request.temperature,
+            constraints.get("min_temperature", 0.0),
+            constraints.get("max_temperature", 2.0)
+        )
+        
         # Build OpenAI-compatible request parameters
         messages = []
         for msg in request.messages:
@@ -89,19 +98,38 @@ class OpenAICompatibleProvider(BaseProvider):
         openai_params = {
             "model": request.model,
             "messages": messages,
-            "temperature": request.temperature,
-            "top_p": request.top_p,
         }
+        
+        # Check if model is a reasoning model
+        model_info = self.model_catalog.get(request.model, {})
+        is_reasoning_model = model_info.get("reasoning_model", False)
+        
+        # Also check model name patterns for reasoning models
+        if not is_reasoning_model and request.model:
+            model_lower = request.model.lower()
+            is_reasoning_model = (
+                model_lower.startswith("o1") or 
+                model_lower.startswith("o3") or
+                model_lower.startswith("gpt-5") or
+                "reasoner" in model_lower or
+                "reasoning" in model_lower or
+                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+            )
+        
+        # Only add temperature and sampling params for non-reasoning models
+        if not is_reasoning_model:
+            openai_params["temperature"] = request.temperature
+            openai_params["top_p"] = request.top_p
+            if request.frequency_penalty:
+                openai_params["frequency_penalty"] = request.frequency_penalty
+            if request.presence_penalty:
+                openai_params["presence_penalty"] = request.presence_penalty
         
         # Add optional parameters
         if request.max_tokens:
             openai_params["max_tokens"] = request.max_tokens
         if request.stop:
             openai_params["stop"] = request.stop
-        if request.frequency_penalty:
-            openai_params["frequency_penalty"] = request.frequency_penalty
-        if request.presence_penalty:
-            openai_params["presence_penalty"] = request.presence_penalty
         
         # Add any extra params
         if request.extra_params:
@@ -112,6 +140,18 @@ class OpenAICompatibleProvider(BaseProvider):
             raw_response = self._client.chat.completions.create(**openai_params)
             # Normalize and return
             return self._normalize_response(raw_response.model_dump())
+        except (APIStatusError, APIError) as e:
+            error_msg = str(e)
+            # Check for specific error types
+            if "insufficient balance" in error_msg.lower():
+                raise InsufficientBalanceError(self.provider_name)
+            elif "invalid_api_key" in error_msg.lower() or "unauthorized" in error_msg.lower() or (hasattr(e, 'status_code') and e.status_code == 401):
+                raise AuthenticationError(self.provider_name)
+            else:
+                raise ProviderAPIError(
+                    f"Chat completion failed: {error_msg}",
+                    self.provider_name
+                )
         except Exception as e:
             raise ProviderAPIError(
                 f"Chat completion failed: {str(e)}",
@@ -137,6 +177,14 @@ class OpenAICompatibleProvider(BaseProvider):
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
         
+        # Validate temperature constraints (most OpenAI-compatible providers use 0.0 to 2.0)
+        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+        self.validate_temperature(
+            request.temperature,
+            constraints.get("min_temperature", 0.0),
+            constraints.get("max_temperature", 2.0)
+        )
+        
         # Build request parameters
         openai_params = {
             "model": request.model,
@@ -145,8 +193,27 @@ class OpenAICompatibleProvider(BaseProvider):
                 for msg in request.messages
             ],
             "stream": True,
-            "temperature": request.temperature,
         }
+        
+        # Check if model is a reasoning model
+        model_info = self.model_catalog.get(request.model, {})
+        is_reasoning_model = model_info.get("reasoning_model", False)
+        
+        # Also check model name patterns for reasoning models
+        if not is_reasoning_model and request.model:
+            model_lower = request.model.lower()
+            is_reasoning_model = (
+                model_lower.startswith("o1") or 
+                model_lower.startswith("o3") or
+                model_lower.startswith("gpt-5") or
+                "reasoner" in model_lower or
+                "reasoning" in model_lower or
+                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+            )
+        
+        # Only add temperature for non-reasoning models
+        if not is_reasoning_model:
+            openai_params["temperature"] = request.temperature
         
         if request.max_tokens:
             openai_params["max_tokens"] = request.max_tokens
@@ -158,6 +225,18 @@ class OpenAICompatibleProvider(BaseProvider):
                 chunk_dict = chunk.model_dump()
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield self._normalize_stream_chunk(chunk_dict)
+        except (APIStatusError, APIError) as e:
+            error_msg = str(e)
+            # Check for specific error types
+            if "insufficient balance" in error_msg.lower():
+                raise InsufficientBalanceError(self.provider_name)
+            elif "invalid_api_key" in error_msg.lower() or "unauthorized" in error_msg.lower() or (hasattr(e, 'status_code') and e.status_code == 401):
+                raise AuthenticationError(self.provider_name)
+            else:
+                raise ProviderAPIError(
+                    f"Streaming chat completion failed: {error_msg}",
+                    self.provider_name
+                )
         except Exception as e:
             raise ProviderAPIError(
                 f"Streaming chat completion failed: {str(e)}",
@@ -175,10 +254,10 @@ class OpenAICompatibleProvider(BaseProvider):
             Normalized ChatResponse with cost
         """
         choice = raw_response["choices"][0]
-        usage_dict = raw_response.get("usage", {})
+        usage_dict = raw_response.get("usage") or {}
         
         # Extract token usage
-        prompt_details = usage_dict.get("prompt_tokens_details", {})
+        prompt_details = usage_dict.get("prompt_tokens_details") or {}
         usage = Usage(
             prompt_tokens=usage_dict.get("prompt_tokens", 0),
             completion_tokens=usage_dict.get("completion_tokens", 0),

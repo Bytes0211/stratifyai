@@ -8,6 +8,13 @@ from .exceptions import InvalidModelError, InvalidProviderError
 from .models import ChatRequest, ChatResponse, Message
 from .providers.base import BaseProvider
 from .providers.openai import OpenAIProvider
+from .providers.anthropic import AnthropicProvider
+from .providers.google import GoogleProvider
+from .providers.deepseek import DeepSeekProvider
+from .providers.groq import GroqProvider
+from .providers.grok import GrokProvider
+from .providers.openrouter import OpenRouterProvider
+from .providers.ollama import OllamaProvider
 
 
 class ProviderType(str, Enum):
@@ -28,7 +35,13 @@ class LLMClient:
     # Provider registry maps provider names to provider classes
     _provider_registry: Dict[str, Type[BaseProvider]] = {
         "openai": OpenAIProvider,
-        # Additional providers will be added in Phase 2
+        "anthropic": AnthropicProvider,
+        "google": GoogleProvider,
+        "deepseek": DeepSeekProvider,
+        "groq": GroqProvider,
+        "grok": GrokProvider,
+        "openrouter": OpenRouterProvider,
+        "ollama": OllamaProvider,
     }
     
     def __init__(

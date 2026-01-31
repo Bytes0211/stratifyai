@@ -33,6 +33,14 @@ class AuthenticationError(ProviderError):
         super().__init__(f"Authentication failed for {provider}. Check API key.")
 
 
+class InsufficientBalanceError(ProviderError):
+    """Raised when provider account has insufficient balance."""
+    
+    def __init__(self, provider: str):
+        self.provider = provider
+        super().__init__(f"Insufficient balance in {provider} account. Please add credits.")
+
+
 class RateLimitError(ProviderError):
     """Raised when rate limit is exceeded."""
     

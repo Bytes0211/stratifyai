@@ -4,6 +4,49 @@ from typing import Dict, Any
 
 # OpenAI Model Catalog
 OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
+    # Current production models
+    "gpt-4o": {
+        "context": 128000,
+        "cost_input": 2.5,
+        "cost_output": 10.0,
+        "cost_cache_write": 1.25,
+        "cost_cache_read": 1.25,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "gpt-4o-mini": {
+        "context": 128000,
+        "cost_input": 0.15,
+        "cost_output": 0.60,
+        "cost_cache_write": 0.075,
+        "cost_cache_read": 0.075,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "gpt-4-turbo": {
+        "context": 128000,
+        "cost_input": 10.0,
+        "cost_output": 30.0,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    "gpt-4": {
+        "context": 8192,
+        "cost_input": 30.0,
+        "cost_output": 60.0,
+        "supports_vision": False,
+        "supports_tools": True,
+    },
+    "gpt-3.5-turbo": {
+        "context": 16385,
+        "cost_input": 0.50,
+        "cost_output": 1.50,
+        "supports_vision": False,
+        "supports_tools": True,
+    },
+    # Future models (placeholders)
     "gpt-5": {
         "context": 128000,
         "cost_input": 10.0,  # Per 1M tokens
@@ -13,6 +56,7 @@ OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": True,
         "supports_tools": True,
         "supports_caching": True,
+        "fixed_temperature": 1.0,
     },
     "gpt-5-mini": {
         "context": 128000,
@@ -58,6 +102,7 @@ OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": False,
         "supports_tools": False,
         "reasoning_model": True,
+        "fixed_temperature": 1.0,
     },
     "o1-mini": {
         "context": 128000,
@@ -66,6 +111,7 @@ OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": False,
         "supports_tools": False,
         "reasoning_model": True,
+        "fixed_temperature": 1.0,
     },
     "o3-mini": {
         "context": 200000,
@@ -74,12 +120,77 @@ OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": False,
         "supports_tools": False,
         "reasoning_model": True,
+        "fixed_temperature": 1.0,
+    },
+    "o1-preview": {
+        "context": 128000,
+        "cost_input": 15.0,
+        "cost_output": 60.0,
+        "supports_vision": False,
+        "supports_tools": False,
+        "reasoning_model": True,
+        "fixed_temperature": 1.0,
+    },
+    "o1-2024-12-17": {
+        "context": 200000,
+        "cost_input": 15.0,
+        "cost_output": 60.0,
+        "supports_vision": False,
+        "supports_tools": False,
+        "reasoning_model": True,
+        "fixed_temperature": 1.0,
+    },
+    "o1-mini-2024-09-12": {
+        "context": 128000,
+        "cost_input": 3.0,
+        "cost_output": 12.0,
+        "supports_vision": False,
+        "supports_tools": False,
+        "reasoning_model": True,
+        "fixed_temperature": 1.0,
+    },
+}
+
+# Provider-specific constraints
+PROVIDER_CONSTRAINTS: Dict[str, Dict[str, Any]] = {
+    "anthropic": {
+        "min_temperature": 0.0,
+        "max_temperature": 1.0,
+    },
+    "openai": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "google": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "deepseek": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "groq": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "grok": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "openrouter": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
+    },
+    "ollama": {
+        "min_temperature": 0.0,
+        "max_temperature": 2.0,
     },
 }
 
 # Anthropic Model Catalog
 ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
-    "claude-3-5-sonnet-20241022": {
+    # Claude 4.5 Models
+    "claude-sonnet-4-5-20250929": {
         "context": 200000,
         "cost_input": 3.0,
         "cost_output": 15.0,
@@ -89,22 +200,94 @@ ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_tools": True,
         "supports_caching": True,
     },
-    "claude-3-5-haiku-20241022": {
+    "claude-sonnet-4-5": {  # Alias for latest Sonnet 4.5
         "context": 200000,
-        "cost_input": 0.80,
-        "cost_output": 4.0,
-        "cost_cache_write": 1.0,
-        "cost_cache_read": 0.08,
-        "supports_vision": False,
+        "cost_input": 3.0,
+        "cost_output": 15.0,
+        "cost_cache_write": 3.75,
+        "cost_cache_read": 0.30,
+        "supports_vision": True,
         "supports_tools": True,
         "supports_caching": True,
     },
-    "claude-3-opus-20240229": {
+    "claude-opus-4-5-20251124": {
         "context": 200000,
         "cost_input": 15.0,
         "cost_output": 75.0,
         "cost_cache_write": 18.75,
         "cost_cache_read": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "claude-opus-4-5": {  # Alias for latest Opus 4.5
+        "context": 200000,
+        "cost_input": 15.0,
+        "cost_output": 75.0,
+        "cost_cache_write": 18.75,
+        "cost_cache_read": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "claude-haiku-4-5-20251001": {
+        "context": 200000,
+        "cost_input": 0.80,
+        "cost_output": 4.0,
+        "cost_cache_write": 1.0,
+        "cost_cache_read": 0.08,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "claude-haiku-4-5": {  # Alias for latest Haiku 4.5
+        "context": 200000,
+        "cost_input": 0.80,
+        "cost_output": 4.0,
+        "cost_cache_write": 1.0,
+        "cost_cache_read": 0.08,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    # Claude 4 Models
+    "claude-sonnet-4-20250514": {
+        "context": 200000,
+        "cost_input": 3.0,
+        "cost_output": 15.0,
+        "cost_cache_write": 3.75,
+        "cost_cache_read": 0.30,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "claude-opus-4-1-20250805": {
+        "context": 200000,
+        "cost_input": 15.0,
+        "cost_output": 75.0,
+        "cost_cache_write": 18.75,
+        "cost_cache_read": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    "claude-opus-4-20250514": {
+        "context": 200000,
+        "cost_input": 15.0,
+        "cost_output": 75.0,
+        "cost_cache_write": 18.75,
+        "cost_cache_read": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "supports_caching": True,
+    },
+    # Claude 3.7 Models (Still supported)
+    "claude-3-7-sonnet-20250219": {
+        "context": 200000,
+        "cost_input": 3.0,
+        "cost_output": 15.0,
+        "cost_cache_write": 3.75,
+        "cost_cache_read": 0.30,
         "supports_vision": True,
         "supports_tools": True,
         "supports_caching": True,
@@ -158,6 +341,7 @@ DEEPSEEK_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": False,
         "supports_tools": False,
         "reasoning_model": True,
+        "fixed_temperature": 1.0,
     },
 }
 
@@ -256,7 +440,7 @@ MODEL_CATALOG: Dict[str, Dict[str, Dict[str, Any]]] = {
 # Provider base URLs for OpenAI-compatible providers
 PROVIDER_BASE_URLS: Dict[str, str] = {
     "google": "https://generativelanguage.googleapis.com/v1beta/openai/",
-    "deepseek": "https://api.deepseek.com",
+    "deepseek": "https://api.deepseek.com/v1",
     "groq": "https://api.groq.com/openai/v1",
     "grok": "https://api.x.ai/v1",
     "openrouter": "https://openrouter.ai/api/v1",
