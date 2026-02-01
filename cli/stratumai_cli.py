@@ -81,8 +81,26 @@ def chat(
         help="Enable prompt caching (for supported providers)"
     ),
 ):
-    """Send a chat message to an LLM provider."""
+    """Send a chat message to an LLM provider.
     
+    Note: For multi-turn conversations with context, use 'stratumai interactive' instead.
+    """
+    return _chat_impl(message, provider, model, temperature, max_tokens, stream, system, file, cache_control)
+
+
+def _chat_impl(
+    message: Optional[str],
+    provider: Optional[str],
+    model: Optional[str],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+    stream: bool,
+    system: Optional[str],
+    file: Optional[Path],
+    cache_control: bool,
+    _conversation_history: Optional[List[Message]] = None,
+):
+    """Internal implementation of chat with conversation history support."""
     try:
         # Interactive prompts if not provided
         if not provider:
@@ -168,10 +186,13 @@ def chat(
             console.print("\n[bold cyan]Enter your message:[/bold cyan]")
             message = Prompt.ask("Message")
         
-        # Build messages
-        messages = []
-        if system:
-            messages.append(Message(role="system", content=system))
+        # Build messages - use conversation history if this is a follow-up
+        if _conversation_history is None:
+            messages = []
+            if system:
+                messages.append(Message(role="system", content=system))
+        else:
+            messages = _conversation_history.copy()
         
         # Add file content or message
         if file_content:
@@ -241,9 +262,15 @@ def chat(
             # Print response with Rich formatting
             console.print(f"\n{response_content}", style="cyan")
         
-        # Ask to save as markdown
-        if Confirm.ask("\nSave response as markdown?", default=False):
-            # Default filename
+        # Add assistant response to history for multi-turn conversation
+        messages.append(Message(role="assistant", content=response_content))
+        
+        # Ask what to do next
+        console.print("\n[dim]Options: [1] Continue conversation  [2] Save & continue  [3] Save & exit  [4] Exit[/dim]")
+        next_action = Prompt.ask("What would you like to do?", choices=["1", "2", "3", "4"], default="1")
+        
+        # Handle save requests
+        if next_action in ["2", "3"]:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             default_filename = f"response_{timestamp}.md"
             
@@ -259,20 +286,31 @@ def chat(
                     f.write(f"**Provider:** {provider}\n")
                     f.write(f"**Model:** {model}\n")
                     f.write(f"**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-                    f.write(f"## Prompt\n\n{message}\n\n")
-                    f.write(f"## Response\n\n{response_content}\n")
+                    f.write(f"## Conversation\n\n")
+                    
+                    # Write full conversation history
+                    for msg in messages:
+                        if msg.role == "user":
+                            f.write(f"**You:** {msg.content}\n\n")
+                        elif msg.role == "assistant":
+                            f.write(f"**Assistant:** {msg.content}\n\n")
                 
                 console.print(f"[green]✓ Saved to {filename}[/green]")
             except Exception as e:
                 console.print(f"[red]Failed to save: {e}[/red]")
         
-        # Ask to continue or exit
-        if not Confirm.ask("\nSend another message?", default=True):
+        # Exit if requested
+        if next_action in ["3", "4"]:
             console.print("[dim]Goodbye![/dim]")
             return
         
-        # Recursive call to start again
-        chat(None, provider, None, None, max_tokens, stream, system)
+        # Continue conversation (options "1" or "2")
+        # Suggest interactive mode for better UX
+        if _conversation_history is None and len(messages) > 2:
+            console.print("\n[dim]Tip: Use 'stratumai interactive' for a better multi-turn conversation experience[/dim]")
+        
+        # Recursive call with conversation history
+        _chat_impl(None, provider, model, temperature, max_tokens, stream, None, None, False, messages)
     
     except InvalidProviderError as e:
         console.print(f"[red]Invalid provider:[/red] {e}")

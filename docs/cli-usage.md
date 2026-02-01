@@ -35,7 +35,7 @@ python -m cli.stratumai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Explain quantu
 
 ### 1. `chat` - Send Chat Message
 
-Send a single message to an LLM provider. **All parameters are optional** - if not provided, you'll be prompted interactively!
+Send a message to an LLM provider. **All parameters are optional** - if not provided, you'll be prompted interactively!
 
 **Usage:**
 ```bash
@@ -55,6 +55,15 @@ python -m cli.stratumai_cli chat [OPTIONS] [MESSAGE]
 - If no model: Displays available models for selected provider
 - If no temperature: Prompts with default value (0.7)
 - If no message: Prompts for message content
+
+**Conversation Flow:**
+After each response, you'll be presented with options:
+- **[1] Continue conversation**: Send a follow-up message (maintains context)
+- **[2] Save & continue**: Save conversation to markdown and continue
+- **[3] Save & exit**: Save conversation to markdown and exit
+- **[4] Exit**: Exit without saving
+
+**Note:** For extended multi-turn conversations, use `stratumai interactive` instead for a better experience.
 
 **Examples:**
 
