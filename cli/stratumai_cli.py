@@ -16,9 +16,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from llm_abstraction import LLMClient, ChatRequest, Message, Router, RoutingStrategy
+from llm_abstraction import LLMClient, ChatRequest, Message, Router, RoutingStrategy, get_cache_stats
 from llm_abstraction.config import MODEL_CATALOG
 from llm_abstraction.exceptions import InvalidProviderError, InvalidModelError
+from pathlib import Path
 
 # Initialize Typer app and Rich console
 app = typer.Typer(
@@ -64,6 +65,20 @@ def chat(
         None,
         "--system", "-s",
         help="System message"
+    ),
+    file: Optional[Path] = typer.Option(
+        None,
+        "--file", "-f",
+        help="Load content from file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True
+    ),
+    cache_control: bool = typer.Option(
+        False,
+        "--cache-control",
+        help="Enable prompt caching (for supported providers)"
     ),
 ):
     """Send a chat message to an LLM provider."""
@@ -138,7 +153,18 @@ def chat(
                     console.print("[yellow]Invalid temperature. Using default 0.7[/yellow]")
                     temperature = 0.7
         
-        if not message:
+        # Load content from file if provided
+        file_content = None
+        if file:
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    file_content = f.read()
+                console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
+            except Exception as e:
+                console.print(f"[red]Error reading file {file}: {e}[/red]")
+                raise typer.Exit(1)
+        
+        if not message and not file_content:
             console.print("\n[bold cyan]Enter your message:[/bold cyan]")
             message = Prompt.ask("Message")
         
@@ -146,7 +172,23 @@ def chat(
         messages = []
         if system:
             messages.append(Message(role="system", content=system))
-        messages.append(Message(role="user", content=message))
+        
+        # Add file content or message
+        if file_content:
+            # If both file and message provided, combine them
+            content = f"{message}\n\n{file_content}" if message else file_content
+            
+            # Add cache control for large content if requested
+            if cache_control and len(file_content) > 1000:
+                messages.append(Message(
+                    role="user",
+                    content=content,
+                    cache_control={"type": "ephemeral"}
+                ))
+            else:
+                messages.append(Message(role="user", content=content))
+        else:
+            messages.append(Message(role="user", content=message))
         
         # Create client and request
         client = LLMClient(provider=provider)
@@ -182,7 +224,19 @@ def chat(
             
             # Display metadata before response
             console.print(f"\n[bold]Provider:[/bold] [cyan]{provider}[/cyan] | [bold]Model:[/bold] [cyan]{model}[/cyan]")
-            console.print(f"[dim]Context: {context_window:,} tokens | Tokens: {response.usage.total_tokens} | Cost: ${response.usage.cost_usd:.6f}[/dim]")
+            
+            # Build usage line with cache info if available
+            usage_parts = [f"Context: {context_window:,} tokens", f"Tokens: {response.usage.total_tokens}", f"Cost: ${response.usage.cost_usd:.6f}"]
+            
+            # Add cache statistics if available
+            if response.usage.cached_tokens > 0:
+                usage_parts.append(f"Cached: {response.usage.cached_tokens:,}")
+            if response.usage.cache_creation_tokens > 0:
+                usage_parts.append(f"Cache Write: {response.usage.cache_creation_tokens:,}")
+            if response.usage.cache_read_tokens > 0:
+                usage_parts.append(f"Cache Read: {response.usage.cache_read_tokens:,}")
+            
+            console.print(f"[dim]{' | '.join(usage_parts)}[/dim]")
             
             # Print response with Rich formatting
             console.print(f"\n{response_content}", style="cyan")
@@ -502,7 +556,19 @@ def interactive(
                 # Display metadata and response
                 console.print(f"\n[bold green]Assistant[/bold green]")
                 console.print(f"[bold]Provider:[/bold] [cyan]{provider}[/cyan] | [bold]Model:[/bold] [cyan]{model}[/cyan]")
-                console.print(f"[dim]Context: {context_window:,} tokens | Tokens: {response.usage.total_tokens} | Cost: ${response.usage.cost_usd:.6f}[/dim]")
+                
+                # Build usage line with cache info
+                usage_parts = [f"Context: {context_window:,} tokens", f"Tokens: {response.usage.total_tokens}", f"Cost: ${response.usage.cost_usd:.6f}"]
+                
+                # Add cache statistics if available
+                if response.usage.cached_tokens > 0:
+                    usage_parts.append(f"Cached: {response.usage.cached_tokens:,}")
+                if response.usage.cache_creation_tokens > 0:
+                    usage_parts.append(f"Cache Write: {response.usage.cache_creation_tokens:,}")
+                if response.usage.cache_read_tokens > 0:
+                    usage_parts.append(f"Cache Read: {response.usage.cache_read_tokens:,}")
+                
+                console.print(f"[dim]{' | '.join(usage_parts)}[/dim]")
                 console.print(f"\n{response.content}", style="cyan")
                 console.print()  # Extra newline for spacing
             
@@ -513,6 +579,48 @@ def interactive(
     
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command(name="cache-stats")
+def cache_stats():
+    """Display cache statistics."""
+    
+    try:
+        stats = get_cache_stats()
+        
+        console.print("\n[bold cyan]Response Cache Statistics[/bold cyan]\n")
+        
+        # Create table
+        table = Table()
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", justify="right", style="yellow")
+        
+        table.add_row("Cache Size", f"{stats['size']:,} entries")
+        table.add_row("Max Size", f"{stats['max_size']:,} entries")
+        table.add_row("Total Hits", f"{stats['total_hits']:,}")
+        table.add_row("Total Misses", f"{stats['total_misses']:,}")
+        
+        total_requests = stats['total_hits'] + stats['total_misses']
+        if total_requests > 0:
+            hit_rate = (stats['total_hits'] / total_requests) * 100
+            table.add_row("Hit Rate", f"{hit_rate:.1f}%")
+        else:
+            table.add_row("Hit Rate", "N/A")
+        
+        table.add_row("TTL", f"{stats['ttl']} seconds")
+        
+        console.print(table)
+        
+        # Cost savings estimation
+        if stats['total_hits'] > 0:
+            console.print(f"\n[dim]Cache hits save ~{stats['total_hits']} API calls[/dim]")
+            console.print(f"[dim]Estimated cost savings: 100% on cached requests[/dim]")
+        
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Error getting cache stats:[/red] {e}")
         raise typer.Exit(1)
 
 
