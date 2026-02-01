@@ -31,13 +31,14 @@ StratumAI is a multi-provider LLM abstraction module that allows developers to s
 ### Key Technical Achievements
 
 - ✅ Project initialized with comprehensive technical design (1,232 lines)
-- ✅ 5-week implementation roadmap (25 working days)
+- ✅ 7-week implementation roadmap completed
 - ✅ 8 provider implementations complete
 - ✅ Streaming support for all providers
 - ✅ Cost tracking accurate to $0.0001
 - ✅ Production-ready error handling and retry logic
 - ✅ Web GUI with FastAPI and interactive interface
-- 📝 Intelligent routing with complexity analysis
+- ✅ Intelligent routing with complexity analysis
+- ✅ Rich/Typer CLI for terminal usage (Phase 5 Complete)
 
 ## Architecture Overview
 
@@ -103,8 +104,15 @@ User → LLMClient → Provider Detection → Provider Implementation → LLM AP
    # Edit .env and add your keys
    ```
 
-3. **Run the Web GUI:**
+3. **Run the CLI:**
    ```bash
+   # Install CLI dependencies
+   pip install typer[all]
+   
+   # Use the CLI
+   python -m cli.stratumai_cli chat -p openai -m gpt-4o-mini -t "Hello"
+   
+   # Or run the Web GUI (optional)
    uv run uvicorn api.main:app --reload
    ```
 
@@ -117,15 +125,25 @@ stratumai/
 ├── requirements.txt
 ├── .venv/
 ├── docs/
-│   ├── project-status.md              # 5-week timeline with detailed phases
+│   ├── project-status.md              # 6-week timeline with detailed phases
 │   └── stratumai-technical-approach.md # Comprehensive technical design (1,232 lines)
-└── llm_abstraction/                    # Main package (to be implemented)
+├── cli/
+│   └── stratumai_cli.py               # Rich/Typer CLI interface
+├── api/                                # Optional FastAPI web interface
+│   ├── main.py                         # FastAPI application
+│   └── static/                         # Web UI files
+├── examples/
+│   ├── router_example.py               # Router usage examples
+│   └── caching_examples.py             # Caching decorator examples
+└── llm_abstraction/                    # Main package
     ├── __init__.py
     ├── client.py                       # Unified LLMClient
     ├── models.py                       # Data models (Message, ChatRequest, ChatResponse)
     ├── config.py                       # Model catalogs and cost tables
     ├── exceptions.py                   # Custom exceptions
-    ├── utils.py                        # Helper functions
+    ├── cost_tracker.py                 # Cost tracking module
+    ├── retry.py                        # Retry logic with fallbacks
+    ├── caching.py                      # Response caching
     ├── router.py                       # Intelligent routing
     └── providers/
         ├── base.py                     # BaseProvider abstract class
@@ -158,15 +176,30 @@ stratumai/
 
 ### Router Features (Phase 4)
 - **Complexity Analysis**: Analyze prompt to determine appropriate model tier
-- **Routing Strategies**: Cost-optimized, quality-focused, or hybrid
+- **Routing Strategies**: Cost-optimized, quality-focused, latency-focused, or hybrid
 - **Model Metadata**: Context windows, capabilities, performance characteristics
 - **Performance Benchmarks**: Latency, cost, and quality metrics
 
+### CLI Features (Phase 5) ✅
+- **Rich/Typer Interface**: Beautiful terminal UI with colors, tables, and spinners
+- **Core Commands**: chat, models, providers, route, interactive
+- **Numbered Selection**: Choose provider/model by number instead of typing names
+- **Reasoning Model Labels**: Visual indicators for reasoning models (o1, o3, deepseek-reasoner)
+- **Fixed Temperature Handling**: Automatic temperature setting for reasoning models
+- **Enhanced Metadata Display**: Provider, Model, Context Window, Tokens, and Cost
+- **Spinner Feedback**: Animated "Thinking..." indicator while waiting for responses
+- **Streaming Output**: Real-time LLM responses in terminal
+- **Interactive Mode**: Conversation loop with history and context display
+- **Loop Functionality**: Send multiple messages without restarting
+- **Markdown Export**: Save responses as markdown files with metadata
+- **Router Integration**: Auto-select best model from CLI
+- **Environment Variables**: Native support for STRATUMAI_PROVIDER, STRATUMAI_MODEL
+
 ## Project Status
 
-**Current Phase:** Phase 4 - Router and Optimization
+**Current Phase:** Phase 5 - CLI Interface ✅ COMPLETE
 
-**Progress:** 64% Complete (21 of 33 tasks complete)
+**Progress:** 88% Complete (29 of 33 tasks complete)
 
 **Completed Phases:**
 - ✅ **Phase 1:** Core Implementation (5/5 tasks)
@@ -197,13 +230,67 @@ stratumai/
   - Interactive web interface
   - Real-time cost tracking dashboard
 
+- ✅ **Phase 4:** Router and Optimization (5/5 tasks)
+  - Router with intelligent model selection
+  - Complexity analysis algorithm
+  - Cost/quality/latency/hybrid strategies
+  - 33 router unit tests passing
+
+- ✅ **Phase 5:** CLI Interface (4/4 tasks)
+  - Typer CLI framework with Rich formatting
+  - Core commands (chat, models, providers, route, interactive)
+  - Numbered selection with reasoning labels
+  - Enhanced metadata display and user experience
+  - Markdown export functionality
+  - Loop functionality for multiple queries
+
 **Next Steps:**
-- 📝 Phase 4: Router and Optimization (5 tasks)
-- 📝 Phase 5: Production Readiness (5 tasks)
+- 📝 Phase 6: Production Readiness (4 tasks remaining)
 
 ## Usage Examples
 
-### Basic Usage
+### CLI Usage (Phase 5 - Complete ✅)
+```bash
+# Quick start with interactive mode
+./start_app.sh
+
+# Simple chat with command-line args
+python -m cli.stratumai_cli chat "What is AI?" --provider openai --model gpt-4o-mini
+
+# Interactive prompts (numbered selection)
+python -m cli.stratumai_cli chat
+# Prompts for:
+# 1. Provider (1-8)
+# 2. Model (numbered list with reasoning labels)
+# 3. Temperature (auto-set for reasoning models)
+# 4. Your message
+# Then shows: Provider | Model | Context | Tokens | Cost
+
+# Streaming mode
+python -m cli.stratumai_cli chat "Write a poem" --provider openai --model gpt-4o-mini --stream
+
+# Auto-route to best model
+python -m cli.stratumai_cli route "Explain quantum computing" --strategy hybrid
+
+# Interactive conversation mode
+python -m cli.stratumai_cli interactive --provider anthropic --model claude-sonnet-4-5-20250929
+
+# List all models
+python -m cli.stratumai_cli models
+
+# List models for specific provider
+python -m cli.stratumai_cli models --provider openai
+
+# List all providers
+python -m cli.stratumai_cli providers
+
+# With environment variables
+export STRATUMAI_PROVIDER=anthropic
+export STRATUMAI_MODEL=claude-sonnet-4-5-20250929
+python -m cli.stratumai_cli chat "Hello"
+```
+
+### Python Library Usage
 ```python
 from llm_abstraction import LLMClient
 
@@ -264,22 +351,23 @@ print(tracker.get_summary())
 
 ## Implementation Timeline
 
-**Total Duration:** 6 weeks (extended from 5)
+**Total Duration:** 7 weeks
 
 - **Week 1 (Jan 30):** ✅ Core Implementation - BaseProvider, OpenAI, unified client
 - **Week 2 (Jan 30):** ✅ Provider Expansion - All 8 providers operational
 - **Week 3 (Jan 30):** ✅ Advanced Features - Cost tracking, retry logic, budget management
 - **Week 4 (Jan 30):** ✅ Web GUI - FastAPI REST API, WebSocket streaming, interactive UI
-- **Week 5 (Pending):** 📝 Router and Optimization - Intelligent model selection
-- **Week 6 (Pending):** 📝 Production Readiness - Documentation, examples, PyPI package
+- **Week 5 (Feb 1):** ✅ Router and Optimization - Intelligent model selection
+- **Week 6 (Feb 1):** ✅ CLI Interface - Rich/Typer terminal interface with enhanced UX
+- **Week 7 (Feb 2-9):** 📝 Production Readiness - Documentation, examples, PyPI package
 
-**Target Completion:** March 5, 2026
+**Target Completion:** February 9, 2026
 
 ## Documentation
 
 ### Core Documentation
 - **README.md** - This file (project overview and setup)
-- **docs/project-status.md** - Detailed 5-week timeline with phase breakdowns
+- **docs/project-status.md** - Detailed 7-week timeline with phase breakdowns
 - **docs/stratumai-technical-approach.md** - Comprehensive technical design (1,232 lines)
 - **WARP.md** - Development environment guidance for Warp AI
 

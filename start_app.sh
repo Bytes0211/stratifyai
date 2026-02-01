@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Start app
+# Start StratumAI CLI in interactive mode
 source .venv/bin/activate
-python api/main.py
-# Pause 0.25 minutes
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+python -m cli.stratumai_cli chat
+
+# Note: To start the FastAPI web GUI instead, use:
+# uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
