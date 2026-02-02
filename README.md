@@ -190,6 +190,8 @@ stratumai/
 - **Spinner Feedback**: Animated "Thinking..." indicator while waiting for responses
 - **Streaming Output**: Real-time LLM responses in terminal
 - **Interactive Mode**: Conversation loop with history and context display
+- **File Attachments**: Upload files via `--file` flag or in-conversation commands (`/file`, `/attach`)
+- **File Size Limits**: 5 MB max with warnings for files >500 KB to prevent excessive token usage
 - **Loop Functionality**: Send multiple messages without restarting
 - **Markdown Export**: Save responses as markdown files with metadata
 - **Router Integration**: Auto-select best model from CLI
@@ -274,6 +276,12 @@ python -m cli.stratumai_cli route "Explain quantum computing" --strategy hybrid
 
 # Interactive conversation mode
 python -m cli.stratumai_cli interactive --provider anthropic --model claude-sonnet-4-5-20250929
+
+# Interactive mode with initial file context
+python -m cli.stratumai_cli interactive --file document.txt
+
+# Chat with file attachment
+python -m cli.stratumai_cli chat --file report.pdf --provider openai --model gpt-4o
 
 # List all models
 python -m cli.stratumai_cli models

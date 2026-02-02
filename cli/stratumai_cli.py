@@ -102,26 +102,45 @@ def _chat_impl(
 ):
     """Internal implementation of chat with conversation history support."""
     try:
+        # Track if we prompted for provider/model to determine if we should prompt for file
+        prompted_for_provider = False
+        prompted_for_model = False
+        
         # Interactive prompts if not provided
         if not provider:
+            prompted_for_provider = True
             console.print("\n[bold cyan]Select Provider[/bold cyan]")
             providers_list = ["openai", "anthropic", "google", "deepseek", "groq", "grok", "ollama", "openrouter"]
             for i, p in enumerate(providers_list, 1):
                 console.print(f"  {i}. {p}")
             
-            provider_choice = Prompt.ask("\nChoose provider", default="1")
-            try:
-                provider_idx = int(provider_choice) - 1
-                if 0 <= provider_idx < len(providers_list):
-                    provider = providers_list[provider_idx]
-                else:
-                    console.print("[yellow]Invalid selection. Using default: openai[/yellow]")
-                    provider = "openai"
-            except ValueError:
-                console.print("[yellow]Invalid input. Using default: openai[/yellow]")
-                provider = "openai"
+            # Retry loop for provider selection
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                provider_choice = Prompt.ask("\nChoose provider", default="1")
+                
+                try:
+                    provider_idx = int(provider_choice) - 1
+                    if 0 <= provider_idx < len(providers_list):
+                        provider = providers_list[provider_idx]
+                        break
+                    else:
+                        console.print(f"[red]✗ Invalid number.[/red] Please enter a number between 1 and {len(providers_list)}")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                        else:
+                            console.print("[yellow]Too many invalid attempts. Using default: openai[/yellow]")
+                            provider = "openai"
+                except ValueError:
+                    console.print(f"[red]✗ Invalid input.[/red] Please enter a number, not letters (e.g., '1' not 'openai')")
+                    if attempt < max_attempts - 1:
+                        console.print("[dim]Try again...[/dim]")
+                    else:
+                        console.print("[yellow]Too many invalid attempts. Using default: openai[/yellow]")
+                        provider = "openai"
         
         if not model:
+            prompted_for_model = True
             # Show available models for selected provider
             if provider in MODEL_CATALOG:
                 console.print(f"\n[bold cyan]Available models for {provider}:[/bold cyan]")
@@ -134,16 +153,29 @@ def _chat_impl(
                         label += " [yellow](reasoning)[/yellow]"
                     console.print(label)
             
-                model_choice = Prompt.ask("\nSelect model")
-                try:
-                    model_idx = int(model_choice) - 1
-                    if 0 <= model_idx < len(available_models):
-                        model = available_models[model_idx]
-                    else:
-                        console.print(f"[red]Invalid selection. Please enter a number between 1 and {len(available_models)}[/red]")
-                        raise typer.Exit(1)
-                except ValueError:
-                    console.print("[red]Invalid input. Please enter a number.[/red]")
+                # Retry loop for model selection
+                max_attempts = 3
+                model = None
+                for attempt in range(max_attempts):
+                    model_choice = Prompt.ask("\nSelect model")
+                    
+                    try:
+                        model_idx = int(model_choice) - 1
+                        if 0 <= model_idx < len(available_models):
+                            model = available_models[model_idx]
+                            break
+                        else:
+                            console.print(f"[red]✗ Invalid number.[/red] Please enter a number between 1 and {len(available_models)}")
+                            if attempt < max_attempts - 1:
+                                console.print("[dim]Try again...[/dim]")
+                    except ValueError:
+                        console.print(f"[red]✗ Invalid input.[/red] Please enter a number, not the model name (e.g., '2' not 'gpt-4o')")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                
+                # If still no valid model after retries, exit
+                if model is None:
+                    console.print(f"[red]Too many invalid attempts. Exiting.[/red]")
                     raise typer.Exit(1)
             else:
                 console.print(f"[red]No models found for provider: {provider}[/red]")
@@ -158,18 +190,45 @@ def _chat_impl(
                 temperature = fixed_temp
                 console.print(f"\n[dim]Using fixed temperature: {fixed_temp} for this model[/dim]")
             else:
-                temp_input = Prompt.ask(
-                    "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
-                    default="0.7"
-                )
-                try:
-                    temperature = float(temp_input)
-                    if temperature < 0.0 or temperature > 2.0:
-                        console.print("[yellow]Temperature must be between 0.0 and 2.0. Using default 0.7[/yellow]")
-                        temperature = 0.7
-                except ValueError:
-                    console.print("[yellow]Invalid temperature. Using default 0.7[/yellow]")
+                # Retry loop for temperature input
+                max_attempts = 3
+                temperature = None
+                for attempt in range(max_attempts):
+                    temp_input = Prompt.ask(
+                        "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                        default="0.7"
+                    )
+                    
+                    try:
+                        temp_value = float(temp_input)
+                        if 0.0 <= temp_value <= 2.0:
+                            temperature = temp_value
+                            break
+                        else:
+                            console.print("[red]✗ Out of range.[/red] Temperature must be between 0.0 and 2.0")
+                            if attempt < max_attempts - 1:
+                                console.print("[dim]Try again...[/dim]")
+                    except ValueError:
+                        console.print(f"[red]✗ Invalid input.[/red] Please enter a number (e.g., '0.7' not '{temp_input}')")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                
+                # If still no valid temperature after retries, use default
+                if temperature is None:
+                    console.print("[yellow]Too many invalid attempts. Using default: 0.7[/yellow]")
                     temperature = 0.7
+        
+        # Prompt for file if not provided via flag (only in fully interactive mode and non-follow-up messages)
+        # Only prompt if we also prompted for provider AND model (fully interactive)
+        if not file and _conversation_history is None and prompted_for_provider and prompted_for_model:
+            console.print(f"\n[bold cyan]File Attachment (Optional)[/bold cyan]")
+            console.print(f"[dim]Attach a file to include its content in your message[/dim]")
+            console.print(f"[dim]Max file size: 5 MB | Leave blank to skip[/dim]")
+            
+            file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+            
+            if file_path_input.strip():
+                file = Path(file_path_input.strip()).expanduser()
         
         # Load content from file if provided
         file_content = None
@@ -177,7 +236,28 @@ def _chat_impl(
             try:
                 with open(file, 'r', encoding='utf-8') as f:
                     file_content = f.read()
-                console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
+                
+                # Get file size for display (only if file exists as Path object)
+                try:
+                    if isinstance(file, Path) and file.exists():
+                        file_size = file.stat().st_size
+                        file_size_mb = file_size / (1024 * 1024)
+                        file_size_kb = file_size / 1024
+                        
+                        if file_size_kb < 1:
+                            size_str = f"{file_size} bytes"
+                        elif file_size_mb < 1:
+                            size_str = f"{file_size_kb:.1f} KB"
+                        else:
+                            size_str = f"{file_size_mb:.2f} MB"
+                        
+                        console.print(f"[green]✓ Loaded {file.name}[/green] [dim]({size_str}, {len(file_content):,} chars)[/dim]")
+                    else:
+                        # Fallback for tests or non-Path objects
+                        console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
+                except:
+                    # Fallback if stat fails (e.g., in test environments)
+                    console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
             except Exception as e:
                 console.print(f"[red]Error reading file {file}: {e}[/red]")
                 raise typer.Exit(1)
@@ -495,10 +575,75 @@ def interactive(
         envvar="STRATUMAI_MODEL",
         help="Model name"
     ),
+    file: Optional[Path] = typer.Option(
+        None,
+        "--file", "-f",
+        help="Load initial context from file",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True
+    ),
 ):
     """Start interactive chat session."""
     
+    # File upload constraints
+    MAX_FILE_SIZE_MB = 5
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+    LARGE_FILE_THRESHOLD_KB = 500
+    
     try:
+        # Helper function to load file with size validation
+        def load_file_content(file_path: Path, warn_large: bool = True) -> Optional[str]:
+            """Load file content with size restrictions and warnings."""
+            try:
+                # Check if file exists
+                if not file_path.exists():
+                    console.print(f"[red]✗ File not found: {file_path}[/red]")
+                    return None
+                
+                # Check file size
+                file_size = file_path.stat().st_size
+                file_size_mb = file_size / (1024 * 1024)
+                file_size_kb = file_size / 1024
+                
+                # Enforce size limit
+                if file_size > MAX_FILE_SIZE_BYTES:
+                    console.print(f"[red]✗ File too large: {file_size_mb:.2f} MB (max {MAX_FILE_SIZE_MB} MB)[/red]")
+                    console.print(f"[yellow]⚠ Large files consume significant tokens and may exceed model context limits[/yellow]")
+                    return None
+                
+                # Warn about large files
+                if warn_large and file_size > (LARGE_FILE_THRESHOLD_KB * 1024):
+                    console.print(f"[yellow]⚠ Large file detected: {file_size_kb:.1f} KB[/yellow]")
+                    console.print(f"[yellow]⚠ This will consume substantial tokens and may incur significant costs[/yellow]")
+                    
+                    if not Confirm.ask("Continue loading this file?", default=False):
+                        console.print("[dim]File load cancelled[/dim]")
+                        return None
+                
+                # Read file content
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Display success message
+                if file_size_kb < 1:
+                    size_str = f"{file_size} bytes"
+                elif file_size_mb < 1:
+                    size_str = f"{file_size_kb:.1f} KB"
+                else:
+                    size_str = f"{file_size_mb:.2f} MB"
+                
+                console.print(f"[green]✓ Loaded {file_path.name}[/green] [dim]({size_str}, {len(content):,} chars)[/dim]")
+                return content
+                
+            except UnicodeDecodeError:
+                console.print(f"[red]✗ Cannot read file: {file_path.name} (not a text file)[/red]")
+                return None
+            except Exception as e:
+                console.print(f"[red]✗ Error reading file: {e}[/red]")
+                return None
+        
         # Prompt for provider and model if not provided
         if not provider:
             console.print("\n[bold cyan]Select Provider[/bold cyan]")
@@ -506,17 +651,30 @@ def interactive(
             for i, p in enumerate(providers_list, 1):
                 console.print(f"  {i}. {p}")
             
-            provider_choice = Prompt.ask("\nChoose provider", default="1")
-            try:
-                provider_idx = int(provider_choice) - 1
-                if 0 <= provider_idx < len(providers_list):
-                    provider = providers_list[provider_idx]
-                else:
-                    console.print("[yellow]Invalid selection. Using default: openai[/yellow]")
-                    provider = "openai"
-            except ValueError:
-                console.print("[yellow]Invalid input. Using default: openai[/yellow]")
-                provider = "openai"
+            # Retry loop for provider selection
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                provider_choice = Prompt.ask("\nChoose provider", default="1")
+                
+                try:
+                    provider_idx = int(provider_choice) - 1
+                    if 0 <= provider_idx < len(providers_list):
+                        provider = providers_list[provider_idx]
+                        break
+                    else:
+                        console.print(f"[red]✗ Invalid number.[/red] Please enter a number between 1 and {len(providers_list)}")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                        else:
+                            console.print("[yellow]Too many invalid attempts. Using default: openai[/yellow]")
+                            provider = "openai"
+                except ValueError:
+                    console.print(f"[red]✗ Invalid input.[/red] Please enter a number, not letters (e.g., '1' not 'openai')")
+                    if attempt < max_attempts - 1:
+                        console.print("[dim]Try again...[/dim]")
+                    else:
+                        console.print("[yellow]Too many invalid attempts. Using default: openai[/yellow]")
+                        provider = "openai"
         
         if not model:
             # Show available models for provider
@@ -531,16 +689,29 @@ def interactive(
                         label += " [yellow](reasoning)[/yellow]"
                     console.print(label)
             
-                model_choice = Prompt.ask("\nSelect model")
-                try:
-                    model_idx = int(model_choice) - 1
-                    if 0 <= model_idx < len(available_models):
-                        model = available_models[model_idx]
-                    else:
-                        console.print(f"[red]Invalid selection. Please enter a number between 1 and {len(available_models)}[/red]")
-                        raise typer.Exit(1)
-                except ValueError:
-                    console.print("[red]Invalid input. Please enter a number.[/red]")
+                # Retry loop for model selection
+                max_attempts = 3
+                model = None
+                for attempt in range(max_attempts):
+                    model_choice = Prompt.ask("\nSelect model")
+                    
+                    try:
+                        model_idx = int(model_choice) - 1
+                        if 0 <= model_idx < len(available_models):
+                            model = available_models[model_idx]
+                            break
+                        else:
+                            console.print(f"[red]✗ Invalid number.[/red] Please enter a number between 1 and {len(available_models)}")
+                            if attempt < max_attempts - 1:
+                                console.print("[dim]Try again...[/dim]")
+                    except ValueError:
+                        console.print(f"[red]✗ Invalid input.[/red] Please enter a number, not the model name (e.g., '2' not 'gpt-4o')")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                
+                # If still no valid model after retries, exit
+                if model is None:
+                    console.print(f"[red]Too many invalid attempts. Exiting.[/red]")
                     raise typer.Exit(1)
             else:
                 console.print(f"[red]No models found for provider: {provider}[/red]")
@@ -554,16 +725,47 @@ def interactive(
         model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
         context_window = model_info.get("context", "N/A")
         
+        # Prompt for initial file if not provided via flag
+        if not file:
+            console.print(f"\n[bold cyan]Initial File Context (Optional)[/bold cyan]")
+            console.print(f"[dim]Load a file to provide context for the conversation[/dim]")
+            console.print(f"[dim]Max file size: {MAX_FILE_SIZE_MB} MB | Leave blank to skip[/dim]")
+            
+            file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+            
+            if file_path_input.strip():
+                file = Path(file_path_input.strip()).expanduser()
+        
+        # Load initial file if provided
+        if file:
+            console.print(f"\n[bold cyan]Loading initial context...[/bold cyan]")
+            file_content = load_file_content(file, warn_large=True)
+            if file_content:
+                messages.append(Message(
+                    role="user",
+                    content=f"[Context from {file.name}]\n\n{file_content}"
+                ))
+                console.print(f"[dim]File loaded as initial context[/dim]")
+        
         # Welcome message
         console.print(f"\n[bold green]StratumAI Interactive Mode[/bold green]")
         console.print(f"Provider: [cyan]{provider}[/cyan] | Model: [cyan]{model}[/cyan] | Context: [cyan]{context_window:,} tokens[/cyan]")
-        console.print("[dim]Type 'exit', 'quit', or 'q' to exit[/dim]\n")
+        console.print("[dim]Commands: /file <path> | /attach <path> | /clear | exit[/dim]")
+        console.print(f"[dim]File size limit: {MAX_FILE_SIZE_MB} MB | Ctrl+C to exit[/dim]\n")
         
         # Conversation loop
+        staged_file_content = None  # For /attach command
+        staged_file_name = None
+        
         while True:
+            # Show staged file indicator
+            prompt_text = "[bold blue]You[/bold blue]"
+            if staged_file_content:
+                prompt_text = f"[bold blue]You[/bold blue] [dim]📎 {staged_file_name}[/dim]"
+            
             # Get user input
             try:
-                user_input = Prompt.ask("[bold blue]You[/bold blue]")
+                user_input = Prompt.ask(prompt_text)
             except (KeyboardInterrupt, EOFError):
                 console.print("\n[dim]Exiting...[/dim]")
                 break
@@ -573,12 +775,67 @@ def interactive(
                 console.print("[dim]Goodbye![/dim]")
                 break
             
-            # Skip empty input
-            if not user_input.strip():
+            # Handle special commands
+            if user_input.startswith('/file '):
+                # Load and send file immediately
+                file_path_str = user_input[6:].strip()
+                file_path = Path(file_path_str).expanduser()
+                
+                file_content = load_file_content(file_path, warn_large=True)
+                if file_content:
+                    # Send file content as user message
+                    user_input = f"[File: {file_path.name}]\n\n{file_content}"
+                    messages.append(Message(role="user", content=user_input))
+                else:
+                    continue  # Error already displayed, skip to next input
+            
+            elif user_input.startswith('/attach '):
+                # Stage file for next message
+                file_path_str = user_input[8:].strip()
+                file_path = Path(file_path_str).expanduser()
+                
+                file_content = load_file_content(file_path, warn_large=True)
+                if file_content:
+                    staged_file_content = file_content
+                    staged_file_name = file_path.name
+                    console.print(f"[green]✓ File staged[/green] [dim]- will be attached to your next message[/dim]")
                 continue
             
+            elif user_input.lower() == '/clear':
+                # Clear staged attachment
+                if staged_file_content:
+                    console.print(f"[yellow]Cleared staged file: {staged_file_name}[/yellow]")
+                    staged_file_content = None
+                    staged_file_name = None
+                else:
+                    console.print("[dim]No staged files to clear[/dim]")
+                continue
+            
+            elif user_input.startswith('/'):
+                # Unknown command
+                console.print(f"[yellow]Unknown command: {user_input.split()[0]}[/yellow]")
+                console.print("[dim]Available commands: /file <path>, /attach <path>, /clear[/dim]")
+                continue
+            
+            # Skip empty input (unless there's a staged file)
+            if not user_input.strip() and not staged_file_content:
+                continue
+            
+            # Build message content (combine text with staged file if present)
+            if staged_file_content:
+                if user_input.strip():
+                    message_content = f"{user_input}\n\n[Attached: {staged_file_name}]\n\n{staged_file_content}"
+                else:
+                    message_content = f"[Attached: {staged_file_name}]\n\n{staged_file_content}"
+                
+                # Clear staged file after use
+                staged_file_content = None
+                staged_file_name = None
+            else:
+                message_content = user_input
+            
             # Add user message to history
-            messages.append(Message(role="user", content=user_input))
+            messages.append(Message(role="user", content=message_content))
             
             # Create request and get response
             request = ChatRequest(model=model, messages=messages)
@@ -608,7 +865,7 @@ def interactive(
                 
                 console.print(f"[dim]{' | '.join(usage_parts)}[/dim]")
                 console.print(f"\n{response.content}", style="cyan")
-                console.print()  # Extra newline for spacing
+                console.print()
             
             except Exception as e:
                 console.print(f"[red]Error:[/red] {e}\n")

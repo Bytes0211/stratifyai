@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from llm_abstraction import LLMClient, Router, RoutingStrategy, CostTracker
 from llm_abstraction.models import Message
-from llm_abstraction.exceptions import LLMException
+from llm_abstraction.exceptions import LLMAbstractionError
 from llm_abstraction.caching import cache_response
 
 console = Console()
@@ -50,7 +50,8 @@ class DocumentSummarizer:
             cache_enabled: Enable response caching
         """
         self.client = LLMClient()
-        self.tracker = CostTracker(budget_limit=budget_limit)
+        self.tracker = CostTracker()
+        self.tracker.set_budget(budget_limit)
         self.use_router = use_router
         self.cache_enabled = cache_enabled
         
@@ -127,16 +128,21 @@ Document:
                 )
             
             # Track cost
-            self.tracker.record_call(
-                model=response.model,
+            self.tracker.add_entry(
                 provider=response.provider,
-                usage=response.usage
+                model=response.model,
+                prompt_tokens=response.usage.prompt_tokens,
+                completion_tokens=response.usage.completion_tokens,
+                total_tokens=response.usage.total_tokens,
+                cost_usd=response.usage.cost_usd,
+                request_id=response.id
             )
             
             # Check budget
-            within_budget, remaining = self.tracker.check_budget()
-            if not within_budget:
-                console.print(f"[yellow]⚠ Budget exceeded! Remaining: ${remaining:.2f}[/yellow]")
+            if self.tracker.is_over_budget():
+                budget_status = self.tracker.get_budget_status()
+                overspent = budget_status["total_cost"] - budget_status["budget_limit"]
+                console.print(f"[yellow]⚠ Budget exceeded! Overspent by ${overspent:.2f}[/yellow]")
             
             return {
                 "summary": response.content,
@@ -147,7 +153,7 @@ Document:
                 "success": True
             }
             
-        except LLMException as e:
+        except LLMAbstractionError as e:
             console.print(f"[red]Error during summarization: {e}[/red]")
             return {
                 "summary": None,

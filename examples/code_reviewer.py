@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from llm_abstraction import LLMClient, Router, RoutingStrategy
 from llm_abstraction.models import Message
-from llm_abstraction.exceptions import LLMException
+from llm_abstraction.exceptions import LLMAbstractionError
 
 console = Console()
 
@@ -180,7 +180,7 @@ Provide a detailed code review."""
                 "success": True
             }
             
-        except LLMException as e:
+        except LLMAbstractionError as e:
             console.print(f"[red]Error during review: {e}[/red]")
             return {
                 "review": None,

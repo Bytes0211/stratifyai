@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from llm_abstraction import LLMClient, CostTracker
 from llm_abstraction.models import Message
-from llm_abstraction.exceptions import LLMException
+from llm_abstraction.exceptions import LLMAbstractionError
 
 console = Console()
 
@@ -52,7 +52,8 @@ class Chatbot:
             budget_limit: Budget limit in USD
         """
         self.client = LLMClient()
-        self.tracker = CostTracker(budget_limit=budget_limit)
+        self.tracker = CostTracker()
+        self.tracker.set_budget(budget_limit)
         self.current_model = model
         self.conversation: List[Message] = []
         self.metadata = {
@@ -95,15 +96,19 @@ class Chatbot:
             self.metadata["total_messages"] += 1
             
             # Track cost
-            self.tracker.record_call(
-                model=response.model,
+            self.tracker.add_entry(
                 provider=response.provider,
-                usage=response.usage
+                model=response.model,
+                prompt_tokens=response.usage.prompt_tokens,
+                completion_tokens=response.usage.completion_tokens,
+                total_tokens=response.usage.total_tokens,
+                cost_usd=response.usage.cost_usd,
+                request_id=response.id
             )
             
             return response.content
             
-        except LLMException as e:
+        except LLMAbstractionError as e:
             console.print(f"[red]Error: {e}[/red]")
             # Remove user message on error
             self.conversation.pop()
@@ -258,11 +263,6 @@ class ChatInterface:
         console.print("\n")
         console.print(table)
         
-        # Show cost by provider
-        if cost_tracker_summary.get("by_provider"):
-            console.print("\n[bold]Cost by Provider:[/bold]")
-            for provider, cost in cost_tracker_summary["by_provider"].items():
-                console.print(f"  - {provider}: ${cost:.4f}")
     
     def list_models(self):
         """List available models."""
@@ -334,7 +334,11 @@ class ChatInterface:
         self.display_welcome()
         
         console.print(f"\n[dim]Current model: {self.bot.current_model}[/dim]")
-        console.print(f"[dim]Budget: ${self.bot.tracker.budget_limit:.2f}[/dim]\n")
+        budget_status = self.bot.tracker.get_budget_status()
+        if budget_status["budget_set"]:
+            console.print(f"[dim]Budget: ${budget_status['budget_limit']:.2f}[/dim]\n")
+        else:
+            console.print(f"[dim]Budget: Not set[/dim]\n")
         
         while True:
             try:
@@ -359,9 +363,10 @@ class ChatInterface:
                     self.display_message("assistant", response)
                 
                 # Check budget
-                within_budget, remaining = self.bot.tracker.check_budget()
-                if not within_budget:
-                    console.print(f"\n[yellow]⚠ Budget exceeded! Overspent by ${abs(remaining):.2f}[/yellow]")
+                budget_status = self.bot.tracker.get_budget_status()
+                if budget_status.get("budget_set") and budget_status["over_budget"]:
+                    overspent = budget_status["total_cost"] - budget_status["budget_limit"]
+                    console.print(f"\n[yellow]⚠ Budget exceeded! Overspent by ${overspent:.2f}[/yellow]")
                     if not Confirm.ask("Continue anyway?"):
                         break
             
