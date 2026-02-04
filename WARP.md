@@ -64,9 +64,9 @@ EOF
 **Supported Bedrock Models:**
 - Anthropic Claude: `anthropic.claude-3-5-sonnet-20241022-v2:0`, `anthropic.claude-3-5-haiku-20241022-v1:0`
 - Meta Llama: `meta.llama3-3-70b-instruct-v1:0`, `meta.llama3-2-90b-instruct-v1:0`
-- Mistral AI: `mistral.mistral-large-2407-v1:0`
-- Amazon Titan: `amazon.titan-text-premier-v1:0`
-- Cohere: `cohere.command-r-plus-v1:0`
+- Mistral AI: `mistral.mistral-large-2402-v1:0`, `mistral.mistral-small-2402-v1:0`
+- Amazon Nova: `amazon.nova-pro-v1:0`, `amazon.nova-lite-v1:0`, `amazon.nova-micro-v1:0`
+- Cohere: `cohere.command-r-plus-v1:0`, `cohere.command-r-v1:0`
 
 **Permissions Required:**
 Your AWS IAM user/role must have the `bedrock:InvokeModel` permission:
@@ -102,7 +102,7 @@ stratumai/
 │   ├── stratumai_grok.py               # Grok (default: grok-beta)
 │   ├── stratumai_openrouter.py         # OpenRouter (default: llama-3.3-70b:free)
 │   ├── stratumai_ollama.py             # Ollama (default: llama3.2)
-│   └── stratumai_bedrock.py            # Bedrock (default: claude-3-5-sonnet)
+│   └── stratumai_bedrock.py            # Bedrock (default: anthropic.claude-3-5-sonnet-20241022-v2:0)
 └── llm_abstraction/                    # Main package
     ├── __init__.py
     ├── client.py                       # Unified LLMClient
@@ -173,19 +173,21 @@ pip freeze > requirements.txt
 - **Cost-Aware**: Track every token and enforce budget limits
 
 ### Key Design Decisions
-1. **Provider Strategy Pattern**: All providers inherit from BaseProvider abstract class, ensuring consistent interface
-2. **OpenAI-Compatible Pattern**: Providers with OpenAI-compatible APIs (Gemini, DeepSeek, Groq, Grok, Ollama) share common base class
-3. **Unified Message Format**: All providers use OpenAI-compatible message format internally
-4. **Cost Tracking**: Every request calculates cost based on provider-specific pricing tables
-5. **Type Safety**: Full type hints and dataclasses for all requests/responses
-6. **Lazy Provider Loading**: Providers are instantiated on-demand, not at client initialization
-7. **Router Independence**: Router is optional - core functionality works without it
+1. **Async-First Architecture**: All provider methods are async using native SDK async clients (AsyncOpenAI, AsyncAnthropic, aioboto3)
+2. **Provider Strategy Pattern**: All providers inherit from BaseProvider abstract class, ensuring consistent interface
+3. **OpenAI-Compatible Pattern**: Providers with OpenAI-compatible APIs (Gemini, DeepSeek, Groq, Grok, Ollama) share common base class
+4. **Unified Message Format**: All providers use OpenAI-compatible message format internally
+5. **Cost Tracking**: Every request calculates cost based on provider-specific pricing tables
+6. **Type Safety**: Full type hints and dataclasses for all requests/responses
+7. **Lazy Provider Loading**: Providers are instantiated on-demand, not at client initialization
+8. **Router Independence**: Router is optional - core functionality works without it
+9. **Sync Wrappers**: Convenience sync methods (`chat_sync()`, `chat_completion_sync()`) for CLI and simple scripts
 
 ## Project Status
 
-**Current Phase:** Phase 7.6 - Chat Package ✅  
-**Progress:** Phases 1-6 + Phase 7.1-7.6 Complete  
-**Latest Updates:** Phase 7.6 complete - Chat package with provider-specific modules (Feb 4, 2026)
+**Current Phase:** Phase 7.7 - Async-First Conversion ✅  
+**Progress:** Phases 1-6 + Phase 7.1-7.7 Complete  
+**Latest Updates:** Phase 7.7 complete - Full async-first architecture conversion (Feb 4, 2026)
 
 ### Completed Phases
 - ✅ Phase 1: Core Implementation (100%)
@@ -284,9 +286,23 @@ pip freeze > requirements.txt
   - Optional system prompt, temperature, max_tokens parameters
   - Lazy client initialization for efficiency
   - Package exports with convenient aliases (openai, anthropic, etc.)
+- ✅ Phase 7.7: Async-First Conversion (100%)
+  - All providers converted to async using native SDK clients
+  - AsyncOpenAI, AsyncAnthropic for primary providers
+  - aioboto3 for AWS Bedrock async support
+  - AsyncIterator for streaming responses
+  - Sync wrappers (chat_sync, chat_completion_sync) for convenience
+  - Retry decorator updated for async with asyncio.sleep
+  - Cache decorator updated for async functions
+  - Embeddings and RAG modules converted to async
+  - Chat package modules all async with sync wrappers
+  - FastAPI endpoints using native async providers
+  - pytest-asyncio configuration added
+  - Latency tracking (latency_ms) added to ChatResponse
+  - CLI displays latency in response metadata
 
 ### Current Focus (Week 7+: Feb 4+)
-**Phase 7.5: RAG/Vector DB Integration** ✅ COMPLETE
+**Phase 7.7: Async-First Conversion** ✅ COMPLETE
 - ✅ Vector database integration (ChromaDB)
 - ✅ Embedding generation (OpenAI)
 - ✅ Semantic search

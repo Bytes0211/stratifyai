@@ -3,15 +3,15 @@
 import json
 import os
 from datetime import datetime
-from typing import Iterator, List, Optional
+from typing import AsyncIterator, List, Optional
 
 try:
-    import boto3
+    import aioboto3
     from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
 except ImportError:
     raise ImportError(
-        "boto3 is required for AWS Bedrock support. "
-        "Install with: pip install boto3>=1.34.0"
+        "aioboto3 is required for AWS Bedrock async support. "
+        "Install with: pip install aioboto3>=12.0.0"
     )
 
 from ..config import BEDROCK_MODELS, PROVIDER_CONSTRAINTS
@@ -21,7 +21,7 @@ from .base import BaseProvider
 
 
 class BedrockProvider(BaseProvider):
-    """AWS Bedrock provider implementation using boto3."""
+    """AWS Bedrock provider implementation using aioboto3 for async support."""
     
     def __init__(
         self,
@@ -78,9 +78,9 @@ class BedrockProvider(BaseProvider):
         self._initialize_client()
     
     def _initialize_client(self) -> None:
-        """Initialize AWS Bedrock runtime client."""
+        """Initialize AWS Bedrock session for async client creation."""
         try:
-            # Create boto3 session with explicit credentials if provided
+            # Create aioboto3 session with explicit credentials if provided
             session_params = {"region_name": self.region_name}
             if self.aws_access_key_id and self.aws_secret_access_key:
                 session_params["aws_access_key_id"] = self.aws_access_key_id
@@ -88,13 +88,10 @@ class BedrockProvider(BaseProvider):
                 if self.aws_session_token:
                     session_params["aws_session_token"] = self.aws_session_token
             
-            session = boto3.Session(**session_params)
-            
-            # Create bedrock-runtime client
-            self._client = session.client("bedrock-runtime")
-            
-            # Test credentials by listing foundation models (optional check)
-            # We'll skip this for now to avoid extra API calls
+            # Store session for async client creation
+            # aioboto3 clients must be created within async context
+            self._session = aioboto3.Session(**session_params)
+            self._client = None  # Will be created in async context
             
         except NoCredentialsError:
             raise AuthenticationError(
@@ -103,7 +100,7 @@ class BedrockProvider(BaseProvider):
             )
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize AWS Bedrock client: {str(e)}",
+                f"Failed to initialize AWS Bedrock session: {str(e)}",
                 "bedrock"
             )
     
@@ -116,7 +113,7 @@ class BedrockProvider(BaseProvider):
         """Return list of supported Bedrock models."""
         return list(BEDROCK_MODELS.keys())
     
-    def chat_completion(self, request: ChatRequest) -> ChatResponse:
+    async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """
         Execute chat completion request using Bedrock.
         
@@ -145,19 +142,21 @@ class BedrockProvider(BaseProvider):
         body = self._build_request_body(request)
         
         try:
-            # Invoke Bedrock model
-            response = self._client.invoke_model(
-                modelId=request.model,
-                contentType="application/json",
-                accept="application/json",
-                body=json.dumps(body)
-            )
-            
-            # Parse response
-            response_body = json.loads(response["body"].read())
-            
-            # Normalize response based on model family
-            return self._normalize_response(response_body, request.model)
+            # Create async client and invoke Bedrock model
+            async with self._session.client("bedrock-runtime") as client:
+                response = await client.invoke_model(
+                    modelId=request.model,
+                    contentType="application/json",
+                    accept="application/json",
+                    body=json.dumps(body)
+                )
+                
+                # Parse response - aioboto3 returns StreamingBody
+                response_body_bytes = await response["body"].read()
+                response_body = json.loads(response_body_bytes)
+                
+                # Normalize response based on model family
+                return self._normalize_response(response_body, request.model)
             
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
@@ -172,9 +171,9 @@ class BedrockProvider(BaseProvider):
                 self.provider_name
             )
     
-    def chat_completion_stream(
+    async def chat_completion_stream(
         self, request: ChatRequest
-    ) -> Iterator[ChatResponse]:
+    ) -> AsyncIterator[ChatResponse]:
         """
         Execute streaming chat completion request.
         
@@ -203,22 +202,23 @@ class BedrockProvider(BaseProvider):
         body = self._build_request_body(request)
         
         try:
-            # Invoke Bedrock model with streaming
-            response = self._client.invoke_model_with_response_stream(
-                modelId=request.model,
-                contentType="application/json",
-                accept="application/json",
-                body=json.dumps(body)
-            )
-            
-            # Process streaming response
-            stream = response.get("body")
-            if stream:
-                for event in stream:
-                    chunk_data = event.get("chunk")
-                    if chunk_data:
-                        chunk = json.loads(chunk_data["bytes"].decode())
-                        yield self._normalize_stream_chunk(chunk, request.model)
+            # Create async client and invoke Bedrock model with streaming
+            async with self._session.client("bedrock-runtime") as client:
+                response = await client.invoke_model_with_response_stream(
+                    modelId=request.model,
+                    contentType="application/json",
+                    accept="application/json",
+                    body=json.dumps(body)
+                )
+                
+                # Process streaming response
+                stream = response.get("body")
+                if stream:
+                    async for event in stream:
+                        chunk_data = event.get("chunk")
+                        if chunk_data:
+                            chunk = json.loads(chunk_data["bytes"].decode())
+                            yield self._normalize_stream_chunk(chunk, request.model)
                         
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
@@ -268,7 +268,11 @@ class BedrockProvider(BaseProvider):
         elif model_id.startswith("cohere."):
             return self._build_cohere_request(request)
         
-        # Amazon Titan models
+        # Amazon Nova models (new generation)
+        elif model_id.startswith("amazon.nova"):
+            return self._build_nova_request(request)
+        
+        # Amazon Titan models (legacy)
         elif model_id.startswith("amazon.titan"):
             return self._build_titan_request(request)
         
@@ -347,6 +351,36 @@ class BedrockProvider(BaseProvider):
             "p": request.top_p,
         }
     
+    def _build_nova_request(self, request: ChatRequest) -> dict:
+        """Build request for Amazon Nova models."""
+        # Nova uses messages API similar to Claude
+        system_message = None
+        messages = []
+        
+        for msg in request.messages:
+            if msg.role == "system":
+                system_message = msg.content
+            else:
+                messages.append({"role": msg.role, "content": [{"text": msg.content}]})
+        
+        body = {
+            "messages": messages,
+            "inferenceConfig": {
+                "max_new_tokens": request.max_tokens or 4096,
+                "temperature": request.temperature,
+                "top_p": request.top_p,
+            },
+            "schemaVersion": "messages-v1",
+        }
+        
+        if system_message:
+            body["system"] = [{"text": system_message}]
+        
+        if request.stop:
+            body["inferenceConfig"]["stopSequences"] = request.stop
+        
+        return body
+    
     def _build_titan_request(self, request: ChatRequest) -> dict:
         """Build request for Amazon Titan models."""
         # Titan uses inputText format
@@ -414,6 +448,11 @@ class BedrockProvider(BaseProvider):
             content = raw_response.get("text", "")
             usage = self._extract_cohere_usage(raw_response, model)
             finish_reason = raw_response.get("finish_reason", "COMPLETE")
+        
+        elif model.startswith("amazon.nova"):
+            content = self._parse_nova_response(raw_response)
+            usage = self._extract_nova_usage(raw_response)
+            finish_reason = raw_response.get("stopReason", "end_turn")
         
         elif model.startswith("amazon.titan"):
             content = raw_response.get("results", [{}])[0].get("outputText", "")
@@ -486,6 +525,25 @@ class BedrockProvider(BaseProvider):
             total_tokens=prompt_tokens + completion_tokens
         )
     
+    def _parse_nova_response(self, response: dict) -> str:
+        """Extract content from Amazon Nova response."""
+        content = ""
+        output = response.get("output", {})
+        if output.get("message"):
+            for block in output["message"].get("content", []):
+                if block.get("text"):
+                    content += block["text"]
+        return content
+    
+    def _extract_nova_usage(self, response: dict) -> Usage:
+        """Extract usage from Amazon Nova response."""
+        usage_data = response.get("usage", {})
+        return Usage(
+            prompt_tokens=usage_data.get("inputTokens", 0),
+            completion_tokens=usage_data.get("outputTokens", 0),
+            total_tokens=usage_data.get("totalTokens", 0)
+        )
+    
     def _extract_titan_usage(self, response: dict, model: str) -> Usage:
         """Extract usage from Titan response."""
         result = response.get("results", [{}])[0]
@@ -530,6 +588,12 @@ class BedrockProvider(BaseProvider):
             content = chunk.get("generation", "")
         elif model.startswith("mistral."):
             content = chunk.get("outputs", [{}])[0].get("text", "")
+        elif model.startswith("amazon.nova"):
+            # Nova streaming format
+            if chunk.get("contentBlockDelta"):
+                content = chunk["contentBlockDelta"].get("delta", {}).get("text", "")
+            else:
+                content = ""
         elif model.startswith("amazon.titan"):
             content = chunk.get("outputText", "")
         else:

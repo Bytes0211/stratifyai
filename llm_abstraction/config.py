@@ -981,11 +981,25 @@ BEDROCK_MODELS: Dict[str, Dict[str, Any]] = {
         "supports_vision": False,
         "supports_tools": True,
     },
-    # Amazon Titan Models
-    "amazon.titan-tg1-large": {
-        "context": 32000,
-        "cost_input": 0.50,
-        "cost_output": 1.50,
+    # Amazon Nova Models (current generation)
+    "amazon.nova-pro-v1:0": {
+        "context": 300000,
+        "cost_input": 0.80,
+        "cost_output": 3.20,
+        "supports_vision": True,
+        "supports_tools": False,
+    },
+    "amazon.nova-lite-v1:0": {
+        "context": 300000,
+        "cost_input": 0.06,
+        "cost_output": 0.24,
+        "supports_vision": True,
+        "supports_tools": False,
+    },
+    "amazon.nova-micro-v1:0": {
+        "context": 128000,
+        "cost_input": 0.035,
+        "cost_output": 0.14,
         "supports_vision": False,
         "supports_tools": False,
     },
