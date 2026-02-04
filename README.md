@@ -1,6 +1,6 @@
 # StratumAI - Unified Intelligence Across Every Model Layer
 
-**Status:** Phase 7.5 Complete ✅ | 9 Providers Operational | AWS Bedrock Support | RAG Integration
+**Status:** Phase 7.5 Complete ✅ | 9 Providers Operational | AWS Bedrock Support | RAG Integration | Chat Package
 
 ## Why This Project Matters
 
@@ -44,6 +44,7 @@ StratumAI is a multi-provider LLM abstraction module that allows developers/user
 - ✅ Large file handling with chunking and extraction (Phase 7.1-7.2)
 - ✅ Automatic model selection for file types (Phase 7.3 Complete)
 - ✅ RAG/Vector DB Integration with semantic search (Phase 7.5 Complete)
+- ✅ Chat package with provider-specific modules and sensible defaults
 
 ## Architecture Overview
 
@@ -196,6 +197,17 @@ stratumai/
 ├── docs/
 │   ├── project-status.md              # 6-week timeline with detailed phases
 │   └── stratumai-technical-approach.md # Comprehensive technical design (1,232 lines)
+├── chat/                               # Provider-specific chat modules
+│   ├── __init__.py                     # Package exports (openai, anthropic, etc.)
+│   ├── stratumai_openai.py             # OpenAI chat (default: gpt-4o-mini)
+│   ├── stratumai_anthropic.py          # Anthropic chat (default: claude-3-5-sonnet)
+│   ├── stratumai_google.py             # Google chat (default: gemini-2.5-flash)
+│   ├── stratumai_deepseek.py           # DeepSeek chat (default: deepseek-chat)
+│   ├── stratumai_groq.py               # Groq chat (default: llama-3.3-70b)
+│   ├── stratumai_grok.py               # Grok chat (default: grok-beta)
+│   ├── stratumai_openrouter.py         # OpenRouter chat (default: llama-3.3-70b:free)
+│   ├── stratumai_ollama.py             # Ollama chat (default: llama3.2)
+│   └── stratumai_bedrock.py            # AWS Bedrock chat (default: claude-3-5-sonnet)
 ├── cli/
 │   └── stratumai_cli.py               # Rich/Typer CLI interface
 ├── api/                                # Optional FastAPI web interface
@@ -507,6 +519,41 @@ response = client.chat(
 print(response.content)
 print(f"Cost: ${response.usage.cost_usd:.4f}")
 ```
+
+### Chat Package Usage (Simplified API)
+```python
+# Provider-specific modules with sensible defaults
+from chat import openai, anthropic, google, deepseek, groq
+
+# Simple string prompt - uses default model
+response = openai.chat("What is Python?")
+print(response.content)
+
+# With system prompt
+response = anthropic.chat(
+    "Explain quantum computing",
+    system="Be concise and use analogies",
+    temperature=0.5
+)
+
+# Streaming
+for chunk in google.chat_stream("Tell me a story"):
+    print(chunk.content, end="", flush=True)
+
+# Override default model
+response = groq.chat("Hello", model="llama-3.1-8b-instant")
+```
+
+**Default Models by Provider:**
+- `openai`: gpt-4o-mini
+- `anthropic`: claude-3-5-sonnet-20241022
+- `google`: gemini-2.5-flash
+- `deepseek`: deepseek-chat
+- `groq`: llama-3.3-70b-versatile
+- `grok`: grok-beta
+- `openrouter`: meta-llama/llama-3.3-70b-instruct:free
+- `ollama`: llama3.2
+- `bedrock`: anthropic.claude-3-5-sonnet-20241022-v2:0
 
 ### Switching Models (No Code Changes)
 ```python
