@@ -499,6 +499,124 @@ class Router:
         metadata = self.model_metadata[best_key]
         return metadata.provider, metadata.model
     
+    def get_fallback_chain(
+        self,
+        messages: List[Message],
+        count: int = 3,
+        required_capabilities: Optional[List[str]] = None,
+        max_cost_per_1k_tokens: Optional[float] = None,
+        max_latency_ms: Optional[float] = None,
+        min_context_window: Optional[int] = None,
+        exclude_models: Optional[List[str]] = None,
+    ) -> List[Tuple[str, str]]:
+        """
+        Get a ranked list of fallback models for resilient routing.
+        
+        Returns models ranked by the current strategy, allowing automatic
+        fallback if the primary model fails.
+        
+        Args:
+            messages: Conversation messages (used for complexity analysis)
+            count: Number of fallback models to return (default: 3)
+            required_capabilities: Required model capabilities
+            max_cost_per_1k_tokens: Maximum acceptable cost
+            max_latency_ms: Maximum acceptable latency
+            min_context_window: Minimum required context window
+            exclude_models: Models to exclude from results
+        
+        Returns:
+            List of (provider, model) tuples ranked by strategy
+        
+        Example:
+            >>> router = Router(strategy=RoutingStrategy.HYBRID)
+            >>> fallbacks = router.get_fallback_chain(messages, count=3)
+            >>> # Returns: [("openai", "gpt-4o"), ("anthropic", "claude-3-5-sonnet"), ...]
+        """
+        # Analyze complexity for scoring
+        complexity = self._analyze_complexity(messages)
+        
+        # Filter candidates
+        candidates = self._filter_candidates(
+            required_capabilities,
+            max_cost_per_1k_tokens,
+            max_latency_ms,
+            min_context_window,
+        )
+        
+        # Exclude specified models
+        if exclude_models:
+            candidates = {
+                k: v for k, v in candidates.items()
+                if v.model not in exclude_models
+            }
+        
+        if not candidates:
+            return []
+        
+        # Score all candidates based on strategy
+        scores = self._score_candidates(candidates, complexity)
+        
+        # Sort by score (descending) and return top N
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        
+        result = []
+        for key, _ in ranked[:count]:
+            meta = self.model_metadata[key]
+            result.append((meta.provider, meta.model))
+        
+        return result
+    
+    def _score_candidates(
+        self,
+        candidates: Dict[str, ModelMetadata],
+        complexity: float,
+    ) -> Dict[str, float]:
+        """
+        Score all candidates based on current routing strategy.
+        
+        Args:
+            candidates: Filtered model candidates
+            complexity: Task complexity score (0.0 - 1.0)
+        
+        Returns:
+            Dictionary mapping model keys to scores
+        """
+        scores = {}
+        
+        for key, meta in candidates.items():
+            if self.strategy == RoutingStrategy.COST:
+                # Lower cost = higher score
+                avg_cost = (meta.cost_per_1m_input + meta.cost_per_1m_output) / 2
+                scores[key] = max(0, 1 - (avg_cost / 100))  # Normalize to $100/1M
+                
+            elif self.strategy == RoutingStrategy.QUALITY:
+                scores[key] = meta.quality_score
+                if complexity > 0.6 and meta.reasoning_model:
+                    scores[key] += 0.05
+                    
+            elif self.strategy == RoutingStrategy.LATENCY:
+                # Lower latency = higher score
+                scores[key] = max(0, 1 - (meta.avg_latency_ms / 10000))
+                
+            else:  # HYBRID
+                # Dynamic weights based on complexity
+                quality_weight = 0.1 + (complexity * 0.5)
+                cost_weight = 0.6 - (complexity * 0.3)
+                latency_weight = 0.3 - (complexity * 0.2)
+                
+                quality_score = meta.quality_score
+                avg_cost = (meta.cost_per_1m_input + meta.cost_per_1m_output) / 1000
+                cost_score = max(0, 1 - (avg_cost / 0.050))
+                latency_score = max(0, 1 - (meta.avg_latency_ms / 10000))
+                
+                scores[key] = (
+                    quality_weight * quality_score +
+                    cost_weight * cost_score +
+                    latency_weight * latency_score
+                )
+        
+        return scores
+    
     def list_models(
         self,
         required_capabilities: Optional[List[str]] = None,

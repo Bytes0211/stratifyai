@@ -605,6 +605,11 @@ def route(
         "--max-latency",
         help="Maximum latency in milliseconds"
     ),
+    capability: Optional[List[str]] = typer.Option(
+        None,
+        "--capability", "-c",
+        help="Required capability (vision, tools, reasoning). Can be specified multiple times."
+    ),
 ):
     """Auto-select best model using router."""
     
@@ -629,9 +634,18 @@ def route(
         
         messages = [Message(role="user", content=message)]
         
+        # Validate capabilities
+        valid_capabilities = ["vision", "tools", "reasoning"]
+        if capability:
+            for cap in capability:
+                if cap not in valid_capabilities:
+                    console.print(f"[red]Invalid capability:[/red] {cap}. Use: vision, tools, or reasoning")
+                    raise typer.Exit(1)
+        
         # Route with constraints
         provider, model = router.route(
             messages,
+            required_capabilities=capability,
             max_cost_per_1k_tokens=max_cost,
             max_latency_ms=max_latency
         )
@@ -643,8 +657,12 @@ def route(
         # Display routing decision
         console.print(f"\n[bold]Routing Decision[/bold]")
         console.print(f"Strategy: [cyan]{strategy}[/cyan]")
+        if capability:
+            console.print(f"Required: [magenta]{', '.join(capability)}[/magenta]")
         console.print(f"Complexity: [yellow]{complexity:.3f}[/yellow]")
         console.print(f"Selected: [green]{provider}/{model}[/green]")
+        if model_info.capabilities:
+            console.print(f"Capabilities: [magenta]{', '.join(model_info.capabilities)}[/magenta]")
         console.print(f"Quality: [yellow]{model_info.quality_score:.2f}[/yellow]")
         console.print(f"Latency: [yellow]{model_info.avg_latency_ms:.0f}ms[/yellow]")
         

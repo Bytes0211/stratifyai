@@ -215,13 +215,15 @@ pip freeze > requirements.txt
   - Router with intelligent model selection
   - Complexity analysis algorithm
   - Cost/quality/latency/hybrid strategies
+  - Fallback chain routing for resilient applications
+  - Capability-based filtering (vision, tools, reasoning)
   - 33 router unit tests passing
 - ✅ Phase 5: CLI Interface (100%)
   - Typer CLI framework with 5 commands
   - Rich formatting (tables, colors, progress)
   - Environment variable support
   - Interactive mode with conversation history
-  - Router integration
+  - Router integration with --capability flag
   - Streaming without flicker
   - CLI usage documentation (445 lines)
 - ✅ Phase 6: Production Readiness (100%)
@@ -318,6 +320,7 @@ pip freeze > requirements.txt
 - **README.md** - Project overview, setup instructions, and usage examples
 - **docs/project-status.md** - Detailed 5-week timeline with phase breakdowns (25 working days)
 - **docs/stratumai-technical-approach.md** - Comprehensive technical design (1,232 lines)
+- **docs/StratumAI-Router-Logic.md** - Router strategies, fallback chains, and complexity analysis
 - **WARP.md** - This file (development environment guidance for Warp AI)
 
 ### Key Documentation Sections
