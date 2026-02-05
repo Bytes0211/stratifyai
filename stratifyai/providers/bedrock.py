@@ -161,6 +161,21 @@ class BedrockProvider(BaseProvider):
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             error_message = e.response["Error"]["Message"]
+            
+            # Parse and provide user-friendly error messages
+            if error_code == "ValidationException":
+                # Extract specific validation issues
+                if "is not less or equal to" in error_message and "/p:" in error_message:
+                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                elif "is not a valid enum value" in error_message and "role" in error_message:
+                    friendly_msg = "Model configuration error: Invalid message role format for this model."
+                else:
+                    friendly_msg = f"Request validation failed: {error_message}"
+                raise ProviderAPIError(
+                    f"[bedrock] {friendly_msg}",
+                    self.provider_name
+                )
+            
             raise ProviderAPIError(
                 f"Bedrock API error ({error_code}): {error_message}",
                 self.provider_name
@@ -223,6 +238,20 @@ class BedrockProvider(BaseProvider):
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             error_message = e.response["Error"]["Message"]
+            
+            # Parse and provide user-friendly error messages
+            if error_code == "ValidationException":
+                if "is not less or equal to" in error_message and "/p:" in error_message:
+                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                elif "is not a valid enum value" in error_message and "role" in error_message:
+                    friendly_msg = "Model configuration error: Invalid message role format for this model."
+                else:
+                    friendly_msg = f"Request validation failed: {error_message}"
+                raise ProviderAPIError(
+                    f"[bedrock] {friendly_msg}",
+                    self.provider_name
+                )
+            
             raise ProviderAPIError(
                 f"Bedrock streaming error ({error_code}): {error_message}",
                 self.provider_name
@@ -292,7 +321,29 @@ class BedrockProvider(BaseProvider):
             if msg.role == "system":
                 system_message = msg.content
             else:
-                messages.append({"role": msg.role, "content": msg.content})
+                # Check if message contains an image
+                if msg.has_image():
+                    # Parse vision content
+                    text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                    
+                    # Build content array for vision (Anthropic format)
+                    content_parts = []
+                    if text_content:
+                        content_parts.append({"type": "text", "text": text_content})
+                    
+                    # Add image in Anthropic format
+                    content_parts.append({
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime_type,
+                            "data": base64_data
+                        }
+                    })
+                    
+                    messages.append({"role": msg.role, "content": content_parts})
+                else:
+                    messages.append({"role": msg.role, "content": msg.content})
         
         body = {
             "anthropic_version": "bedrock-2023-05-31",
@@ -338,17 +389,33 @@ class BedrockProvider(BaseProvider):
     
     def _build_cohere_request(self, request: ChatRequest) -> dict:
         """Build request for Cohere models."""
-        # Cohere uses a message-based format similar to OpenAI
-        messages = []
-        for msg in request.messages:
-            messages.append({"role": msg.role, "message": msg.content})
+        # Cohere Bedrock uses USER/CHATBOT roles and requires specific format
+        # Extract user message (last message should be from user)
+        user_message = ""
+        chat_history = []
+        
+        for i, msg in enumerate(request.messages):
+            # Skip system messages - Cohere handles them differently
+            if msg.role == "system":
+                continue
+            
+            # Last user message becomes the main message
+            if i == len(request.messages) - 1 and msg.role == "user":
+                user_message = msg.content
+            else:
+                # Map role names to Cohere's expected format
+                cohere_role = "USER" if msg.role == "user" else "CHATBOT"
+                chat_history.append({"role": cohere_role, "message": msg.content})
+        
+        # Clamp top_p to Cohere's maximum of 0.99
+        top_p = min(request.top_p, 0.99)
         
         return {
-            "message": messages[-1]["message"] if messages else "",
-            "chat_history": messages[:-1] if len(messages) > 1 else [],
+            "message": user_message,
+            "chat_history": chat_history,
             "max_tokens": request.max_tokens or 2048,
             "temperature": request.temperature,
-            "p": request.top_p,
+            "p": top_p,
         }
     
     def _build_nova_request(self, request: ChatRequest) -> dict:
@@ -361,7 +428,27 @@ class BedrockProvider(BaseProvider):
             if msg.role == "system":
                 system_message = msg.content
             else:
-                messages.append({"role": msg.role, "content": [{"text": msg.content}]})
+                # Check if message contains an image
+                if msg.has_image():
+                    # Parse vision content
+                    text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                    
+                    # Build content array for vision (Nova format)
+                    content_parts = []
+                    if text_content:
+                        content_parts.append({"text": text_content})
+                    
+                    # Add image in Nova format
+                    content_parts.append({
+                        "image": {
+                            "format": mime_type.split("/")[1] if "/" in mime_type else "png",
+                            "source": {"bytes": base64_data}
+                        }
+                    })
+                    
+                    messages.append({"role": msg.role, "content": content_parts})
+                else:
+                    messages.append({"role": msg.role, "content": [{"text": msg.content}]})
         
         body = {
             "messages": messages,

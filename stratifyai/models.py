@@ -9,9 +9,44 @@ from typing import List, Literal, Optional
 class Message:
     """Standard message format for all providers (OpenAI-compatible)."""
     role: Literal["system", "user", "assistant"]
-    content: str
+    content: str  # Can be plain text or contain [IMAGE:mime_type]\nbase64_data format
     name: Optional[str] = None  # For multi-agent scenarios
     cache_control: Optional[dict] = None  # For providers that support prompt caching (Anthropic, OpenAI)
+    
+    def has_image(self) -> bool:
+        """Check if message contains image data."""
+        return "[IMAGE:" in self.content
+    
+    def parse_vision_content(self) -> tuple[Optional[str], Optional[tuple[str, str]]]:
+        """Parse content into text and image data.
+        
+        Returns:
+            (text_content, (mime_type, base64_data)) or (text_content, None) if no image
+        """
+        if not self.has_image():
+            return (self.content, None)
+        
+        # Split content by [IMAGE:...] marker
+        parts = self.content.split("[IMAGE:")
+        text_parts = []
+        image_data = None
+        
+        for i, part in enumerate(parts):
+            if i == 0:
+                # First part is text before image
+                if part.strip():
+                    text_parts.append(part.strip())
+            else:
+                # This part starts with mime_type]
+                if "]" in part:
+                    mime_type, rest = part.split("]", 1)
+                    # rest contains the base64 data (possibly with leading/trailing whitespace)
+                    base64_data = rest.strip()
+                    if base64_data:
+                        image_data = (mime_type.strip(), base64_data)
+        
+        text_content = "\n".join(text_parts).strip() if text_parts else None
+        return (text_content, image_data)
 
 
 @dataclass

@@ -174,18 +174,63 @@ def _chat_impl(
                         console.print("[yellow]Too many invalid attempts. Using default: openai[/yellow]")
                         provider = "openai"
         
+        # Model selection with vision validation loop
+        need_vision_model = file and file.suffix.lower() in {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'} if file else False
+        
         if not model:
             prompted_for_model = True
-            # Show available models for selected provider
+            # Validate and display models for selected provider
+            from stratifyai.utils.provider_validator import get_validated_interactive_models
+            
             if provider in MODEL_CATALOG:
-                console.print(f"\n[bold cyan]Available models for {provider}:[/bold cyan]")
-                available_models = list(MODEL_CATALOG[provider].keys())
+                # Show spinner while validating
+                with console.status(f"[cyan]Validating {provider} models...", spinner="dots"):
+                    validation_data = get_validated_interactive_models(provider)
+                
+                validation_result = validation_data["validation_result"]
+                validated_models = validation_data["models"]
+                
+                # Show validation result
+                if validation_result["error"]:
+                    console.print("[yellow]⚠ Default models displayed. Could not validate models.[/yellow]")
+                    # Fall back to MODEL_CATALOG if validation fails
+                    available_models = list(MODEL_CATALOG[provider].keys())
+                    model_metadata = MODEL_CATALOG[provider]
+                else:
+                    console.print(f"[green]✓ Validated {len(validated_models)} models[/green] [dim]({validation_result['validation_time_ms']}ms)[/dim]")
+                    available_models = list(validated_models.keys())
+                    model_metadata = validated_models
+                
+                # Filter for vision models if image file provided
+                if need_vision_model:
+                    vision_models = [m for m in available_models if model_metadata.get(m, {}).get("supports_vision", False)]
+                    if vision_models:
+                        console.print(f"\n[bold cyan]Vision-capable models for {provider}:[/bold cyan]")
+                        console.print("[dim](Filtered for image file support)[/dim]")
+                        available_models = vision_models
+                    else:
+                        console.print(f"\n[yellow]⚠ No vision-capable models available for {provider}[/yellow]")
+                        console.print("[yellow]Please select a different provider or remove the image file[/yellow]")
+                        raise typer.Exit(1)
+                else:
+                    console.print(f"\n[bold cyan]Available {provider} models:[/bold cyan]")
+                
+                # Display with friendly names, descriptions, and categories (same as interactive mode)
+                current_category = None
                 for i, m in enumerate(available_models, 1):
-                    model_info = MODEL_CATALOG[provider][m]
-                    is_reasoning = model_info.get("reasoning_model", False)
-                    label = f"  {i}. {m}"
-                    if is_reasoning:
-                        label += " [yellow](reasoning)[/yellow]"
+                    meta = model_metadata.get(m, {})
+                    display_name = meta.get("display_name", m)
+                    description = meta.get("description", "")
+                    category = meta.get("category", "")
+                    
+                    # Show category header if changed
+                    if category and category != current_category:
+                        console.print(f"  [dim]── {category} ──[/dim]")
+                        current_category = category
+                    
+                    label = f"  {i}. {display_name}"
+                    if description:
+                        label += f" [dim]- {description}[/dim]"
                     console.print(label)
             
                 # Retry loop for model selection
@@ -260,20 +305,114 @@ def _chat_impl(
             console.print(f"[dim]Attach a file to include its content in your message[/dim]")
             console.print(f"[dim]Max file size: 5 MB | Leave blank to skip[/dim]")
             
-            file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
-            
-            if file_path_input.strip():
+            # File prompt with retry loop
+            max_file_attempts = 3
+            file = None
+            for file_attempt in range(max_file_attempts):
+                file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+                
+                if not file_path_input.strip():
+                    # User pressed Enter to skip
+                    break
+                
                 file = Path(file_path_input.strip()).expanduser()
+                
+                # Validate file exists and is readable
+                if not file.exists():
+                    console.print(f"[red]✗ File not found: {file}[/red]")
+                    if file_attempt < max_file_attempts - 1:
+                        choice = Prompt.ask(
+                            "[cyan]Enter 1 to retry file path or 2 to continue without file[/cyan]",
+                            choices=["1", "2"],
+                            default="2"
+                        )
+                        if choice == "2":
+                            file = None
+                            break
+                        # Otherwise loop continues for retry
+                    else:
+                        console.print("[dim]Continuing without file attachment[/dim]")
+                        file = None
+                elif not file.is_file():
+                    console.print(f"[red]✗ Path is not a file: {file}[/red]")
+                    if file_attempt < max_file_attempts - 1:
+                        choice = Prompt.ask(
+                            "[cyan]Enter 1 to retry file path or 2 to continue without file[/cyan]",
+                            choices=["1", "2"],
+                            default="2"
+                        )
+                        if choice == "2":
+                            file = None
+                            break
+                    else:
+                        console.print("[dim]Continuing without file attachment[/dim]")
+                        file = None
+                else:
+                    # File is valid, break out of retry loop
+                    break
         
         # Load content from file if provided
         file_content = None
         if file:
             try:
-                with open(file, 'r', encoding='utf-8') as f:
-                    file_content = f.read()
+                # Check if file is an image
+                image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+                is_image = file.suffix.lower() in image_extensions
                 
-                # Get file size for display (only if file exists as Path object)
-                try:
+                if is_image:
+                    # For image files, check if model supports vision
+                    model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+                    supports_vision = model_info.get("supports_vision", False)
+                    
+                    if not supports_vision:
+                        console.print(f"\n[red]✗ Vision not supported: {model} cannot process image files[/red]")
+                        console.print("[yellow]⚠️ This model cannot process images. Please select a vision-capable model.[/yellow]")
+                        console.print("\n[cyan]Returning to model selection...[/cyan]\n")
+                        
+                        # Return to model selection - call chat command recursively with vision-required flag
+                        # Pass message=None to force prompting for message after model selection
+                        import sys
+                        sys.argv = ['stratifyai', 'chat', '--provider', provider, '--file', str(file)]
+                        if system:
+                            sys.argv.extend(['--system', system])
+                        if max_tokens:
+                            sys.argv.extend(['--max-tokens', str(max_tokens)])
+                        chat(provider=provider, model=None, message=None, system=system, 
+                             temperature=temperature, max_tokens=max_tokens, file=file, 
+                             stream=stream, cache_control=cache_control, chunked=chunked, 
+                             chunk_size=chunk_size, auto_select=auto_select)
+                        return
+                    
+                    # Read image as base64
+                    import base64
+                    with open(file, 'rb') as f:
+                        image_data = base64.b64encode(f.read()).decode('utf-8')
+                    
+                    # Get file size
+                    file_size = file.stat().st_size
+                    file_size_kb = file_size / 1024
+                    file_size_mb = file_size / (1024 * 1024)
+                    
+                    size_str = f"{file_size_kb:.1f} KB" if file_size_kb < 1024 else f"{file_size_mb:.2f} MB"
+                    console.print(f"[green]✓ Loaded {file.name}[/green] [dim]({size_str}, image)[/dim]")
+                    
+                    # Return base64 image data with metadata
+                    mime_type = {
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.png': 'image/png',
+                        '.gif': 'image/gif',
+                        '.webp': 'image/webp',
+                        '.bmp': 'image/bmp'
+                    }.get(file.suffix.lower(), 'image/jpeg')
+                    
+                    file_content = f"[IMAGE:{mime_type}]\n{image_data}"
+                else:
+                    # Read text file
+                    with open(file, 'r', encoding='utf-8') as f:
+                        file_content = f.read()
+                    
+                    # Get file size for display
                     if isinstance(file, Path) and file.exists():
                         file_size = file.stat().st_size
                         file_size_mb = file_size / (1024 * 1024)
@@ -298,19 +437,19 @@ def _chat_impl(
                             
                             if analysis.warning:
                                 console.print(f"[yellow]⚠ {analysis.warning}[/yellow]")
-                    else:
-                        # Fallback for tests or non-Path objects
-                        console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
-                except:
-                    # Fallback if stat fails (e.g., in test environments)
-                    console.print(f"[dim]Loaded content from {file} ({len(file_content)} chars)[/dim]")
             except Exception as e:
                 console.print(f"[red]Error reading file {file}: {e}[/red]")
                 raise typer.Exit(1)
         
-        if not message and not file_content:
-            console.print("\n[bold cyan]Enter your message:[/bold cyan]")
-            message = Prompt.ask("Message")
+        # Prompt for message if not provided
+        # For image files, always prompt (user needs to provide instructions for the image)
+        # For text files, only prompt if no file content
+        is_image_file = file and file.suffix.lower() in {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'} if file else False
+        
+        if not message:
+            if is_image_file or not file_content:
+                console.print("\n[bold cyan]Enter your message:[/bold cyan]")
+                message = Prompt.ask("Message")
         
         # Build messages - use conversation history if this is a follow-up
         if _conversation_history is None:
@@ -725,13 +864,199 @@ def interactive(
     
     try:
         # Helper function to load file with size validation and intelligent extraction
-        def load_file_content(file_path: Path, warn_large: bool = True) -> Optional[str]:
-            """Load file content with size restrictions, warnings, and intelligent extraction."""
+        def load_file_content(file_path: Path, warn_large: bool = True, check_vision: bool = False) -> Optional[str]:
+            """Load file content with size restrictions, warnings, and intelligent extraction.
+            
+            Args:
+                file_path: Path to the file to load
+                warn_large: Whether to warn about large files
+                check_vision: Whether to check for vision support for image files
+            """
+            # Declare nonlocal variables at the top before any use
+            nonlocal model, client, temperature
+            
             try:
                 # Check if file exists
                 if not file_path.exists():
                     console.print(f"[red]✗ File not found: {file_path}[/red]")
                     return None
+                
+                # Check if file is an image
+                image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+                is_image = file_path.suffix.lower() in image_extensions
+                
+                if is_image:
+                    # For image files, check if model supports vision
+                    if check_vision:
+                        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+                        supports_vision = model_info.get("supports_vision", False)
+                        
+                        if not supports_vision:
+                            console.print(f"\n[red]✗ Vision not supported: {model} cannot process image files[/red]")
+                            console.print("[yellow]⚠️ This model cannot process images. Switching to vision-capable model...[/yellow]")
+                            
+                            # Offer to switch to a vision model
+                            choice = Prompt.ask(
+                                "[cyan]Enter 1 to select a vision-capable model or 2 to continue without image[/cyan]",
+                                choices=["1", "2"],
+                                default="1"
+                            )
+                            
+                            if choice == "1":
+                                # Show vision-capable models for current provider (like chat mode)
+                                from stratifyai.utils.provider_validator import get_validated_interactive_models
+                                
+                                # Validate and get models
+                                with console.status(f"[cyan]Validating {provider} models...", spinner="dots"):
+                                    validation_data = get_validated_interactive_models(provider)
+                                
+                                validation_result = validation_data["validation_result"]
+                                validated_models = validation_data["models"]
+                                
+                                # Get model metadata
+                                if validation_result["error"]:
+                                    available_models = list(MODEL_CATALOG[provider].keys())
+                                    model_metadata = MODEL_CATALOG[provider]
+                                else:
+                                    available_models = list(validated_models.keys())
+                                    model_metadata = validated_models
+                                
+                                # Filter for vision models
+                                vision_models = [m for m in available_models if model_metadata.get(m, {}).get("supports_vision", False)]
+                                
+                                if not vision_models:
+                                    console.print(f"\n[yellow]⚠ No vision-capable models available for {provider}[/yellow]")
+                                    console.print("[yellow]Please use /provider to select a different provider[/yellow]\n")
+                                    return None
+                                
+                                # Show vision models
+                                console.print(f"\n[bold cyan]Vision-capable models for {provider}:[/bold cyan]")
+                                console.print("[dim](Filtered for image file support)[/dim]")
+                                
+                                # Display with categories and descriptions
+                                current_category = None
+                                for i, m in enumerate(vision_models, 1):
+                                    meta = model_metadata.get(m, {})
+                                    display_name = meta.get("display_name", m)
+                                    description = meta.get("description", "")
+                                    category = meta.get("category", "")
+                                    
+                                    # Show category header if changed
+                                    if category and category != current_category:
+                                        console.print(f"  [dim]── {category} ──[/dim]")
+                                        current_category = category
+                                    
+                                    current_marker = " [green](current)[/green]" if m == model else ""
+                                    label = f"  {i}. {display_name}{current_marker}"
+                                    if description:
+                                        label += f" [dim]- {description}[/dim]"
+                                    console.print(label)
+                                
+                                # Get model selection
+                                max_attempts = 3
+                                new_model = None
+                                for attempt in range(max_attempts):
+                                    model_choice = Prompt.ask("\nSelect vision model")
+                                    try:
+                                        model_idx = int(model_choice) - 1
+                                        if 0 <= model_idx < len(vision_models):
+                                            new_model = vision_models[model_idx]
+                                            break
+                                        else:
+                                            console.print(f"[red]✗ Invalid number.[/red] Please enter a number between 1 and {len(vision_models)}")
+                                            if attempt < max_attempts - 1:
+                                                console.print("[dim]Try again...[/dim]")
+                                    except ValueError:
+                                        console.print(f"[red]✗ Invalid input.[/red] Please enter a number")
+                                        if attempt < max_attempts - 1:
+                                            console.print("[dim]Try again...[/dim]")
+                                
+                                if new_model:
+                                    # Update the outer scope model variable
+                                    model = new_model
+                                    
+                                    # Check if new model has fixed temperature and prompt if needed
+                                    new_model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+                                    fixed_temp = new_model_info.get("fixed_temperature")
+                                    
+                                    if fixed_temp is not None:
+                                        temperature = fixed_temp
+                                        console.print(f"\n[dim]Using fixed temperature: {fixed_temp} for this model[/dim]")
+                                    else:
+                                        # Retry loop for temperature input
+                                        max_temp_attempts = 3
+                                        temperature = None
+                                        for temp_attempt in range(max_temp_attempts):
+                                            temp_input = Prompt.ask(
+                                                "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                                                default="0.7"
+                                            )
+                                            
+                                            try:
+                                                temp_value = float(temp_input)
+                                                if 0.0 <= temp_value <= 2.0:
+                                                    temperature = temp_value
+                                                    break
+                                                else:
+                                                    console.print("[red]✗ Out of range.[/red] Temperature must be between 0.0 and 2.0")
+                                                    if temp_attempt < max_temp_attempts - 1:
+                                                        console.print("[dim]Try again...[/dim]")
+                                            except ValueError:
+                                                console.print(f"[red]✗ Invalid input.[/red] Please enter a number (e.g., '0.7' not '{temp_input}')")
+                                                if temp_attempt < max_temp_attempts - 1:
+                                                    console.print("[dim]Try again...[/dim]")
+                                        
+                                        # If still no valid temperature after retries, use default
+                                        if temperature is None:
+                                            console.print("[yellow]Too many invalid attempts. Using default: 0.7[/yellow]")
+                                            temperature = 0.7
+                                    
+                                    # Reinitialize client with new model
+                                    client = LLMClient(provider=provider)
+                                    
+                                    # Update context window info
+                                    context_window = new_model_info.get("context", "N/A")
+                                    
+                                    console.print(f"\n[green]✓ Switched to:[/green] [cyan]{model}[/cyan] | [dim]Context: {context_window:,} tokens[/dim]")
+                                    
+                                    # Now try loading the image again (recursively call with updated model)
+                                    return load_file_content(file_path, warn_large, check_vision=True)
+                                else:
+                                    console.print("[yellow]Model not changed[/yellow]")
+                            
+                            return None
+                    
+                    # Read image as base64
+                    import base64
+                    with open(file_path, 'rb') as f:
+                        image_data = base64.b64encode(f.read()).decode('utf-8')
+                    
+                    # Get file size
+                    file_size = file_path.stat().st_size
+                    file_size_mb = file_size / (1024 * 1024)
+                    file_size_kb = file_size / 1024
+                    
+                    # Check size limit
+                    if file_size > MAX_FILE_SIZE_BYTES:
+                        console.print(f"[red]✗ Image too large: {file_size_mb:.2f} MB (max {MAX_FILE_SIZE_MB} MB)[/red]")
+                        return None
+                    
+                    size_str = f"{file_size_kb:.1f} KB" if file_size_kb < 1024 else f"{file_size_mb:.2f} MB"
+                    console.print(f"[green]✓ Loaded {file_path.name}[/green] [dim]({size_str}, image)[/dim]")
+                    
+                    # Return base64 image data with metadata
+                    mime_type = {
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.png': 'image/png',
+                        '.gif': 'image/gif',
+                        '.webp': 'image/webp',
+                        '.bmp': 'image/bmp'
+                    }.get(file_path.suffix.lower(), 'image/jpeg')
+                    
+                    return f"[IMAGE:{mime_type}]\n{image_data}"
+                
+                # For non-image files, continue with existing logic
                 
                 # Check file size
                 file_size = file_path.stat().st_size
@@ -873,8 +1198,7 @@ def interactive(
             
             # Show validation result
             if validation_result["error"]:
-                console.print(f"[yellow]⚠ {validation_result['error']}[/yellow]")
-                console.print("[dim]Showing curated models (availability not confirmed)[/dim]")
+                console.print("[yellow]⚠ Default models displayed. Could not validate models.[/yellow]")
             else:
                 console.print(f"[green]✓ Validated {len(validated_models)} models[/green] [dim]({validation_result['validation_time_ms']}ms)[/dim]")
                 
@@ -966,12 +1290,47 @@ def interactive(
                 console.print(f"[red]Too many invalid attempts. Exiting.[/red]")
                 raise typer.Exit(1)
         
+        # Check if model has fixed temperature and prompt if needed
+        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        fixed_temp = model_info.get("fixed_temperature")
+        
+        if fixed_temp is not None:
+            temperature = fixed_temp
+            console.print(f"\n[dim]Using fixed temperature: {fixed_temp} for this model[/dim]")
+        else:
+            # Retry loop for temperature input
+            max_attempts = 3
+            temperature = None
+            for attempt in range(max_attempts):
+                temp_input = Prompt.ask(
+                    "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                    default="0.7"
+                )
+                
+                try:
+                    temp_value = float(temp_input)
+                    if 0.0 <= temp_value <= 2.0:
+                        temperature = temp_value
+                        break
+                    else:
+                        console.print("[red]✗ Out of range.[/red] Temperature must be between 0.0 and 2.0")
+                        if attempt < max_attempts - 1:
+                            console.print("[dim]Try again...[/dim]")
+                except ValueError:
+                    console.print(f"[red]✗ Invalid input.[/red] Please enter a number (e.g., '0.7' not '{temp_input}')")
+                    if attempt < max_attempts - 1:
+                        console.print("[dim]Try again...[/dim]")
+            
+            # If still no valid temperature after retries, use default
+            if temperature is None:
+                console.print("[yellow]Too many invalid attempts. Using default: 0.7[/yellow]")
+                temperature = 0.7
+        
         # Initialize client
         client = LLMClient(provider=provider)
         messages: List[Message] = []
         
-        # Get model info for context window
-        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        # Get model info for context window (already retrieved above for temperature check)
         context_window = model_info.get("context", "N/A")
         
         # Set conversation history limit (reserve 80% for history, 20% for response)
@@ -993,15 +1352,55 @@ def interactive(
             console.print(f"[dim]Load a file to provide context for the conversation[/dim]")
             console.print(f"[dim]Max file size: {MAX_FILE_SIZE_MB} MB | Leave blank to skip[/dim]")
             
-            file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
-            
-            if file_path_input.strip():
+            # File prompt with retry loop
+            max_file_attempts = 3
+            for file_attempt in range(max_file_attempts):
+                file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+                
+                if not file_path_input.strip():
+                    # User pressed Enter to skip
+                    break
+                
                 file = Path(file_path_input.strip()).expanduser()
+                
+                # Validate file exists and is readable
+                if not file.exists():
+                    console.print(f"[red]✗ File not found: {file}[/red]")
+                    if file_attempt < max_file_attempts - 1:
+                        choice = Prompt.ask(
+                            "[cyan]Enter 1 to retry file path or 2 to continue without file[/cyan]",
+                            choices=["1", "2"],
+                            default="2"
+                        )
+                        if choice == "2":
+                            file = None
+                            break
+                        # Otherwise loop continues for retry
+                    else:
+                        console.print("[dim]Continuing without file[/dim]")
+                        file = None
+                elif not file.is_file():
+                    console.print(f"[red]✗ Path is not a file: {file}[/red]")
+                    if file_attempt < max_file_attempts - 1:
+                        choice = Prompt.ask(
+                            "[cyan]Enter 1 to retry file path or 2 to continue without file[/cyan]",
+                            choices=["1", "2"],
+                            default="2"
+                        )
+                        if choice == "2":
+                            file = None
+                            break
+                    else:
+                        console.print("[dim]Continuing without file[/dim]")
+                        file = None
+                else:
+                    # File is valid, break out of retry loop
+                    break
         
         # Load initial file if provided
         if file:
             console.print(f"\n[bold cyan]Loading initial context...[/bold cyan]")
-            file_content = load_file_content(file, warn_large=True)
+            file_content = load_file_content(file, warn_large=True, check_vision=True)
             if file_content:
                 messages.append(Message(
                     role="user",
@@ -1046,24 +1445,58 @@ def interactive(
             
             # Handle special commands
             if user_input.startswith('/file '):
-                # Load and send file immediately
+                # Load and send file immediately with retry option
                 file_path_str = user_input[6:].strip()
                 file_path = Path(file_path_str).expanduser()
                 
-                file_content = load_file_content(file_path, warn_large=True)
+                file_content = load_file_content(file_path, warn_large=True, check_vision=True)
+                
+                # If file not found, offer retry
+                if not file_content and not file_path.exists():
+                    choice = Prompt.ask(
+                        "[cyan]Enter 1 to retry file path or 2 to enter message[/cyan]",
+                        choices=["1", "2"],
+                        default="2"
+                    )
+                    if choice == "1":
+                        # Retry - prompt for new path
+                        new_path_str = Prompt.ask("File path")
+                        new_file_path = Path(new_path_str.strip()).expanduser()
+                        file_content = load_file_content(new_file_path, warn_large=True, check_vision=True)
+                        if file_content:
+                            file_path = new_file_path
+                    # If choice == "2", just continue to message prompt
+                
                 if file_content:
                     # Send file content as user message
                     user_input = f"[File: {file_path.name}]\n\n{file_content}"
                     messages.append(Message(role="user", content=user_input))
                 else:
-                    continue  # Error already displayed, skip to next input
+                    continue  # Skip to next input
             
             elif user_input.startswith('/attach '):
-                # Stage file for next message
+                # Stage file for next message with retry option
                 file_path_str = user_input[8:].strip()
                 file_path = Path(file_path_str).expanduser()
                 
-                file_content = load_file_content(file_path, warn_large=True)
+                file_content = load_file_content(file_path, warn_large=True, check_vision=True)
+                
+                # If file not found, offer retry
+                if not file_content and not file_path.exists():
+                    choice = Prompt.ask(
+                        "[cyan]Enter 1 to retry file path or 2 to enter message[/cyan]",
+                        choices=["1", "2"],
+                        default="2"
+                    )
+                    if choice == "1":
+                        # Retry - prompt for new path
+                        new_path_str = Prompt.ask("File path")
+                        new_file_path = Path(new_path_str.strip()).expanduser()
+                        file_content = load_file_content(new_file_path, warn_large=True, check_vision=True)
+                        if file_content:
+                            file_path = new_file_path
+                    # If choice == "2", continue to message prompt (don't stage anything)
+                
                 if file_content:
                     staged_file_content = file_content
                     staged_file_name = file_path.name
@@ -1163,19 +1596,18 @@ def interactive(
                     console.print("[yellow]Provider not changed[/yellow]")
                     continue
                 
-                # Validate and display ALL models for the selected provider
+                # Validate and display curated models for the selected provider
                 from stratifyai.utils.provider_validator import get_validated_interactive_models
                 
                 with console.status(f"[cyan]Validating {new_provider} models...", spinner="dots"):
-                    validation_data = get_validated_interactive_models(new_provider, all_models=True)
+                    validation_data = get_validated_interactive_models(new_provider)
                 
                 validation_result = validation_data["validation_result"]
                 validated_models = validation_data["models"]
                 
                 # Show validation result
                 if validation_result["error"]:
-                    console.print(f"[yellow]⚠ {validation_result['error']}[/yellow]")
-                    console.print("[dim]Showing all models (availability not confirmed)[/dim]")
+                    console.print("[yellow]⚠ Default models displayed. Could not validate models.[/yellow]")
                     # Fall back to MODEL_CATALOG if validation fails
                     available_models = list(MODEL_CATALOG[new_provider].keys())
                     model_metadata = MODEL_CATALOG[new_provider]
@@ -1184,15 +1616,27 @@ def interactive(
                     available_models = list(validated_models.keys())
                     model_metadata = validated_models
                 
-                # Show available models for new provider
-                console.print(f"\n[bold cyan]Current valid models for {new_provider}:[/bold cyan]")
+                # Show available models for new provider with full metadata
+                console.print(f"\n[bold cyan]Available {new_provider} models:[/bold cyan]")
+                
+                # Display with friendly names, descriptions, and categories (same as initial selection)
+                current_category = None
                 for i, m in enumerate(available_models, 1):
                     meta = model_metadata.get(m, {})
-                    is_reasoning = meta.get("reasoning_model", False)
+                    display_name = meta.get("display_name", m)
+                    description = meta.get("description", "")
+                    category = meta.get("category", "")
+                    
+                    # Show category header if changed
+                    if category and category != current_category:
+                        console.print(f"  [dim]── {category} ──[/dim]")
+                        current_category = category
+                    
+                    # Build label with current marker
                     current_marker = " [green](current)[/green]" if m == model and new_provider == provider else ""
-                    label = f"  {i}. {m}{current_marker}"
-                    if is_reasoning:
-                        label += " [yellow](reasoning)[/yellow]"
+                    label = f"  {i}. {display_name}{current_marker}"
+                    if description:
+                        label += f" [dim]- {description}[/dim]"
                     console.print(label)
                 
                 # Get model selection
@@ -1220,6 +1664,43 @@ def interactive(
                 # Update provider and model
                 provider = new_provider
                 model = new_model
+                
+                # Check if new model has fixed temperature and prompt if needed
+                new_model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+                fixed_temp = new_model_info.get("fixed_temperature")
+                
+                if fixed_temp is not None:
+                    temperature = fixed_temp
+                    console.print(f"\n[dim]Using fixed temperature: {fixed_temp} for this model[/dim]")
+                else:
+                    # Retry loop for temperature input
+                    max_attempts = 3
+                    temperature = None
+                    for attempt in range(max_attempts):
+                        temp_input = Prompt.ask(
+                            "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                            default="0.7"
+                        )
+                        
+                        try:
+                            temp_value = float(temp_input)
+                            if 0.0 <= temp_value <= 2.0:
+                                temperature = temp_value
+                                break
+                            else:
+                                console.print("[red]✗ Out of range.[/red] Temperature must be between 0.0 and 2.0")
+                                if attempt < max_attempts - 1:
+                                    console.print("[dim]Try again...[/dim]")
+                        except ValueError:
+                            console.print(f"[red]✗ Invalid input.[/red] Please enter a number (e.g., '0.7' not '{temp_input}')")
+                            if attempt < max_attempts - 1:
+                                console.print("[dim]Try again...[/dim]")
+                    
+                    # If still no valid temperature after retries, use default
+                    if temperature is None:
+                        console.print("[yellow]Too many invalid attempts. Using default: 0.7[/yellow]")
+                        temperature = 0.7
+                
                 client = LLMClient(provider=provider)  # Reinitialize client
                 
                 # Update context window info
@@ -1317,7 +1798,7 @@ def interactive(
                 console.print(f"[yellow]⚠ Conversation history truncated (estimated {estimated_tokens:,} tokens)[/yellow]")
             
             # Create request and get response
-            request = ChatRequest(model=model, messages=messages)
+            request = ChatRequest(model=model, messages=messages, temperature=temperature)
             
             try:
                 # Show spinner while waiting for response

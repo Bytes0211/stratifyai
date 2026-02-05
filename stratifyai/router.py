@@ -74,7 +74,7 @@ class Router:
             # Anthropic
             "claude-sonnet-4-5-20250929": 0.94,
             "claude-3-5-sonnet-20241022": 0.92,
-            "claude-3-5-haiku-20241022": 0.80,
+            "claude-haiku-4-5": 0.82,
             
             # Google
             "gemini-2.5-pro": 0.91,
@@ -117,7 +117,7 @@ class Router:
             # Anthropic
             "claude-sonnet-4-5-20250929": 2800,
             "claude-3-5-sonnet-20241022": 2200,
-            "claude-3-5-haiku-20241022": 1200,
+            "claude-haiku-4-5": 1000,
             
             # Google
             "gemini-2.5-pro": 2000,

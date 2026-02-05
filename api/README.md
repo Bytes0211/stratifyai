@@ -4,9 +4,12 @@ FastAPI-based REST API and Web GUI for StratifyAI multi-provider LLM abstraction
 
 ## Features
 
-- **REST API** for chat completions across 8 providers
+- **REST API** for chat completions across 9 providers
 - **WebSocket streaming** for real-time responses
-- **Interactive Web UI** for testing and comparing providers
+- **Interactive Web UI** with markdown rendering and syntax highlighting
+- **Vision support** for image uploads (vision-capable models only)
+- **Smart chunking** for large file handling with configurable chunk size
+- **Model metadata** with validation, labels, and context window display
 - **Cost tracking** with real-time dashboard
 - **Auto-generated API docs** (Swagger UI)
 
@@ -126,13 +129,29 @@ POST /api/cost/reset
 
 The interactive web interface (`http://localhost:8000`) provides:
 
-1. **Provider Selection** - Choose from 8 LLM providers
-2. **Model Selection** - Dynamically loaded models for each provider
-3. **Temperature Control** - Adjust response creativity (0-2)
-4. **Max Tokens** - Optional limit on response length
-5. **Chat Interface** - Conversational UI with message history
-6. **Cost Tracking** - Real-time cost, token, and call count tracking
-7. **Reset Chat** - Clear conversation history
+### Model Configuration
+1. **Provider Selection** - Choose from 9 LLM providers
+2. **Model Selection** - Dynamically loaded with category grouping and descriptions
+3. **Model Validation** - Real-time API validation with status indicator
+4. **Context Window Display** - Shows model's token limit
+5. **Temperature Control** - Adjust response creativity (0-2), disabled for reasoning models
+6. **Max Tokens** - Optional limit on response length
+
+### Chat Interface
+7. **Markdown Rendering** - Assistant responses rendered as formatted HTML
+8. **Syntax Highlighting** - Code blocks with language-specific highlighting (highlight.js)
+9. **Message History** - Conversational UI with user/assistant message styling
+10. **Reset Chat** - Clear conversation history
+
+### File Handling
+11. **Vision Support** - Image uploads for vision-capable models (JPG, PNG, GIF, WebP)
+12. **Dynamic File Input** - File types adjust based on model capabilities
+13. **Smart Chunking** - Enable chunking for large files with adjustable chunk size
+14. **File Size Limit** - 5MB maximum per file
+
+### Cost Tracking
+15. **Real-time Dashboard** - Cost, tokens, and call count tracking
+16. **Token Breakdown** - Input/output token counts
 
 ## Architecture
 
@@ -145,10 +164,15 @@ api/
 ```
 
 The API server:
-- Uses `LLMClient` from the core `llm_abstraction` package
+- Uses `LLMClient` from the core `stratifyai` package
 - Tracks costs with the `CostTracker` module
-- Supports all 8 providers (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, Ollama, OpenRouter)
+- Supports all 9 providers (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, Ollama, OpenRouter, AWS Bedrock)
 - Provides both REST and WebSocket endpoints
+- Serves static files including the Web UI (`static/index.html`)
+
+### Frontend Libraries
+- **marked.js** - Markdown to HTML rendering
+- **highlight.js** - Syntax highlighting for code blocks (190+ languages)
 
 ## Cost Tracking
 

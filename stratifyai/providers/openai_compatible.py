@@ -89,7 +89,28 @@ class OpenAICompatibleProvider(BaseProvider):
         # Build OpenAI-compatible request parameters
         messages = []
         for msg in request.messages:
-            message_dict = {"role": msg.role, "content": msg.content}
+            # Check if message contains an image
+            if msg.has_image():
+                # Parse vision content
+                text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                
+                # Build content array for vision
+                content_parts = []
+                if text_content:
+                    content_parts.append({"type": "text", "text": text_content})
+                
+                # Add image in OpenAI format (data URL)
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{mime_type};base64,{base64_data}"
+                    }
+                })
+                
+                message_dict = {"role": msg.role, "content": content_parts}
+            else:
+                message_dict = {"role": msg.role, "content": msg.content}
+            
             # Add cache_control if present and model supports caching
             if msg.cache_control and self.supports_caching(request.model):
                 message_dict["cache_control"] = msg.cache_control
@@ -147,14 +168,29 @@ class OpenAICompatibleProvider(BaseProvider):
                 raise InsufficientBalanceError(self.provider_name)
             elif "invalid_api_key" in error_msg.lower() or "unauthorized" in error_msg.lower() or (hasattr(e, 'status_code') and e.status_code == 401):
                 raise AuthenticationError(self.provider_name)
+            # Check for vision-related errors
+            elif "image" in error_msg.lower() and ("not supported" in error_msg.lower() or "invalid" in error_msg.lower() or "image_url" in error_msg.lower()):
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model (e.g., gemini-2.5-pro for Google, gpt-4o for OpenAI via OpenRouter).",
+                    self.provider_name
+                )
             else:
                 raise ProviderAPIError(
                     f"Chat completion failed: {error_msg}",
                     self.provider_name
                 )
         except Exception as e:
+            error_str = str(e)
+            # Check for vision-related errors in generic exceptions
+            if "image" in error_str.lower() and ("not supported" in error_str.lower() or "invalid" in error_str.lower() or "image_url" in error_str.lower()):
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model.",
+                    self.provider_name
+                )
             raise ProviderAPIError(
-                f"Chat completion failed: {str(e)}",
+                f"Chat completion failed: {error_str}",
                 self.provider_name
             )
     
@@ -186,12 +222,33 @@ class OpenAICompatibleProvider(BaseProvider):
         )
         
         # Build request parameters
+        messages = []
+        for msg in request.messages:
+            # Check if message contains an image
+            if msg.has_image():
+                # Parse vision content
+                text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                
+                # Build content array for vision
+                content_parts = []
+                if text_content:
+                    content_parts.append({"type": "text", "text": text_content})
+                
+                # Add image in OpenAI format (data URL)
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{mime_type};base64,{base64_data}"
+                    }
+                })
+                
+                messages.append({"role": msg.role, "content": content_parts})
+            else:
+                messages.append({"role": msg.role, "content": msg.content})
+        
         openai_params = {
             "model": request.model,
-            "messages": [
-                {"role": msg.role, "content": msg.content}
-                for msg in request.messages
-            ],
+            "messages": messages,
             "stream": True,
         }
         
@@ -232,14 +289,29 @@ class OpenAICompatibleProvider(BaseProvider):
                 raise InsufficientBalanceError(self.provider_name)
             elif "invalid_api_key" in error_msg.lower() or "unauthorized" in error_msg.lower() or (hasattr(e, 'status_code') and e.status_code == 401):
                 raise AuthenticationError(self.provider_name)
+            # Check for vision-related errors
+            elif "image" in error_msg.lower() and ("not supported" in error_msg.lower() or "invalid" in error_msg.lower() or "image_url" in error_msg.lower()):
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model.",
+                    self.provider_name
+                )
             else:
                 raise ProviderAPIError(
                     f"Streaming chat completion failed: {error_msg}",
                     self.provider_name
                 )
         except Exception as e:
+            error_str = str(e)
+            # Check for vision-related errors
+            if "image" in error_str.lower() and ("not supported" in error_str.lower() or "invalid" in error_str.lower() or "image_url" in error_str.lower()):
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model.",
+                    self.provider_name
+                )
             raise ProviderAPIError(
-                f"Streaming chat completion failed: {str(e)}",
+                f"Streaming chat completion failed: {error_str}",
                 self.provider_name
             )
     

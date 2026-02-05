@@ -52,8 +52,8 @@ Provide a concise summary that preserves key information."""
         max_tokens=max_tokens
     )
     
-    # Get summary
-    response = client.chat_completion(request)
+    # Get summary (use sync wrapper since this is called from ThreadPoolExecutor)
+    response = client.chat_completion_sync(request)
     return response.content
 
 
@@ -134,6 +134,150 @@ def summarize_chunks_progressive(
     return combined
 
 
+async def summarize_chunk_async(
+    chunk: str,
+    client: LLMClient,
+    model: str = "gpt-4o-mini",
+    max_tokens: int = 1000,
+    context: Optional[str] = None
+) -> str:
+    """
+    Async version: Summarize a single chunk of content.
+    
+    Args:
+        chunk: The content chunk to summarize
+        client: LLMClient instance
+        model: Model to use for summarization
+        max_tokens: Maximum tokens for summary
+        context: Optional context about the overall document
+        
+    Returns:
+        Summary of the chunk
+    """
+    # Build prompt
+    if context:
+        prompt = f"""Summarize the following section from a larger document.
+
+Context: {context}
+
+Section to summarize:
+{chunk}
+
+Provide a concise summary that preserves key information."""
+    else:
+        prompt = f"""Summarize the following text concisely, preserving key information:
+
+{chunk}"""
+    
+    # Create request
+    request = ChatRequest(
+        model=model,
+        messages=[Message(role="user", content=prompt)],
+        max_tokens=max_tokens
+    )
+    
+    # Get summary (async)
+    response = await client.chat_completion(request)
+    return response.content
+
+
+async def summarize_chunks_progressive_async(
+    chunks: List[str],
+    client: LLMClient,
+    model: str = "gpt-4o-mini",
+    context: Optional[str] = None,
+    show_progress: bool = False
+) -> str:
+    """
+    Async version: Progressively summarize multiple chunks.
+    
+    Args:
+        chunks: List of content chunks
+        client: LLMClient instance
+        model: Model to use for summarization
+        context: Optional context about the overall document
+        show_progress: Whether to show progress bar (disabled for async)
+        
+    Returns:
+        Combined summary of all chunks
+    """
+    if not chunks:
+        return ""
+    
+    if len(chunks) == 1:
+        return await summarize_chunk_async(chunks[0], client, model, context=context)
+    
+    summaries = []
+    for i, chunk in enumerate(chunks, 1):
+        summary = await summarize_chunk_async(
+            chunk,
+            client,
+            model,
+            context=f"{context} (Part {i}/{len(chunks)})" if context else f"Part {i}/{len(chunks)}"
+        )
+        summaries.append(f"**Part {i}/{len(chunks)}:**\n{summary}")
+    
+    # Combine summaries
+    combined = "\n\n".join(summaries)
+    
+    # If combined summaries are still very long, summarize the summaries
+    if len(combined) > 10000:
+        final_summary = await summarize_chunk_async(
+            combined,
+            client,
+            model,
+            context="Combined summaries of document sections"
+        )
+        return f"**Overall Summary:**\n{final_summary}\n\n**Detailed Summaries:**\n{combined}"
+    
+    return combined
+
+
+async def summarize_file_async(
+    content: str,
+    client: LLMClient,
+    chunk_size: int = 50000,
+    model: str = "gpt-4o-mini",
+    context: Optional[str] = None,
+    show_progress: bool = False
+) -> dict:
+    """
+    Async version: Summarize a large file using progressive chunking.
+    
+    Args:
+        content: Full file content
+        client: LLMClient instance
+        chunk_size: Size of chunks in characters
+        model: Model to use for summarization
+        context: Optional context about the document
+        show_progress: Whether to show progress (disabled for async)
+        
+    Returns:
+        Dictionary with summary and metadata
+    """
+    # Chunk the content
+    chunks = chunk_content(content, chunk_size=chunk_size)
+    metadata = get_chunk_metadata(chunks)
+    
+    # Summarize chunks
+    summary = await summarize_chunks_progressive_async(
+        chunks,
+        client,
+        model=model,
+        context=context,
+        show_progress=show_progress
+    )
+    
+    return {
+        "summary": summary,
+        "original_length": len(content),
+        "summary_length": len(summary),
+        "reduction_percentage": round((1 - len(summary) / len(content)) * 100, 1),
+        "num_chunks": metadata["num_chunks"],
+        "chunk_metadata": metadata
+    }
+
+
 def summarize_file(
     content: str,
     client: LLMClient,
@@ -143,7 +287,7 @@ def summarize_file(
     show_progress: bool = True
 ) -> dict:
     """
-    Summarize a large file using progressive chunking.
+    Sync version: Summarize a large file using progressive chunking.
     
     Args:
         content: Full file content

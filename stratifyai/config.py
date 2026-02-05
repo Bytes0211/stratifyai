@@ -29,7 +29,7 @@ OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
         "context": 128000,
         "cost_input": 10.0,
         "cost_output": 30.0,
-        "supports_vision": True,
+        "supports_vision": False,
         "supports_tools": True,
     },
     "gpt-4": {
@@ -307,16 +307,6 @@ ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
         "cost_cache_write": 3.75,
         "cost_cache_read": 0.30,
         "supports_vision": True,
-        "supports_tools": True,
-        "supports_caching": True,
-    },
-    "claude-3-5-haiku-20241022": {
-        "context": 200000,
-        "cost_input": 1.0,
-        "cost_output": 5.0,
-        "cost_cache_write": 1.25,
-        "cost_cache_read": 0.10,
-        "supports_vision": False,
         "supports_tools": True,
         "supports_caching": True,
     },
@@ -1049,7 +1039,7 @@ INTERACTIVE_OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
     },
     "gpt-4-turbo": {
         "display_name": "GPT-4 Turbo",
-        "description": "Legacy flagship, vision support",
+        "description": "Legacy flagship, tools support",
         "category": "Legacy Models",
     },
 }
@@ -1074,11 +1064,6 @@ INTERACTIVE_ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
     "claude-3-5-sonnet-20241022": {
         "display_name": "Claude 3.5 Sonnet",
         "description": "Proven stable, vision/tools",
-        "category": "Claude 3.5 (Stable)",
-    },
-    "claude-3-5-haiku-20241022": {
-        "display_name": "Claude 3.5 Haiku",
-        "description": "Budget option",
         "category": "Claude 3.5 (Stable)",
     },
 }
@@ -1149,7 +1134,7 @@ INTERACTIVE_GROK_MODELS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# OpenRouter - 7 curated models (mix of free and paid)
+# OpenRouter - 11 curated models (mix of free and paid, multiple 1M context options)
 INTERACTIVE_OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = {
     "anthropic/claude-sonnet-4-5": {
         "display_name": "Claude Sonnet 4.5",
@@ -1163,7 +1148,7 @@ INTERACTIVE_OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = {
     },
     "google/gemini-2.5-flash": {
         "display_name": "Gemini 2.5 Flash",
-        "description": "Best value option",
+        "description": "BEST VALUE - 1M context, fast/cheap",
         "category": "Premium Models",
     },
     "meta-llama/llama-3.3-70b-instruct:free": {
@@ -1185,6 +1170,26 @@ INTERACTIVE_OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = {
         "display_name": "Mistral Large 3",
         "description": "European alternative",
         "category": "Premium Models",
+    },
+    "anthropic/claude-opus-4-5": {
+        "display_name": "Claude Opus 4.5",
+        "description": "Premium quality, 1M context",
+        "category": "1M Context Models",
+    },
+    "google/gemini-2.5-pro": {
+        "display_name": "Gemini 2.5 Pro",
+        "description": "Best quality, 1M context",
+        "category": "1M Context Models",
+    },
+    "google/gemini-3": {
+        "display_name": "Gemini 3",
+        "description": "Latest Google, 1M context",
+        "category": "1M Context Models",
+    },
+    "google/gemini-2.0-flash-exp:free": {
+        "display_name": "Gemini 2.0 Flash Exp",
+        "description": "FREE - 1M context, vision/tools",
+        "category": "Free Models (1M Context)",
     },
 }
 

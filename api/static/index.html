@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StratifyAI - Multi-Provider LLM Interface</title>
+    <!-- Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -159,6 +164,103 @@
             max-width: 100%;
         }
         
+        /* Markdown content styling */
+        .message.assistant .markdown-content {
+            line-height: 1.6;
+        }
+        
+        .message.assistant .markdown-content p {
+            margin: 0 0 10px 0;
+        }
+        
+        .message.assistant .markdown-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .message.assistant .markdown-content pre {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .message.assistant .markdown-content code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+        }
+        
+        .message.assistant .markdown-content :not(pre) > code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .message.assistant .markdown-content ul,
+        .message.assistant .markdown-content ol {
+            margin: 10px 0;
+            padding-left: 24px;
+        }
+        
+        .message.assistant .markdown-content li {
+            margin: 4px 0;
+        }
+        
+        .message.assistant .markdown-content h1,
+        .message.assistant .markdown-content h2,
+        .message.assistant .markdown-content h3,
+        .message.assistant .markdown-content h4 {
+            margin: 16px 0 8px 0;
+            font-weight: 600;
+        }
+        
+        .message.assistant .markdown-content h1 { font-size: 1.4em; }
+        .message.assistant .markdown-content h2 { font-size: 1.25em; }
+        .message.assistant .markdown-content h3 { font-size: 1.1em; }
+        
+        .message.assistant .markdown-content blockquote {
+            border-left: 4px solid #ddd;
+            margin: 10px 0;
+            padding: 8px 16px;
+            color: #666;
+            background: #f9f9f9;
+        }
+        
+        .message.assistant .markdown-content table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            width: 100%;
+        }
+        
+        .message.assistant .markdown-content th,
+        .message.assistant .markdown-content td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .message.assistant .markdown-content th {
+            background: #f6f8fa;
+            font-weight: 600;
+        }
+        
+        .message.assistant .markdown-content hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 16px 0;
+        }
+        
+        .message.assistant .markdown-content a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .message.assistant .markdown-content a:hover {
+            text-decoration: underline;
+        }
+        
         .error-details {
             font-size: 12px;
             margin-top: 8px;
@@ -180,6 +282,33 @@
         .cost-tracker h4 {
             color: #333;
             margin-bottom: 10px;
+        }
+        
+        .validation-status {
+            font-size: 13px;
+            margin-top: 8px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            background: #f0f9ff;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .validation-status.success {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+            color: #166534;
+        }
+        
+        .validation-status.warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+        
+        .validation-status.loading {
+            background: #f3f4f6;
+            border-left-color: #6b7280;
+            color: #374151;
         }
         
         .cost-row {
@@ -213,13 +342,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1><img src="/static/stratum_logo.png" alt="StratifyAI Logo"></h1>
-            <p>Unified Intelligence Across Every Model Layer</p>
+            <img src="/static/stratifyai_wide_logo.png" alt="StratifyAI Logo">
         </div>
         
         <div class="main-grid">
             <div class="sidebar">
-                <h3>Configuration</h3>
+                <h3>Model Configuration</h3>
                 
                 <div class="form-group">
                     <label for="provider">Provider</label>
@@ -233,6 +361,7 @@
                     <select id="model">
                         <option value="">Select Model...</option>
                     </select>
+                    <div id="validation-status" class="validation-status" style="display: none;"></div>
                 </div>
                 
                 <div class="form-group">
@@ -250,14 +379,18 @@
                 </div>
                 
                 <div class="cost-tracker">
-                    <h4>Cost Tracking</h4>
+                    <h4>Model Cost Tracking</h4>
+                    <div class="cost-row">
+                        <span>Context:</span>
+                        <span id="context-window">-</span>
+                    </div>
                     <div class="cost-row">
                         <span>Calls:</span>
                         <span id="cost-calls">0</span>
                     </div>
                     <div class="cost-row">
                         <span>Tokens:</span>
-                        <span id="cost-tokens">0</span>
+                        <span id="cost-tokens">0 (In: 0, Out: 0)</span>
                     </div>
                     <div class="cost-row">
                         <span>Total Cost:</span>
@@ -275,6 +408,23 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="file-input" id="file-input-label">Attach File (optional) - Text files only</label>
+                    <input type="file" id="file-input" accept=".txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h">
+                    <div id="file-status" style="margin-top: 5px; font-size: 13px; color: #666;"></div>
+                </div>
+                
+                <div class="form-group" style="display: flex; gap: 10px; align-items: center;">
+                    <input type="checkbox" id="chunked" style="width: auto;">
+                    <label for="chunked" style="margin: 0; cursor: pointer;">Enable Smart Chunking (reduces token usage for large files)</label>
+                </div>
+                
+                <div class="form-group" id="chunk-size-group" style="display: none;">
+                    <label for="chunk-size">Chunk Size (characters): <span id="chunk-size-value">50000</span></label>
+                    <input type="range" id="chunk-size" min="10000" max="100000" step="10000" value="50000">
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">💡 Smaller chunks = more summaries, larger chunks = fewer summaries</div>
+                </div>
+                
+                <div class="form-group">
                     <button id="send-btn">Send Message</button>
                 </div>
             </div>
@@ -282,11 +432,13 @@
     </div>
     
     <script>
-        const API_BASE = 'http://localhost:8000';
+        const API_BASE = 'http://localhost:8080';
         let messages = [];
         let totalCost = 0;
         let totalCalls = 0;
         let totalTokens = 0;
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
         
         // Load providers on startup
         async function loadProviders() {
@@ -381,31 +533,198 @@
         // Load models for selected provider
         document.getElementById('provider').addEventListener('change', async (e) => {
             const provider = e.target.value;
-            if (!provider) return;
+            const validationStatus = document.getElementById('validation-status');
             
-            const response = await fetch(`${API_BASE}/api/models/${provider}`);
-            const models = await response.json();
+            if (!provider) {
+                validationStatus.style.display = 'none';
+                return;
+            }
             
-            const select = document.getElementById('model');
-            select.innerHTML = '<option value="">Select Model...</option>';
+            // Show loading status
+            validationStatus.style.display = 'block';
+            validationStatus.className = 'validation-status loading';
+            validationStatus.textContent = `🔄 Validating ${provider} models...`;
             
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                select.appendChild(option);
-            });
+            try {
+                const response = await fetch(`${API_BASE}/api/models/${provider}`);
+                const data = await response.json();
+                
+                const models = data.models || data; // Support both new and old format
+                const validation = data.validation;
+                
+                const select = document.getElementById('model');
+                select.innerHTML = '<option value="">Select Model...</option>';
+                
+                // Check if we have models
+                if (models.length === 0) {
+                    // No models available
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No validated models available';
+                    option.disabled = true;
+                    select.appendChild(option);
+                    
+                    validationStatus.className = 'validation-status warning';
+                    if (validation && validation.error) {
+                        validationStatus.textContent = `⚠️ ${validation.error}`;
+                    } else {
+                        validationStatus.textContent = `⚠️ No models could be validated. Check API key configuration.`;
+                    }
+                } else {
+                    // Group models by category
+                    const groupedModels = {};
+                    models.forEach(model => {
+                        // Handle both old format (string) and new format (object)
+                        const modelId = typeof model === 'string' ? model : model.id;
+                        const displayName = typeof model === 'string' ? model : model.display_name;
+                        const description = typeof model === 'string' ? '' : model.description;
+                        const category = typeof model === 'string' ? '' : model.category;
+                        const supportsVision = typeof model === 'string' ? false : model.supports_vision;
+                        const reasoningModel = typeof model === 'string' ? false : model.reasoning_model;
+                        
+                        if (!groupedModels[category]) {
+                            groupedModels[category] = [];
+                        }
+                        groupedModels[category].push({ modelId, displayName, description, supportsVision, reasoningModel });
+                    });
+                    
+                    // Add models to dropdown with categories
+                    Object.keys(groupedModels).forEach(category => {
+                        // Add category header if not empty
+                        if (category) {
+                            const categoryOption = document.createElement('option');
+                            categoryOption.disabled = true;
+                            categoryOption.textContent = `── ${category} ──`;
+                            categoryOption.style.fontWeight = 'bold';
+                            categoryOption.style.color = '#666';
+                            select.appendChild(categoryOption);
+                        }
+                        
+                        // Add models in this category
+                        groupedModels[category].forEach(({ modelId, displayName, description, supportsVision, reasoningModel }) => {
+                            const option = document.createElement('option');
+                            option.value = modelId;
+                            
+                            // Build display text with labels
+                            let text = displayName;
+                            if (description) {
+                                text += ` - ${description}`;
+                            }
+                            
+                            option.textContent = text;
+                            option.title = description; // Tooltip
+                            select.appendChild(option);
+                        });
+                    });
+                    
+                    // Display validation feedback
+                    if (validation) {
+                        if (validation.error) {
+                            validationStatus.className = 'validation-status warning';
+                            validationStatus.textContent = `⚠️ Default models displayed. Could not validate models.`;
+                        } else {
+                            validationStatus.className = 'validation-status success';
+                            validationStatus.textContent = `✓ Validated ${models.length} models (${validation.validation_time_ms}ms)`;
+                        }
+                    } else {
+                        // Fallback if no validation data
+                        validationStatus.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                validationStatus.className = 'validation-status warning';
+                validationStatus.textContent = `⚠️ Error loading models: ${error.message}`;
+            }
             
             // Reset temperature state when provider changes
             updateTemperatureState();
         });
         
-        // Update temperature state when model changes
-        document.getElementById('model').addEventListener('change', updateTemperatureState);
+        // Update temperature state and context window when model changes
+        document.getElementById('model').addEventListener('change', async () => {
+            await updateTemperatureState();
+            await updateContextWindow();
+        });
+        
+        // Update context window display and file input capabilities
+        async function updateContextWindow() {
+            const provider = document.getElementById('provider').value;
+            const model = document.getElementById('model').value;
+            const contextDisplay = document.getElementById('context-window');
+            const fileInput = document.getElementById('file-input');
+            const fileLabel = document.getElementById('file-input-label');
+            
+            if (!provider || !model) {
+                contextDisplay.textContent = '-';
+                // Reset to text files only
+                fileInput.accept = '.txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h';
+                fileLabel.textContent = 'Attach File (optional) - Text files only';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/model-info/${provider}/${model}`);
+                if (response.ok) {
+                    const modelInfo = await response.json();
+                    
+                    // Update context window
+                    const context = modelInfo.context;
+                    if (context && typeof context === 'number' && context > 0) {
+                        contextDisplay.textContent = `${context.toLocaleString()} tokens`;
+                    } else {
+                        contextDisplay.textContent = 'N/A';
+                    }
+                    
+                    // Update file input based on vision support
+                    if (modelInfo.supports_vision) {
+                        fileInput.accept = '.txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h,.jpg,.jpeg,.png,.gif,.webp';
+                        fileLabel.textContent = 'Attach File (optional) - Text files and images (vision enabled)';
+                    } else {
+                        fileInput.accept = '.txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h';
+                        fileLabel.textContent = 'Attach File (optional) - Text files only';
+                    }
+                } else {
+                    contextDisplay.textContent = '-';
+                    // Reset to text files only on error
+                    fileInput.accept = '.txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h';
+                    fileLabel.textContent = 'Attach File (optional) - Text files only';
+                }
+            } catch (error) {
+                console.error('Error fetching model info:', error);
+                contextDisplay.textContent = '-';
+                // Reset to text files only on error
+                fileInput.accept = '.txt,.py,.js,.json,.csv,.log,.md,.yaml,.yml,.xml,.html,.css,.java,.go,.rs,.cpp,.c,.h';
+                fileLabel.textContent = 'Attach File (optional) - Text files only';
+            }
+        }
         
         // Update temperature display
         document.getElementById('temperature').addEventListener('input', (e) => {
             document.getElementById('temp-value').textContent = e.target.value;
+        });
+        
+        // Handle chunking checkbox toggle
+        document.getElementById('chunked').addEventListener('change', (e) => {
+            const chunkSizeGroup = document.getElementById('chunk-size-group');
+            chunkSizeGroup.style.display = e.target.checked ? 'block' : 'none';
+        });
+        
+        // Update chunk size display
+        document.getElementById('chunk-size').addEventListener('input', (e) => {
+            document.getElementById('chunk-size-value').textContent = parseInt(e.target.value).toLocaleString();
+        });
+        
+        // Configure marked for code highlighting
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+            gfm: true
         });
         
         // Add message to chat
@@ -425,8 +744,14 @@
                 detailsDiv.className = 'error-details';
                 detailsDiv.textContent = details;
                 messageDiv.appendChild(detailsDiv);
+            } else if (role === 'assistant') {
+                // Render markdown for assistant messages
+                const markdownDiv = document.createElement('div');
+                markdownDiv.className = 'markdown-content';
+                markdownDiv.innerHTML = marked.parse(content);
+                messageDiv.appendChild(markdownDiv);
             } else {
-                // For non-error messages, just set text content
+                // For user/system messages, just set text content
                 messageDiv.textContent = content;
             }
             
@@ -439,21 +764,184 @@
             }
         }
         
+        // Handle file selection
+        let selectedFile = null;
+        let fileContent = null;
+        
+        document.getElementById('file-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            const fileStatus = document.getElementById('file-status');
+            
+            if (!file) {
+                selectedFile = null;
+                fileContent = null;
+                fileStatus.textContent = '';
+                return;
+            }
+            
+            // Check file size (5MB limit)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                fileStatus.textContent = `⚠️ File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Max: 5 MB`;
+                fileStatus.style.color = '#c33';
+                e.target.value = ''; // Clear selection
+                selectedFile = null;
+                fileContent = null;
+                return;
+            }
+            
+            // Read file content - handle text and image files differently
+            try {
+                const fileType = file.type;
+                const isImage = fileType.startsWith('image/');
+                
+                if (isImage) {
+                    // Read image as base64 data URL
+                    const reader = new FileReader();
+                    await new Promise((resolve, reject) => {
+                        reader.onload = (e) => {
+                            fileContent = e.target.result;  // base64 data URL
+                            resolve();
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    selectedFile = file;
+                    const sizeStr = file.size < 1024 ? 
+                        `${file.size} bytes` : 
+                        file.size < 1024 * 1024 ? 
+                        `${(file.size / 1024).toFixed(1)} KB` : 
+                        `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                    fileStatus.textContent = `✓ ${file.name} (${sizeStr}, image)`;
+                    fileStatus.style.color = '#22c55e';
+                } else {
+                    // Read text file
+                    fileContent = await file.text();
+                    selectedFile = file;
+                    const sizeStr = file.size < 1024 ? 
+                        `${file.size} bytes` : 
+                        file.size < 1024 * 1024 ? 
+                        `${(file.size / 1024).toFixed(1)} KB` : 
+                        `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                    fileStatus.textContent = `✓ ${file.name} (${sizeStr}, ${fileContent.length.toLocaleString()} chars)`;
+                    fileStatus.style.color = '#22c55e';
+                }
+            } catch (error) {
+                fileStatus.textContent = `⚠️ Error reading file: ${error.message}`;
+                fileStatus.style.color = '#c33';
+                e.target.value = '';
+                selectedFile = null;
+                fileContent = null;
+            }
+        });
+        
         // Send message
         document.getElementById('send-btn').addEventListener('click', async () => {
             const provider = document.getElementById('provider').value;
             const model = document.getElementById('model').value;
             const input = document.getElementById('user-input');
             const userMessage = input.value.trim();
+            const fileInput = document.getElementById('file-input');
+            const fileStatus = document.getElementById('file-status');
             
-            if (!provider || !model || !userMessage) {
-                alert('Please select provider, model, and enter a message');
+            if (!provider || !model) {
+                alert('Please select provider and model');
                 return;
             }
             
-            // Add user message
-            addMessage('user', userMessage);
+            if (!userMessage && !fileContent) {
+                alert('Please enter a message or attach a file');
+                return;
+            }
+            
+            // Validate that vision models are used for image files
+            if (fileContent && selectedFile) {
+                const isImage = selectedFile.type.startsWith('image/');
+                if (isImage) {
+                    // Check if model supports vision
+                    try {
+                        const response = await fetch(`${API_BASE}/api/model-info/${provider}/${model}`);
+                        if (response.ok) {
+                            const modelInfo = await response.json();
+                            if (!modelInfo.supports_vision) {
+                                alert(`❌ Vision Not Supported\n\nThe model "${model}" cannot process image files.\n\nPlease either:\n• Select a vision-capable model (e.g., GPT-4 Vision, Claude 3), or\n• Remove the image attachment`);
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error checking vision support:', error);
+                        // Continue anyway - let the API handle it
+                    }
+                }
+            }
+            
+            // Build display message and actual content
+            let displayMessage = userMessage;
+            let actualContent = userMessage;
+            let apiFileContent = null;
+            let apiFileName = null;
+            
+            if (fileContent) {
+                const isImage = selectedFile.type.startsWith('image/');
+                
+                if (isImage) {
+                    // For images, show indicator in display
+                    displayMessage = displayMessage ? 
+                        `${displayMessage}\n\n🖼️ Image attached: ${selectedFile.name}` : 
+                        `🖼️ Image attached: ${selectedFile.name}`;
+                    
+                    // Extract base64 data from data URL (format: data:image/jpeg;base64,<data>)
+                    const base64Data = fileContent.split(',')[1];  // Get part after comma
+                    const mimeType = fileContent.split(';')[0].split(':')[1];  // Extract mime type
+                    
+                    // Format for vision models: [IMAGE:mime_type]\nbase64_data
+                    const imageContent = `[IMAGE:${mimeType}]\n${base64Data}`;
+                    
+                    actualContent = actualContent ? 
+                        `${actualContent}\n\n${imageContent}` : 
+                        imageContent;
+                } else {
+                    // For text files, set API file parameters for chunking support
+                    displayMessage = displayMessage ? 
+                        `${displayMessage}\n\n📎 Attached: ${selectedFile.name}` : 
+                        `📎 Attached: ${selectedFile.name}`;
+                    
+                    // Check if chunking is enabled
+                    const chunked = document.getElementById('chunked').checked;
+                    if (chunked) {
+                        // Pass file to API for chunking
+                        apiFileContent = fileContent;
+                        apiFileName = selectedFile.name;
+                        displayMessage += ` (chunking enabled)`;
+                    } else {
+                        // Combine message with file content directly
+                        actualContent = actualContent ? 
+                            `${actualContent}\n\n[File: ${selectedFile.name}]\n\n${fileContent}` : 
+                            `[File: ${selectedFile.name}]\n\n${fileContent}`;
+                    }
+                }
+            }
+            
+            // Add user message to chat display
+            const container = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.textContent = displayMessage;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // Add actual content (with file) to conversation history
+            messages.push({role: 'user', content: actualContent});
+            
             input.value = '';
+            
+            // Clear file attachment
+            if (fileContent) {
+                fileInput.value = '';
+                fileStatus.textContent = '';
+                selectedFile = null;
+                fileContent = null;
+            }
             
             // Disable send button
             const sendBtn = document.getElementById('send-btn');
@@ -471,16 +959,27 @@
                     temperature = 1.0;
                 }
                 
+                // Build request body with optional chunking parameters
+                const requestBody = {
+                    provider,
+                    model,
+                    messages: messages,
+                    temperature,
+                    max_tokens: maxTokens,
+                };
+                
+                // Add file and chunking parameters if file is being chunked
+                if (apiFileContent && apiFileName) {
+                    requestBody.file_content = apiFileContent;
+                    requestBody.file_name = apiFileName;
+                    requestBody.chunked = true;
+                    requestBody.chunk_size = parseInt(document.getElementById('chunk-size').value);
+                }
+                
                 const response = await fetch(`${API_BASE}/api/chat`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        provider,
-                        model,
-                        messages: messages,
-                        temperature,
-                        max_tokens: maxTokens,
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
@@ -489,9 +988,12 @@
                 if (!response.ok) {
                     // Handle structured error response (object) or simple error (string)
                     let errorMsg;
+                    let errorData = null;
+                    
                     if (typeof data.detail === 'object' && data.detail !== null) {
                         // Structured error response from our API
-                        errorMsg = data.detail.detail || JSON.stringify(data.detail);
+                        errorData = data.detail;
+                        errorMsg = errorData.detail || errorData.message || JSON.stringify(data.detail);
                     } else {
                         // Simple string error
                         errorMsg = data.detail || data.error || 'Unknown error occurred';
@@ -501,7 +1003,30 @@
                     let details = errorMsg;
                     
                     // Parse common error patterns
-                    if (errorMsg.includes('temperature') && errorMsg.includes('not support')) {
+                    if (errorData && errorData.error === 'input_too_long') {
+                        // Enhanced token limit error with suggestions
+                        userFriendlyMsg = '📊 Input Too Large';
+                        
+                        const msg = errorData.message || errorMsg;
+                        const suggestion = errorData.suggestion || '';
+                        const tokens = errorData.estimated_tokens;
+                        const limit = errorData.api_limit || errorData.model_limit;
+                        const chunkingEnabled = errorData.chunking_enabled;
+                        
+                        details = `${msg}\n\n`;
+                        
+                        if (suggestion) {
+                            details += `💡 Suggestions:\n${suggestion}\n\n`;
+                        }
+                        
+                        if (!chunkingEnabled) {
+                            details += `⚠️ TIP: Enable the 'Smart Chunking' checkbox below the file upload to automatically reduce token usage by 40-90%.`;
+                        }
+                    } else if (errorData && errorData.error === 'content_too_large') {
+                        // File exceeds system maximum
+                        userFriendlyMsg = '🚫 File Too Large';
+                        details = `${errorData.message}\n\n${errorData.suggestion || ''}`;
+                    } else if (errorMsg.includes('temperature') && errorMsg.includes('not support')) {
                         const selectedTemp = parseFloat(document.getElementById('temperature').value);
                         userFriendlyMsg = `${model} does not support temperature ${selectedTemp}. The default value is 1.0.`;
                         details = errorMsg;
@@ -513,7 +1038,7 @@
                         details = `Too many requests to ${provider}.\n\nError: ${errorMsg}\n\nPlease wait a moment and try again.`;
                     } else if (errorMsg.includes('model') && errorMsg.includes('not found')) {
                         userFriendlyMsg = '🔍 Model Not Found';
-                        details = `The model "${model}" is not available.\n\nError: ${errorMsg}`;
+                        details = `The model \"${model}\" is not available.\n\nError: ${errorMsg}`;
                     }
                     
                     addMessage('error', userFriendlyMsg, details);
@@ -526,10 +1051,13 @@
                 // Update cost tracking
                 totalCalls++;
                 totalTokens += data.usage?.total_tokens || 0;
+                totalPromptTokens += data.usage?.prompt_tokens || 0;
+                totalCompletionTokens += data.usage?.completion_tokens || 0;
                 totalCost += data.cost_usd || 0;
                 
                 document.getElementById('cost-calls').textContent = totalCalls;
-                document.getElementById('cost-tokens').textContent = totalTokens.toLocaleString();
+                document.getElementById('cost-tokens').textContent = 
+                    `${totalTokens.toLocaleString()} (In: ${totalPromptTokens.toLocaleString()}, Out: ${totalCompletionTokens.toLocaleString()})`;
                 document.getElementById('cost-total').textContent = `$${totalCost.toFixed(4)}`;
                 
             } catch (error) {

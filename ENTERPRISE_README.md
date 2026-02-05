@@ -4,9 +4,9 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-300%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Phase 7.8 Complete  
+**Status:** Phase 7.9 Complete  
 **Providers:** 9 Fully Integrated  
-**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Web UI • Builder Pattern • Async-First
+**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Web UI • Vision • Smart Chunking • Async-First
 
 StratifyAI is a production‑ready Python framework that unifies access to frontier LLM providers through a single, consistent API. It eliminates vendor lock‑in, simplifies multi‑model development, and provides intelligent routing, cost tracking, caching, streaming, and RAG capabilities for enterprise‑grade AI systems.
 
@@ -85,15 +85,29 @@ StratifyAI is a multi‑provider LLM abstraction layer that allows developers to
 - Router with cost/quality/latency/hybrid strategies  
 - Prompt complexity analysis  
 - Capability filtering (vision, tools, reasoning)  
-- Model metadata (context window, latency, cost)  
+- Model metadata with labels (context window, latency, cost, category)  
+- Dynamic model validation via provider APIs
 
-## **4.4 Advanced Capabilities**
+## **4.4 Vision Support**
+- **Image analysis** for vision-capable models (GPT-4o, Claude, Gemini, Nova)
+- Automatic vision validation before upload
+- Dynamic file input (images enabled only for vision models)
+- Supports JPG, PNG, GIF, WebP formats (max 5MB)
+
+## **4.5 Advanced Capabilities**
 - Response caching + provider prompt caching  
-- Large‑file chunking and progressive summarization  
+- **Smart chunking** with configurable chunk size for large files
+- Progressive summarization for token reduction
 - File extraction (CSV, JSON, logs, code)  
 - Auto model selection for extraction tasks  
 - RAG pipeline with embeddings + ChromaDB  
-- Semantic search and citation tracking  
+- Semantic search and citation tracking
+
+## **4.6 Web UI Enhancements**
+- **Markdown rendering** with syntax highlighting (highlight.js)
+- Model metadata display (context window, validation status)
+- Category-based model grouping in dropdowns
+- Real-time cost tracking dashboard
 
 ---
 
@@ -327,8 +341,8 @@ pytest -v
 
 # **12. Project Status**
 
-**Current Phase:** Phase 7.8 — Builder Pattern & Required Model  
-**Progress:** Phases 1–7.8 Complete  
+**Current Phase:** Phase 7.9 — Web UI Enhancements  
+**Progress:** Phases 1–7.9 Complete  
 
 ### Completed Phases
 
@@ -341,6 +355,7 @@ pytest -v
 - **Phase 7.6:** Chat package with simplified API
 - **Phase 7.7:** Async-first conversion with native SDK clients
 - **Phase 7.8:** Builder pattern & required model parameter
+- **Phase 7.9:** Web UI enhancements (vision, chunking, markdown rendering, model labels)
 
 **Test Coverage:** 300+ tests across all modules
 

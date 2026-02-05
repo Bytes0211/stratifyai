@@ -87,7 +87,30 @@ class OpenAIProvider(BaseProvider):
         # Build OpenAI-specific request parameters
         messages = []
         for msg in request.messages:
-            message_dict = {"role": msg.role, "content": msg.content}
+            # Check if message contains image data
+            if msg.has_image():
+                # Parse vision content
+                text_content, image_data = msg.parse_vision_content()
+                
+                # Build vision message content array
+                content_parts = []
+                if text_content:
+                    content_parts.append({"type": "text", "text": text_content})
+                
+                if image_data:
+                    mime_type, base64_data = image_data
+                    # OpenAI expects data URL format
+                    image_url = f"data:{mime_type};base64,{base64_data}"
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": image_url}
+                    })
+                
+                message_dict = {"role": msg.role, "content": content_parts}
+            else:
+                # Regular text message
+                message_dict = {"role": msg.role, "content": msg.content}
+            
             # Add cache_control if present and model supports caching
             if msg.cache_control and self.supports_caching(request.model):
                 message_dict["cache_control"] = msg.cache_control
@@ -143,8 +166,16 @@ class OpenAIProvider(BaseProvider):
             # Normalize and return
             return self._normalize_response(raw_response.model_dump())
         except Exception as e:
+            error_str = str(e)
+            # Check for vision-related errors
+            if "image_url is only supported by certain models" in error_str or "Invalid content type" in error_str:
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
+                    self.provider_name
+                )
             raise ProviderAPIError(
-                f"Chat completion failed: {str(e)}",
+                f"Chat completion failed: {error_str}",
                 self.provider_name
             )
     
@@ -167,13 +198,29 @@ class OpenAIProvider(BaseProvider):
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
         
-        # Build request parameters
+        # Build request parameters with vision support
+        messages = []
+        for msg in request.messages:
+            if msg.has_image():
+                # Parse and format vision content
+                text_content, image_data = msg.parse_vision_content()
+                content_parts = []
+                if text_content:
+                    content_parts.append({"type": "text", "text": text_content})
+                if image_data:
+                    mime_type, base64_data = image_data
+                    image_url = f"data:{mime_type};base64,{base64_data}"
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": image_url}
+                    })
+                messages.append({"role": msg.role, "content": content_parts})
+            else:
+                messages.append({"role": msg.role, "content": msg.content})
+        
         openai_params = {
             "model": request.model,
-            "messages": [
-                {"role": msg.role, "content": msg.content}
-                for msg in request.messages
-            ],
+            "messages": messages,
             "stream": True,
         }
         
@@ -207,8 +254,16 @@ class OpenAIProvider(BaseProvider):
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield self._normalize_stream_chunk(chunk_dict)
         except Exception as e:
+            error_str = str(e)
+            # Check for vision-related errors
+            if "image_url is only supported by certain models" in error_str or "Invalid content type" in error_str:
+                raise ProviderAPIError(
+                    f"Vision not supported: The model '{request.model}' cannot process images. "
+                    f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
+                    self.provider_name
+                )
             raise ProviderAPIError(
-                f"Streaming chat completion failed: {str(e)}",
+                f"Streaming chat completion failed: {error_str}",
                 self.provider_name
             )
     

@@ -5,9 +5,9 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-300%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Phase 7.8 Complete  
+**Status:** Phase 7.9 Complete  
 **Providers:** 9 Operational  
-**Features:** Routing • RAG • Caching • Streaming • CLI • Web UI • Builder Pattern
+**Features:** Routing • RAG • Caching • Streaming • CLI • Web UI • Vision • Smart Chunking
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
@@ -29,16 +29,17 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - Capability filtering (vision, tools, reasoning)
 - Model metadata and context window awareness
 - **Builder pattern** for fluent configuration
+- **Vision support** for image analysis (GPT-4o, Claude, Gemini, Nova)
 
 ### Advanced
 
-- Large‑file handling with chunking and progressive summarization
+- Large‑file handling with **smart chunking** and progressive summarization
 - File extraction (CSV schema, JSON schema, logs, code structure)
 - Auto model selection for extraction tasks
 - RAG pipeline with embeddings + vector DB (ChromaDB)
 - Semantic search and citation tracking
 - Rich/Typer CLI with interactive mode
-- Optional FastAPI web interface
+- **Web UI** with markdown rendering and syntax highlighting
 
 ---
 

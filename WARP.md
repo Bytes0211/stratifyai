@@ -211,9 +211,9 @@ pip freeze > requirements.txt
 
 ## Project Status
 
-**Current Phase:** Phase 7.8 - Builder Pattern & Required Model ✅  
-**Progress:** Phases 1-6 + Phase 7.1-7.8 Complete  
-**Latest Updates:** Phase 7.8 complete - Builder pattern for chat modules, model parameter now required (Feb 4, 2026)
+**Current Phase:** Phase 7.9 - Web UI Enhancements ✅  
+**Progress:** Phases 1-6 + Phase 7.1-7.9 Complete  
+**Latest Updates:** Phase 7.9 complete - Vision support, smart chunking, markdown rendering, model labels (Feb 5, 2026)
 
 ### Completed Phases
 - ✅ Phase 1: Core Implementation (100%)
@@ -333,14 +333,24 @@ pip freeze > requirements.txt
   - chat() raises ValueError if model not specified
   - 28 builder unit tests passing (tests/test_chat_builder.py)
   - 13 async operations tests passing (tests/test_async_operations.py)
+- ✅ Phase 7.9: Web UI Enhancements (100%)
+  - Vision support for image uploads (GPT-4o, Claude, Gemini, Nova)
+  - Dynamic file input based on model vision capability
+  - Smart chunking with configurable chunk size (10k-100k chars)
+  - Markdown rendering with marked.js for assistant responses
+  - Syntax highlighting with highlight.js (190+ languages)
+  - Model metadata display (context window, validation status)
+  - Category-based model grouping in dropdowns
+  - Temperature auto-disable for reasoning models
 
-### Current Focus (Week 7+: Feb 4+)
-**Phase 7.8: Builder Pattern & Required Model** ✅ COMPLETE
-- ✅ ChatBuilder class with fluent configuration
-- ✅ Model parameter now required (no defaults)
-- ✅ All 9 chat modules updated
-- ✅ 28 builder tests + 13 async tests passing
-- ✅ Documentation updates (README, WARP.md, developer-journal)
+### Current Focus (Week 7+: Feb 5+)
+**Phase 7.9: Web UI Enhancements** ✅ COMPLETE
+- ✅ Vision support with pre-upload validation
+- ✅ Smart chunking toggle with size slider
+- ✅ Markdown rendering for assistant messages
+- ✅ Syntax highlighting for code blocks
+- ✅ Model labels and category grouping
+- ✅ Documentation updates (README, ENTERPRISE_README, api/README, WARP.md)
 
 **Future Phases:**
 - 📝 Phase 8: Production Deployment

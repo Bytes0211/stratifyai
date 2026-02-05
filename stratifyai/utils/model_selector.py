@@ -64,7 +64,7 @@ class ModelSelector:
         self.summary_models = [
             ("google", "gemini-2.5-flash", "Fast and cost-effective"),
             ("groq", "llama-3.1-70b-versatile", "Very fast inference"),
-            ("anthropic", "claude-3-5-haiku-20241022", "Quick, quality summaries"),
+            ("anthropic", "claude-haiku-4-5", "Quick, quality summaries"),
             ("openai", "gpt-4.1-mini", "Balanced speed/quality"),
         ]
     
@@ -249,7 +249,7 @@ class ModelSelector:
             # Anthropic
             "claude-sonnet-4-5-20250929": 0.94,
             "claude-3-5-sonnet-20241022": 0.92,
-            "claude-3-5-haiku-20241022": 0.80,
+            "claude-haiku-4-5": 0.82,
             
             # Google
             "gemini-2.5-pro": 0.91,
@@ -293,7 +293,7 @@ class ModelSelector:
             "o1-mini": 3.00,
             "o3-mini": 1.10,
             "llama-3.1-70b-versatile": 0.08,
-            "claude-3-5-haiku-20241022": 1.00,
+            "claude-haiku-4-5": 1.00,
             "gpt-4.1-mini": 0.15,
         }
         
