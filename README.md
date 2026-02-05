@@ -1,4 +1,4 @@
-![StratifyAI](stratifyai_logo.png)
+![StratifyAI](stratifyai_trans_logo.png)
 
 
 # StratifyAI — Unified Multi‑Provider LLM Interface

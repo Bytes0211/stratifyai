@@ -1,3 +1,6 @@
+
+![stratifyai](../stratifyai_trans_logo.png)
+
 # **StratifyAI Overview for Stakeholders**
 
 ## **What Is StratifyAI?**

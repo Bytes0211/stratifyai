@@ -1,4 +1,4 @@
-![StratifyAI](stratum_logo.png)
+![StratifyAI](stratifyai_trans_logo.png)
 
 # **StratifyAI — Unified Intelligence Across Every Model Layer**
 
