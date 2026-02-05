@@ -2,7 +2,7 @@
 """
 Performance Benchmarking Tool
 
-Profile and measure performance of StratumAI across different scenarios:
+Profile and measure performance of StratifyAI across different scenarios:
 - Cold start latency
 - Request latency
 - Throughput
@@ -31,15 +31,15 @@ load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stratumai import LLMClient, Router, RoutingStrategy
-from stratumai.models import Message
-from stratumai.caching import ResponseCache, cache_response
+from stratifyai import LLMClient, Router, RoutingStrategy
+from stratifyai.models import Message
+from stratifyai.caching import ResponseCache, cache_response
 
 console = Console()
 
 
 class PerformanceBenchmark:
-    """Benchmark StratumAI performance."""
+    """Benchmark StratifyAI performance."""
     
     def __init__(self):
         """Initialize the benchmark."""
@@ -410,7 +410,7 @@ class PerformanceBenchmark:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Benchmark StratumAI performance"
+        description="Benchmark StratifyAI performance"
     )
     parser.add_argument(
         "--model",

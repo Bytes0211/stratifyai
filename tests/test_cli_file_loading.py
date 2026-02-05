@@ -6,8 +6,8 @@ from pathlib import Path
 from datetime import datetime
 from typer.testing import CliRunner
 
-from cli.stratumai_cli import app
-from stratumai.models import Message, ChatRequest, ChatResponse, Usage
+from cli.stratifyai_cli import app
+from stratifyai.models import Message, ChatRequest, ChatResponse, Usage
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def runner():
 @pytest.fixture
 def mock_client():
     """Create a mock LLMClient."""
-    with patch('cli.stratumai_cli.LLMClient') as mock:
+    with patch('cli.stratifyai_cli.LLMClient') as mock:
         client_instance = MagicMock()
         mock.return_value = client_instance
         
@@ -50,30 +50,30 @@ def mock_client():
 @pytest.fixture
 def mock_console():
     """Mock Rich console."""
-    with patch('cli.stratumai_cli.console') as mock:
+    with patch('cli.stratifyai_cli.console') as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_prompt():
     """Mock Rich Prompt.ask."""
-    with patch('cli.stratumai_cli.Prompt.ask') as mock:
+    with patch('cli.stratifyai_cli.Prompt.ask') as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_confirm():
     """Mock Rich Confirm.ask."""
-    with patch('cli.stratumai_cli.Confirm.ask') as mock:
+    with patch('cli.stratifyai_cli.Confirm.ask') as mock:
         yield mock
 
 
 class TestLoadFileContentSuccess:
     """Tests for load_file_content successfully loading valid text files."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_load_valid_small_text_file(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -111,7 +111,7 @@ class TestLoadFileContentSuccess:
         mock_prompt.side_effect = ['exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command with file flag
@@ -131,9 +131,9 @@ class TestLoadFileContentSuccess:
         # Verify file content was loaded
         assert any('test.txt' in str(call) for call in print_calls)
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_load_valid_medium_text_file(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -171,7 +171,7 @@ class TestLoadFileContentSuccess:
         mock_prompt.side_effect = ['exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command with file flag
@@ -196,9 +196,9 @@ class TestLoadFileContentSuccess:
 class TestLoadFileContentNotFound:
     """Tests for load_file_content handling file not found errors."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_file_not_found_error(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -214,7 +214,7 @@ class TestLoadFileContentNotFound:
         mock_prompt.side_effect = [str(nonexistent_file), 'exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command without file flag (will prompt for file)
@@ -237,9 +237,9 @@ class TestLoadFileContentNotFound:
 class TestLoadFileContentSizeLimit:
     """Tests for load_file_content rejecting files exceeding maximum size limit."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_file_exceeds_max_size_limit(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -258,7 +258,7 @@ class TestLoadFileContentSizeLimit:
         mock_prompt.side_effect = [str(test_file), 'exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command
@@ -278,10 +278,10 @@ class TestLoadFileContentSizeLimit:
         warning_messages = [call for call in print_calls if 'consume significant tokens' in call]
         assert len(warning_messages) > 0, "Token consumption warning not displayed"
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.Confirm.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.Confirm.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_large_file_warning_with_user_confirmation(
         self, mock_client_class, mock_confirm, mock_prompt, mock_console, tmp_path
     ):
@@ -321,7 +321,7 @@ class TestLoadFileContentSizeLimit:
         mock_prompt.side_effect = ['exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command with file flag
@@ -345,10 +345,10 @@ class TestLoadFileContentSizeLimit:
         success_messages = [call for call in print_calls if '✓ Loaded' in call]
         assert len(success_messages) > 0, "File should be loaded after confirmation"
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.Confirm.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.Confirm.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_large_file_warning_with_user_rejection(
         self, mock_client_class, mock_confirm, mock_prompt, mock_console, tmp_path
     ):
@@ -368,7 +368,7 @@ class TestLoadFileContentSizeLimit:
         mock_prompt.side_effect = ['exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command with file flag
@@ -396,9 +396,9 @@ class TestLoadFileContentSizeLimit:
 class TestLoadFileContentNonTextFile:
     """Tests for load_file_content handling non-text files (UnicodeDecodeError)."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_binary_file_raises_unicode_decode_error(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -417,7 +417,7 @@ class TestLoadFileContentNonTextFile:
         mock_prompt.side_effect = [str(test_file), 'exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command
@@ -437,9 +437,9 @@ class TestLoadFileContentNonTextFile:
 class TestInteractiveModeInitialFileLoad:
     """Tests for interactive mode loading initial file content when --file flag is used."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_interactive_mode_loads_initial_file_with_flag(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -487,7 +487,7 @@ class TestInteractiveModeInitialFileLoad:
         client_instance.chat_completion_sync.side_effect = capture_request
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command with file flag
@@ -521,9 +521,9 @@ class TestInteractiveModeInitialFileLoad:
         assert test_content in first_request_messages[0].content, "File content not in initial message"
         assert "[Context from context.txt]" in first_request_messages[0].content, "Context label not found"
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_interactive_mode_continues_without_file_if_load_fails(
         self, mock_client_class, mock_prompt, mock_console, tmp_path
     ):
@@ -542,7 +542,7 @@ class TestInteractiveModeInitialFileLoad:
         mock_prompt.side_effect = [str(nonexistent_file), 'exit']
         
         # Mock MODEL_CATALOG
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {
             'openai': {'gpt-4.1-mini': {'context': 128000}}
         }):
             # Run interactive command without file flag (will prompt for file)
@@ -559,5 +559,5 @@ class TestInteractiveModeInitialFileLoad:
         assert len(error_messages) > 0, "File not found error not displayed"
         
         # Verify interactive mode still started (welcome message shown)
-        welcome_messages = [call for call in print_calls if 'StratumAI Interactive Mode' in call]
+        welcome_messages = [call for call in print_calls if 'StratifyAI Interactive Mode' in call]
         assert len(welcome_messages) > 0, "Interactive mode did not start"

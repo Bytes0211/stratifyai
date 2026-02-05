@@ -7,14 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from stratumai.caching import (
+from stratifyai.caching import (
     ResponseCache,
     cache_response,
     clear_cache,
     generate_cache_key,
     get_cache_stats,
 )
-from stratumai.models import ChatResponse, Message, Usage
+from stratifyai.models import ChatResponse, Message, Usage
 
 
 class TestCacheKey:
@@ -379,11 +379,11 @@ class TestGlobalCacheFunctions:
 class TestCacheCostCalculation:
     """Tests for cache cost calculation in OpenAI provider."""
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     def test_cache_cost_calculation(self, mock_openai_client):
         """Test that cache costs are calculated correctly."""
-        from stratumai.models import Message, Usage
-        from stratumai.providers.openai import OpenAIProvider
+        from stratifyai.models import Message, Usage
+        from stratifyai.providers.openai import OpenAIProvider
 
         # Mock OpenAI client
         mock_client = MagicMock()
@@ -406,10 +406,10 @@ class TestCacheCostCalculation:
         expected_cost = (1000 / 1_000_000) * 0.1875 + (500 / 1_000_000) * 0.015
         assert abs(cache_cost - expected_cost) < 0.000001
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     def test_supports_caching(self, mock_openai_client):
         """Test supports_caching method."""
-        from stratumai.providers.openai import OpenAIProvider
+        from stratifyai.providers.openai import OpenAIProvider
 
         mock_client = MagicMock()
         mock_openai_client.return_value = mock_client

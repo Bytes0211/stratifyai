@@ -6,9 +6,9 @@ import pytest
 from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime
 
-from stratumai.providers.bedrock import BedrockProvider
-from stratumai.models import ChatRequest, Message, Usage
-from stratumai.exceptions import AuthenticationError, InvalidModelError, ProviderAPIError
+from stratifyai.providers.bedrock import BedrockProvider
+from stratifyai.models import ChatRequest, Message, Usage
+from stratifyai.exceptions import AuthenticationError, InvalidModelError, ProviderAPIError
 
 
 class TestBedrockProviderInitialization:
@@ -16,7 +16,7 @@ class TestBedrockProviderInitialization:
     
     def test_initialization_with_credentials(self):
         """Test provider initialization with explicit AWS credentials."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key-id",
                 aws_secret_access_key="test-secret-key"
@@ -33,7 +33,7 @@ class TestBedrockProviderInitialization:
             "AWS_SECRET_ACCESS_KEY": "env-secret-key",
             "AWS_DEFAULT_REGION": "us-west-2"
         }):
-            with patch("stratumai.providers.bedrock.aioboto3.Session"):
+            with patch("stratifyai.providers.bedrock.aioboto3.Session"):
                 provider = BedrockProvider()
                 assert provider.aws_access_key_id == "env-key-id"
                 assert provider.aws_secret_access_key == "env-secret-key"
@@ -41,7 +41,7 @@ class TestBedrockProviderInitialization:
     
     def test_initialization_with_custom_region(self):
         """Test provider initialization with custom region."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret",
@@ -51,7 +51,7 @@ class TestBedrockProviderInitialization:
     
     def test_initialization_with_session_token(self):
         """Test provider initialization with session token."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret",
@@ -59,7 +59,7 @@ class TestBedrockProviderInitialization:
             )
             assert provider.aws_session_token == "test-token"
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     def test_initialization_creates_session(self, mock_session_class):
         """Test that initialization creates aioboto3 session."""
         mock_session = Mock()
@@ -81,7 +81,7 @@ class TestBedrockProviderModels:
     
     def test_supported_models(self):
         """Test that provider returns list of supported Bedrock models."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -100,7 +100,7 @@ class TestBedrockProviderModels:
     
     def test_validate_model(self):
         """Test model validation."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -117,7 +117,7 @@ class TestBedrockProviderModels:
 class TestBedrockProviderChatCompletion:
     """Tests for Bedrock chat completion."""
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_chat_completion_anthropic_claude(self, mock_session_class):
         """Test chat completion with Anthropic Claude model."""
@@ -166,7 +166,7 @@ class TestBedrockProviderChatCompletion:
         assert response.usage.total_tokens == 15
         assert response.usage.cost_usd > 0  # Cost should be calculated
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_chat_completion_llama(self, mock_session_class):
         """Test chat completion with Meta Llama model."""
@@ -206,7 +206,7 @@ class TestBedrockProviderChatCompletion:
         assert response.usage.prompt_tokens == 10
         assert response.usage.completion_tokens == 8
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_chat_completion_titan(self, mock_session_class):
         """Test chat completion with Amazon Titan model."""
@@ -251,7 +251,7 @@ class TestBedrockProviderChatCompletion:
     @pytest.mark.asyncio
     async def test_chat_completion_invalid_model(self):
         """Test chat completion with invalid model raises error."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -264,7 +264,7 @@ class TestBedrockProviderChatCompletion:
             with pytest.raises(InvalidModelError):
                 await provider.chat_completion(request)
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_chat_completion_with_system_message(self, mock_session_class):
         """Test chat completion with system message."""
@@ -307,7 +307,7 @@ class TestBedrockProviderStreaming:
     """Tests for Bedrock streaming."""
     
     @pytest.mark.skip(reason="Streaming tests require complex async iterator mocking")
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_chat_completion_stream_anthropic(self, mock_session_class):
         """Test streaming chat completion with Anthropic Claude."""
@@ -316,7 +316,7 @@ class TestBedrockProviderStreaming:
     @pytest.mark.asyncio
     async def test_chat_completion_stream_invalid_model(self):
         """Test streaming with invalid model raises error."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -337,7 +337,7 @@ class TestBedrockProviderCostCalculation:
     
     def test_calculate_cost_claude(self):
         """Test cost calculation for Claude model."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -357,7 +357,7 @@ class TestBedrockProviderCostCalculation:
     
     def test_calculate_cost_llama(self):
         """Test cost calculation for Llama model."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -379,7 +379,7 @@ class TestBedrockProviderCostCalculation:
 class TestBedrockProviderRequestBuilding:
     """Tests for request body building."""
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     def test_build_anthropic_request(self, mock_session_class):
         """Test building request body for Anthropic Claude."""
         mock_session = Mock()
@@ -403,7 +403,7 @@ class TestBedrockProviderRequestBuilding:
         assert body["max_tokens"] == 1000
         assert body["temperature"] == 0.8
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     def test_build_titan_request(self, mock_session_class):
         """Test building request body for Amazon Titan."""
         mock_session = Mock()
@@ -430,7 +430,7 @@ class TestBedrockProviderRequestBuilding:
 class TestBedrockProviderErrorHandling:
     """Tests for error handling."""
     
-    @patch("stratumai.providers.bedrock.aioboto3.Session")
+    @patch("stratifyai.providers.bedrock.aioboto3.Session")
     @pytest.mark.asyncio
     async def test_client_error_handling(self, mock_session_class):
         """Test handling of AWS ClientError."""
@@ -472,7 +472,7 @@ class TestBedrockProviderErrorHandling:
     @pytest.mark.asyncio
     async def test_temperature_validation(self):
         """Test temperature validation for Bedrock (0.0-1.0)."""
-        with patch("stratumai.providers.bedrock.aioboto3.Session"):
+        with patch("stratifyai.providers.bedrock.aioboto3.Session"):
             provider = BedrockProvider(
                 aws_access_key_id="test-key",
                 aws_secret_access_key="test-secret"
@@ -483,6 +483,6 @@ class TestBedrockProviderErrorHandling:
                 temperature=2.0  # Invalid for Bedrock
             )
             
-            from stratumai.exceptions import ValidationError
+            from stratifyai.exceptions import ValidationError
             with pytest.raises(ValidationError):
                 await provider.chat_completion(request)

@@ -1,19 +1,19 @@
-"""DeepSeek chat interface for StratumAI.
+"""Grok (X.AI) chat interface for StratifyAI.
 
-Provides convenient functions for DeepSeek chat completions.
+Provides convenient functions for Grok chat completions.
 Model must be specified for each request.
 
-Environment Variable: DEEPSEEK_API_KEY
+Environment Variable: GROK_API_KEY
 
 Usage:
     # Model is always required
-    from stratumai.chat import deepseek
-    response = await deepseek.chat("Hello!", model="deepseek-chat")
+    from stratifyai.chat import grok
+    response = await grok.chat("Hello!", model="grok-beta")
     
     # Builder pattern (model required)
     client = (
-        deepseek
-        .with_model("deepseek-reasoner")
+        grok
+        .with_model("grok-2")
         .with_system("You are a helpful assistant")
         .with_developer("Use markdown")
     )
@@ -23,9 +23,9 @@ Usage:
 import asyncio
 from typing import AsyncIterator, Optional, Union
 
-from stratumai import LLMClient
-from stratumai.models import ChatResponse, Message
-from stratumai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai import LLMClient
+from stratifyai.models import ChatResponse, Message
+from stratifyai.chat.builder import ChatBuilder, create_module_builder
 
 # Default configuration (no default model - must be specified)
 DEFAULT_TEMPERATURE = 0.7
@@ -39,13 +39,13 @@ def _get_client() -> LLMClient:
     """Get or create the module-level client."""
     global _client
     if _client is None:
-        _client = LLMClient(provider="deepseek")
+        _client = LLMClient(provider="grok")
     return _client
 
 
 # Module-level builder for chaining
 _builder = create_module_builder(
-    provider="deepseek",
+    provider="grok",
     default_temperature=DEFAULT_TEMPERATURE,
     default_max_tokens=DEFAULT_MAX_TOKENS,
     client_factory=_get_client,
@@ -94,11 +94,11 @@ async def chat(
     **kwargs,
 ) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
     """
-    Send a chat completion request to DeepSeek.
+    Send a chat completion request to Grok (X.AI).
 
     Args:
         prompt: User message string or list of Message objects.
-        model: Model name (required). E.g., "deepseek-chat", "deepseek-reasoner"
+        model: Model name (required). E.g., "grok-beta", "grok-2"
         system: Optional system prompt (ignored if prompt is list of Messages).
         temperature: Sampling temperature (0.0-2.0). Default: 0.7
         max_tokens: Maximum tokens to generate. Default: None (model default)
@@ -109,8 +109,8 @@ async def chat(
         ChatResponse object, or AsyncIterator[ChatResponse] if streaming.
 
     Example:
-        >>> from stratumai.chat import deepseek
-        >>> response = await deepseek.chat("What is Python?", model="deepseek-chat")
+        >>> from stratifyai.chat import grok
+        >>> response = await grok.chat("What is Python?", model="grok-beta")
         >>> print(response.content)
     """
     client = _get_client()
@@ -144,11 +144,11 @@ async def chat_stream(
     **kwargs,
 ) -> AsyncIterator[ChatResponse]:
     """
-    Send a streaming chat completion request to DeepSeek.
+    Send a streaming chat completion request to Grok (X.AI).
 
     Args:
         prompt: User message string or list of Message objects.
-        model: Model name (required). E.g., "deepseek-chat"
+        model: Model name (required). E.g., "grok-beta"
         system: Optional system prompt (ignored if prompt is list of Messages).
         temperature: Sampling temperature (0.0-2.0). Default: 0.7
         max_tokens: Maximum tokens to generate. Default: None (model default)
@@ -158,8 +158,8 @@ async def chat_stream(
         ChatResponse chunks.
 
     Example:
-        >>> from stratumai.chat import deepseek
-        >>> async for chunk in deepseek.chat_stream("Tell me a story", model="deepseek-chat"):
+        >>> from stratifyai.chat import grok
+        >>> async for chunk in grok.chat_stream("Tell me a story", model="grok-beta"):
         ...     print(chunk.content, end="", flush=True)
     """
     return await chat(

@@ -1,4 +1,4 @@
-# StratumAI Provider & Model Catalog
+# StratifyAI Provider & Model Catalog
 
 **Document Version:** 1.0  
 **Validation Date:** January 31, 2026  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document lists all configured and tested LLM providers in StratumAI along with their available models. All providers listed below have been implemented, tested, and are operational.
+This document lists all configured and tested LLM providers in StratifyAI along with their available models. All providers listed below have been implemented, tested, and are operational.
 
 **Total Providers:** 8  
 **Total Models Available:** 30
@@ -369,7 +369,7 @@ This document lists all configured and tested LLM providers in StratumAI along w
 
 ### OpenAI
 ```python
-from stratumai import LLMClient
+from stratifyai import LLMClient
 
 client = LLMClient(provider="openai", api_key="sk-...")
 response = client.chat_completion("gpt-4o", messages=[...])
@@ -433,7 +433,7 @@ export OPENROUTER_API_KEY="..."
 For technical implementation details, see:
 - `llm_abstraction/config.py` - Model catalog and pricing
 - `llm_abstraction/providers/` - Provider implementations
-- `docs/stratumai-technical-approach.md` - Complete technical design
+- `docs/stratifyai-technical-approach.md` - Complete technical design
 
 ---
 

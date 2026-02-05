@@ -32,9 +32,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Load environment variables
 load_dotenv()
 
-from stratumai import LLMClient, CostTracker
-from stratumai.models import Message
-from stratumai.exceptions import LLMAbstractionError
+from stratifyai import LLMClient, CostTracker
+from stratifyai.models import Message
+from stratifyai.exceptions import LLMAbstractionError
 
 console = Console()
 
@@ -221,7 +221,7 @@ class ChatInterface:
     def display_welcome(self):
         """Display welcome message."""
         console.print(Panel(
-            "[bold cyan]StratumAI Chatbot[/bold cyan]\n\n"
+            "[bold cyan]StratifyAI Chatbot[/bold cyan]\n\n"
             "Commands:\n"
             "  /switch <model>  - Switch to different model\n"
             "  /models          - List available models\n"

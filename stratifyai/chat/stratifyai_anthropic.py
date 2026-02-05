@@ -1,4 +1,4 @@
-"""Anthropic chat interface for StratumAI.
+"""Anthropic chat interface for StratifyAI.
 
 Provides convenient functions for Anthropic Claude chat completions.
 Model must be specified for each request.
@@ -7,7 +7,7 @@ Environment Variable: ANTHROPIC_API_KEY
 
 Usage:
     # Model is always required
-    from stratumai.chat import anthropic
+    from stratifyai.chat import anthropic
     response = await anthropic.chat("Hello!", model="claude-sonnet-4-5")
     
     # Builder pattern (model required)
@@ -23,9 +23,9 @@ Usage:
 import asyncio
 from typing import AsyncIterator, Optional, Union
 
-from stratumai import LLMClient
-from stratumai.models import ChatResponse, Message
-from stratumai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai import LLMClient
+from stratifyai.models import ChatResponse, Message
+from stratifyai.chat.builder import ChatBuilder, create_module_builder
 
 # Default configuration (no default model - must be specified)
 DEFAULT_TEMPERATURE = 0.7
@@ -109,7 +109,7 @@ async def chat(
         ChatResponse object, or AsyncIterator[ChatResponse] if streaming.
 
     Example:
-        >>> from stratumai.chat import anthropic
+        >>> from stratifyai.chat import anthropic
         >>> response = await anthropic.chat("What is Python?", model="claude-sonnet-4-5")
         >>> print(response.content)
     """
@@ -158,7 +158,7 @@ async def chat_stream(
         ChatResponse chunks.
 
     Example:
-        >>> from stratumai.chat import anthropic
+        >>> from stratifyai.chat import anthropic
         >>> async for chunk in anthropic.chat_stream("Tell me a story", model="claude-sonnet-4-5"):
         ...     print(chunk.content, end="", flush=True)
     """

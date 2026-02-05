@@ -31,9 +31,9 @@ load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stratumai import LLMClient, Router, RoutingStrategy
-from stratumai.models import Message, ChatRequest
-from stratumai.exceptions import LLMAbstractionError
+from stratifyai import LLMClient, Router, RoutingStrategy
+from stratifyai.models import Message, ChatRequest
+from stratifyai.exceptions import LLMAbstractionError
 
 console = Console()
 

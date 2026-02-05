@@ -1,4 +1,4 @@
-"""StratumAI - Unified Intelligence Across Every Model Layer.
+"""StratifyAI - Unified Intelligence Across Every Model Layer.
 
 A production-ready Python module providing a unified, abstracted interface for
 accessing multiple frontier LLM providers through a consistent API.

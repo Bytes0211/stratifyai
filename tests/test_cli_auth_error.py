@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typer.testing import CliRunner
-from cli.stratumai_cli import app
-from stratumai.exceptions import AuthenticationError
+from cli.stratifyai_cli import app
+from stratifyai.exceptions import AuthenticationError
 
 runner = CliRunner()
 
@@ -12,7 +12,7 @@ runner = CliRunner()
 class TestAuthenticationErrorHandling:
     """Test suite for authentication error handling."""
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_displays_auth_error_with_instructions(self, mock_client_class):
         """Test that chat command displays helpful auth error message."""
         # Mock LLMClient to raise AuthenticationError
@@ -41,7 +41,7 @@ class TestAuthenticationErrorHandling:
         assert ".env file" in result.output
         assert "https://console.x.ai/" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_openai_auth_error(self, mock_client_class):
         """Test OpenAI-specific auth error message."""
         mock_client = Mock()
@@ -60,7 +60,7 @@ class TestAuthenticationErrorHandling:
         assert "OPENAI_API_KEY" in result.output
         assert "https://platform.openai.com/api-keys" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_anthropic_auth_error(self, mock_client_class):
         """Test Anthropic-specific auth error message."""
         mock_client = Mock()
@@ -79,7 +79,7 @@ class TestAuthenticationErrorHandling:
         assert "ANTHROPIC_API_KEY" in result.output
         assert "https://console.anthropic.com/settings/keys" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_google_auth_error(self, mock_client_class):
         """Test Google-specific auth error message."""
         mock_client = Mock()
@@ -98,7 +98,7 @@ class TestAuthenticationErrorHandling:
         assert "GOOGLE_API_KEY" in result.output
         assert "https://aistudio.google.com/app/apikey" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_deepseek_auth_error(self, mock_client_class):
         """Test DeepSeek-specific auth error message."""
         mock_client = Mock()
@@ -117,7 +117,7 @@ class TestAuthenticationErrorHandling:
         assert "DEEPSEEK_API_KEY" in result.output
         assert "https://platform.deepseek.com/api_keys" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_groq_auth_error(self, mock_client_class):
         """Test Groq-specific auth error message."""
         mock_client = Mock()
@@ -136,7 +136,7 @@ class TestAuthenticationErrorHandling:
         assert "GROQ_API_KEY" in result.output
         assert "https://console.groq.com/keys" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_openrouter_auth_error(self, mock_client_class):
         """Test OpenRouter-specific auth error message."""
         mock_client = Mock()
@@ -155,7 +155,7 @@ class TestAuthenticationErrorHandling:
         assert "OPENROUTER_API_KEY" in result.output
         assert "https://openrouter.ai/keys" in result.output
     
-    @patch("cli.stratumai_cli.LLMClient")
+    @patch("cli.stratifyai_cli.LLMClient")
     def test_chat_ollama_auth_error(self, mock_client_class):
         """Test Ollama-specific auth error message."""
         mock_client = Mock()

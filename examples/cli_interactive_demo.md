@@ -1,6 +1,6 @@
 # Interactive CLI Demo
 
-This document demonstrates the interactive prompts in the StratumAI CLI.
+This document demonstrates the interactive prompts in the StratifyAI CLI.
 
 ## Interactive Chat Command
 
@@ -9,7 +9,7 @@ When you run `chat` without providing required parameters, the CLI will prompt y
 ### Example 1: No parameters provided
 
 ```bash
-$ python -m cli.stratumai_cli chat
+$ python -m cli.stratifyai_cli chat
 
 Select Provider
 Choose provider (openai/anthropic/google/deepseek/groq/grok/ollama/openrouter) [openai]: anthropic
@@ -41,7 +41,7 @@ Cost: $0.002500 | Tokens: 450
 ### Example 2: Partial parameters provided
 
 ```bash
-$ python -m cli.stratumai_cli chat -p openai
+$ python -m cli.stratifyai_cli chat -p openai
 
 Available models for openai:
   1. gpt-4o
@@ -73,7 +73,7 @@ Cost: $0.000045 | Tokens: 28
 ```bash
 $ export STRATUMAI_PROVIDER=groq
 $ export STRATUMAI_MODEL=llama-3.3-70b
-$ python -m cli.stratumai_cli chat
+$ python -m cli.stratifyai_cli chat
 
 Temperature (0.0-2.0, default 0.7) [0.7]: 0.9
 
@@ -88,7 +88,7 @@ Cost: $0.000008 | Tokens: 15
 ### Example 4: All parameters provided (non-interactive)
 
 ```bash
-$ python -m cli.stratumai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Hello, world!"
+$ python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Hello, world!"
 
 Hello! How can I assist you today?
 
@@ -99,7 +99,7 @@ Cost: $0.000023 | Tokens: 18
 
 ```
 ┌─────────────────────────────────────────┐
-│  python -m cli.stratumai_cli chat      │
+│  python -m cli.stratifyai_cli chat      │
 └─────────────┬───────────────────────────┘
               │
               ▼

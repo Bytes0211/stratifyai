@@ -1,5 +1,5 @@
-"""StratumAI CLI package."""
+"""StratifyAI CLI package."""
 
-from .stratumai_cli import app, main
+from .stratifyai_cli import app, main
 
 __all__ = ["app", "main"]

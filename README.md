@@ -1,12 +1,14 @@
-![StratumAI](stratum_logo.png)
+![StratifyAI](stratum_logo.png)
 
-# StratumAI — Unified Multi‑Provider LLM Interface
+# StratifyAI — Unified Multi‑Provider LLM Interface
+
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-300%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
 **Status:** Phase 7.8 Complete  
 **Providers:** 9 Operational  
 **Features:** Routing • RAG • Caching • Streaming • CLI • Web UI • Builder Pattern
 
-StratumAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
+StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
 ---
 
@@ -42,8 +44,8 @@ StratumAI is a production‑ready Python framework that provides a unified inter
 ## Installation
 
 ```bash
-git clone https://github.com/Bytes0211/stratumai.git
-cd stratumai
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
 pip install -e .
 ```
 
@@ -65,7 +67,7 @@ cp .env.example .env
 Check configured providers:
 
 ```bash
-stratumai check-keys
+stratifyai check-keys
 ```
 
 ---
@@ -75,29 +77,29 @@ stratumai check-keys
 ### CLI Usage
 
 ```bash
-stratumai chat -p openai -m gpt-4o-mini -t "Hello"
-stratumai route "Explain relativity" --strategy hybrid
-stratumai interactive
-stratumai cache-stats
+stratifyai chat -p openai -m gpt-4o-mini -t "Hello"
+stratifyai route "Explain relativity" --strategy hybrid
+stratifyai interactive
+stratifyai cache-stats
 ```
 
 ### Python Example (LLMClient)
 
 ```python
-from stratumai import LLMClient
-from stratumai.models import Message, ChatRequest
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest, ChatResponse
 
-client = LLMClient()
-request = ChatRequest(
+client: LLMClient = LLMClient()
+request: ChatRequest = ChatRequest(
     model="gpt-4o-mini",
     messages=[Message(role="user", content="Explain quantum computing")]
 )
 
 # Async (recommended)
-response = await client.chat_completion(request)
+response: ChatResponse = await client.chat_completion(request)
 
 # Sync wrapper for scripts/CLI
-response = client.chat_completion_sync(request)
+response: ChatResponse = client.chat_completion_sync(request)
 
 print(response.content)
 print(f"Cost: ${response.usage.cost_usd:.6f}")
@@ -107,14 +109,15 @@ print(f"Latency: {response.latency_ms:.0f}ms")
 ### Python Example (Chat Package - Simplified)
 
 ```python
-from stratumai.chat import anthropic, openai
+from stratifyai.chat import anthropic, openai
+from stratifyai.models import ChatResponse
 
 # Quick usage - model is always required
-response = await anthropic.chat("Hello!", model="claude-sonnet-4-5")
+response: ChatResponse = await anthropic.chat("Hello!", model="claude-sonnet-4-5")
 print(response.content)
 
 # With options
-response = await openai.chat(
+response: ChatResponse = await openai.chat(
     "Explain quantum computing",
     model="gpt-4o-mini",
     system="Be concise",
@@ -125,10 +128,12 @@ response = await openai.chat(
 ### Builder Pattern (Fluent Configuration)
 
 ```python
-from stratumai.chat import anthropic
+from stratifyai.chat import anthropic
+from stratifyai.chat.builder import ChatBuilder
+from stratifyai.models import ChatResponse
 
 # Configure once, use multiple times
-client = (
+client: ChatBuilder = (
     anthropic
     .with_model("claude-sonnet-4-5")
     .with_system("You are a helpful assistant")
@@ -136,8 +141,8 @@ client = (
 )
 
 # All subsequent calls use the configured settings
-response = await client.chat("Hello!")
-response = await client.chat("Tell me more")
+response: ChatResponse = await client.chat("Hello!")
+response: ChatResponse = await client.chat("Tell me more")
 
 # Stream with builder
 async for chunk in client.chat_stream("Write a story"):
@@ -169,7 +174,7 @@ async for chunk in client.chat_stream("Write a story"):
 ## Project Structure
 
 ```
-stratumai/
+stratifyai/
 ├── llm_abstraction/      # Core package
 │   ├── providers/        # Provider implementations (9 providers)
 │   ├── router.py         # Intelligent routing
@@ -177,7 +182,7 @@ stratumai/
 │   └── utils/            # Utilities (token counting, extraction)
 ├── chat/                 # Simplified chat modules with builder pattern
 │   ├── builder.py        # ChatBuilder class
-│   └── stratumai_*.py    # Provider-specific modules
+│   └── stratifyai_*.py    # Provider-specific modules
 ├── cli/                  # Typer CLI
 ├── api/                  # Optional FastAPI server
 ├── examples/             # Usage examples

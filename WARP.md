@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-StratumAI is a production-ready Python module that provides a unified, abstracted interface for accessing multiple frontier LLM providers (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, AWS Bedrock) through a consistent API. The project demonstrates advanced API abstraction, design patterns (strategy, factory), multi-provider integration, production engineering (error handling, retry logic, cost tracking), and Python best practices (type hints, abstract base classes, decorators).
+StratifyAI is a production-ready Python module that provides a unified, abstracted interface for accessing multiple frontier LLM providers (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, AWS Bedrock) through a consistent API. The project demonstrates advanced API abstraction, design patterns (strategy, factory), multi-provider integration, production engineering (error handling, retry logic, cost tracking), and Python best practices (type hints, abstract base classes, decorators).
 
 ## Development Environment Setup
 
@@ -84,45 +84,70 @@ Your AWS IAM user/role must have the `bedrock:InvokeModel` permission:
 ## Project Structure
 
 ```txt
-stratumai/
+stratifyai/                             # Project root: /home/scotton/dev/projects/stratifyai
 ├── README.md
-├── WARP.md                # This file (development guidance)
-├── requirements.txt       # Python dependencies
-├── .venv/                 # Virtual environment
-├── docs/
-│   ├── project-status.md              # 5-week timeline with detailed phases
-│   └── stratumai-technical-approach.md # Comprehensive technical design (1,232 lines)
-├── chat/                               # Provider-specific chat modules
-│   ├── __init__.py                     # Package exports
-│   ├── builder.py                      # ChatBuilder class for fluent configuration
-│   ├── stratumai_openai.py             # OpenAI (model required)
-│   ├── stratumai_anthropic.py          # Anthropic (model required)
-│   ├── stratumai_google.py             # Google Gemini (model required)
-│   ├── stratumai_deepseek.py           # DeepSeek (model required)
-│   ├── stratumai_groq.py               # Groq (model required)
-│   ├── stratumai_grok.py               # Grok (model required)
-│   ├── stratumai_openrouter.py         # OpenRouter (model required)
-│   ├── stratumai_ollama.py             # Ollama (model required)
-│   └── stratumai_bedrock.py            # Bedrock (model required)
-└── llm_abstraction/                    # Main package
-    ├── __init__.py
+├── WARP.md                             # This file (development guidance)
+├── pyproject.toml                      # Package configuration and dependencies
+├── requirements.txt                    # Python dependencies
+├── .venv/                              # Virtual environment
+├── api/                                # FastAPI REST API
+│   ├── main.py                         # API endpoints
+│   └── static/index.html               # Web frontend
+├── cli/                                # CLI package
+│   └── stratifyai_cli.py               # Typer CLI implementation
+├── docs/                               # Documentation
+│   ├── API-REFERENCE.md
+│   ├── cli-usage.md
+│   ├── GETTING-STARTED.md
+│   ├── StratifyAI-Router-Logic.md
+│   └── ...                             # Additional docs
+├── examples/                           # Example applications
+│   ├── chatbot.py
+│   ├── code_reviewer.py
+│   ├── rag_example.py
+│   └── ...                             # Additional examples
+├── tests/                              # Test suite (297+ tests)
+└── stratifyai/                         # Main package
+    ├── __init__.py                     # Package exports
     ├── client.py                       # Unified LLMClient
-    ├── models.py                       # Data models (Message, ChatRequest, ChatResponse)
     ├── config.py                       # Model catalogs and cost tables
+    ├── models.py                       # Data models (Message, ChatRequest, ChatResponse)
     ├── exceptions.py                   # Custom exceptions
-    ├── utils.py                        # Helper functions
     ├── router.py                       # Intelligent routing
-    └── providers/
-        ├── base.py                     # BaseProvider abstract class
-        ├── openai.py                   # OpenAI implementation
-        ├── anthropic.py                # Anthropic implementation
-        ├── google.py                   # Google Gemini implementation
-        ├── deepseek.py                 # DeepSeek implementation
-        ├── groq.py                     # Groq implementation
-        ├── grok.py                     # Grok (X.AI) implementation
-        ├── openrouter.py               # OpenRouter implementation
-        ├── ollama.py                   # Ollama local models
-        └── bedrock.py                  # AWS Bedrock implementation
+    ├── caching.py                      # Response caching
+    ├── cost_tracker.py                 # Cost tracking module
+    ├── retry.py                        # Retry logic with backoff
+    ├── embeddings.py                   # Embeddings module
+    ├── vectordb.py                     # ChromaDB vector store
+    ├── rag.py                          # RAG pipeline
+    ├── chat/                           # Provider-specific chat modules
+    │   ├── __init__.py                 # Package exports
+    │   ├── builder.py                  # ChatBuilder for fluent configuration
+    │   ├── stratifyai_openai.py        # OpenAI (model required)
+    │   ├── stratifyai_anthropic.py     # Anthropic (model required)
+    │   ├── stratifyai_google.py        # Google Gemini (model required)
+    │   ├── stratifyai_deepseek.py      # DeepSeek (model required)
+    │   ├── stratifyai_groq.py          # Groq (model required)
+    │   ├── stratifyai_grok.py          # Grok (model required)
+    │   ├── stratifyai_openrouter.py    # OpenRouter (model required)
+    │   ├── stratifyai_ollama.py        # Ollama (model required)
+    │   └── stratifyai_bedrock.py       # AWS Bedrock (model required)
+    ├── providers/                      # Provider implementations
+    │   ├── base.py                     # BaseProvider abstract class
+    │   ├── openai.py                   # OpenAI implementation
+    │   ├── anthropic.py                # Anthropic implementation
+    │   ├── google.py                   # Google Gemini implementation
+    │   ├── deepseek.py                 # DeepSeek implementation
+    │   ├── groq.py                     # Groq implementation
+    │   ├── grok.py                     # Grok (X.AI) implementation
+    │   ├── openrouter.py               # OpenRouter implementation
+    │   ├── ollama.py                   # Ollama local models
+    │   └── bedrock.py                  # AWS Bedrock implementation
+    └── utils/                          # Utility modules
+        ├── token_counter.py            # Token counting
+        ├── file_analyzer.py            # File type analysis
+        ├── chunking.py                 # Smart text chunking
+        └── extractors/                 # Schema extractors
 ```
 
 ## Testing
@@ -342,8 +367,8 @@ pip freeze > requirements.txt
 ### Core Documentation
 - **README.md** - Project overview, setup instructions, and usage examples
 - **docs/project-status.md** - Detailed 5-week timeline with phase breakdowns (25 working days)
-- **docs/stratumai-technical-approach.md** - Comprehensive technical design (1,232 lines)
-- **docs/StratumAI-Router-Logic.md** - Router strategies, fallback chains, and complexity analysis
+- **docs/stratifyai-technical-approach.md** - Comprehensive technical design (1,232 lines)
+- **docs/StratifyAI-Router-Logic.md** - Router strategies, fallback chains, and complexity analysis
 - **WARP.md** - This file (development environment guidance for Warp AI)
 
 ### Key Documentation Sections

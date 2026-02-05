@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from stratumai import RAGClient
+from stratifyai import RAGClient
 
 def example_basic_rag():
     """Basic RAG example: Index a file and query it."""
@@ -262,7 +262,7 @@ def example_list_collections():
 
 
 if __name__ == "__main__":
-    print("\n🚀 StratumAI RAG Examples\n")
+    print("\n🚀 StratifyAI RAG Examples\n")
     
     # Check for OpenAI API key
     if not os.getenv("OPENAI_API_KEY"):

@@ -4,8 +4,8 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from stratumai.chat.builder import ChatBuilder, create_module_builder
-from stratumai.models import ChatResponse, Message, Usage
+from stratifyai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai.models import ChatResponse, Message, Usage
 
 
 def create_mock_response(content: str = "Hello!") -> dict:
@@ -343,7 +343,7 @@ class TestProviderModuleBuilder:
 
     def test_openai_module_has_builder_methods(self):
         """Test openai module exposes builder methods."""
-        from stratumai.chat import stratumai_openai as openai
+        from stratifyai.chat import stratifyai_openai as openai
         
         assert hasattr(openai, "with_model")
         assert hasattr(openai, "with_system")
@@ -354,7 +354,7 @@ class TestProviderModuleBuilder:
 
     def test_anthropic_module_has_builder_methods(self):
         """Test anthropic module exposes builder methods."""
-        from stratumai.chat import stratumai_anthropic as anthropic
+        from stratifyai.chat import stratifyai_anthropic as anthropic
         
         assert hasattr(anthropic, "with_model")
         assert hasattr(anthropic, "with_system")
@@ -362,7 +362,7 @@ class TestProviderModuleBuilder:
 
     def test_openai_with_model_returns_builder(self):
         """Test openai.with_model returns ChatBuilder."""
-        from stratumai.chat import stratumai_openai as openai
+        from stratifyai.chat import stratifyai_openai as openai
         
         builder = openai.with_model("gpt-4.1")
         assert isinstance(builder, ChatBuilder)
@@ -370,7 +370,7 @@ class TestProviderModuleBuilder:
 
     def test_anthropic_with_system_returns_builder(self):
         """Test anthropic.with_system returns ChatBuilder."""
-        from stratumai.chat import stratumai_anthropic as anthropic
+        from stratifyai.chat import stratifyai_anthropic as anthropic
         
         builder = anthropic.with_system("Be helpful")
         assert isinstance(builder, ChatBuilder)
@@ -378,7 +378,7 @@ class TestProviderModuleBuilder:
 
     def test_builder_chaining_from_module(self):
         """Test builder chaining works from module."""
-        from stratumai.chat import stratumai_openai as openai
+        from stratifyai.chat import stratifyai_openai as openai
         
         builder = (
             openai
@@ -399,8 +399,8 @@ class TestChatBuilderExport:
     """Tests for ChatBuilder export from package."""
 
     def test_chatbuilder_exported_from_chat_package(self):
-        """Test ChatBuilder is exported from stratumai.chat."""
-        from stratumai.chat import ChatBuilder
+        """Test ChatBuilder is exported from stratifyai.chat."""
+        from stratifyai.chat import ChatBuilder
         
         builder = ChatBuilder(provider="openai")
         assert builder.provider == "openai"

@@ -4,23 +4,23 @@ Everything is rewritten from scratch — no copy/paste — but all features, exa
 
 ---
 
-# **StratumAI Prompt Caching: Architecture, Usage, and Cost Optimization**
+# **StratifyAI Prompt Caching: Architecture, Usage, and Cost Optimization**
 
 ### A complete guide to response caching and provider‑level prompt caching for faster, cheaper, and more efficient LLM workloads
 
-Efficient caching is one of the most impactful ways to reduce latency and control costs in large‑scale LLM applications. StratumAI provides a dual‑layer caching system that accelerates repeated queries, optimizes multi‑turn workflows, and dramatically reduces the cost of working with large context windows.
+Efficient caching is one of the most impactful ways to reduce latency and control costs in large‑scale LLM applications. StratifyAI provides a dual‑layer caching system that accelerates repeated queries, optimizes multi‑turn workflows, and dramatically reduces the cost of working with large context windows.
 
-This guide explains how StratumAI’s caching system works, how to use it effectively, and how to measure the performance and cost benefits it provides.
+This guide explains how StratifyAI’s caching system works, how to use it effectively, and how to measure the performance and cost benefits it provides.
 
 ---
 
 # **1. Overview**
 
-StratumAI implements two complementary caching mechanisms:
+StratifyAI implements two complementary caching mechanisms:
 
-### **1. Response Caching (StratumAI‑level)**
+### **1. Response Caching (StratifyAI‑level)**
 A thread‑safe, in‑memory cache that stores **complete LLM responses**.  
-If a request is repeated with identical parameters, StratumAI returns the cached response instantly — no provider call required.
+If a request is repeated with identical parameters, StratifyAI returns the cached response instantly — no provider call required.
 
 ### **2. Provider Prompt Caching (Model‑level)**
 Native support for provider‑specific caching features (OpenAI, Anthropic, Google).  
@@ -50,7 +50,7 @@ Response caching stores full LLM responses in memory and returns them for identi
 ## **Basic Example**
 
 ```python
-from stratumai import LLMClient, Message
+from stratifyai import LLMClient, Message
 
 client = LLMClient()
 
@@ -72,7 +72,7 @@ response2 = client.chat(
 ## **Custom Cache Configuration**
 
 ```python
-from stratumai import ResponseCache, cache_response, LLMClient
+from stratifyai import ResponseCache, cache_response, LLMClient
 
 custom_cache = ResponseCache(ttl=300, max_size=100)
 client = LLMClient()
@@ -85,7 +85,7 @@ def cached_chat(**kwargs):
 ## **Cache Management**
 
 ```python
-from stratumai import get_cache_stats, clear_cache
+from stratifyai import get_cache_stats, clear_cache
 
 stats = get_cache_stats()
 clear_cache()
@@ -131,7 +131,7 @@ This is ideal for:
 ## **Example: Caching a Large Document**
 
 ```python
-from stratumai import LLMClient, Message
+from stratifyai import LLMClient, Message
 
 client = LLMClient()
 

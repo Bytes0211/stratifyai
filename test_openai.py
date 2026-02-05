@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Simple script to test OpenAI chat functionality."""
 
-from stratumai.chat.stratumai_openai import chat_sync
+from stratifyai.chat.stratifyai_openai import chat_sync
 
 if __name__ == "__main__":
     prompt = "What is Python in one sentence?"

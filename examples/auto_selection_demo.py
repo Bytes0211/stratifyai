@@ -1,17 +1,17 @@
 """Demo of Phase 7.3: Automatic Model Selection for File Types.
 
-This example demonstrates how StratumAI automatically selects the optimal
+This example demonstrates how StratifyAI automatically selects the optimal
 model based on file type and extraction task.
 """
 
 from pathlib import Path
-from stratumai.utils.model_selector import (
+from stratifyai.utils.model_selector import (
     ModelSelector,
     ExtractionMode,
     select_model_for_file,
 )
-from stratumai.router import Router
-from stratumai.utils.file_analyzer import FileType
+from stratifyai.router import Router
+from stratifyai.utils.file_analyzer import FileType
 
 
 def demo_model_selector():
@@ -138,25 +138,25 @@ def demo_cli_usage():
     print()
     
     print("1. Auto-select model for CSV file:")
-    print("   stratumai chat --file data.csv --auto-select")
+    print("   stratifyai chat --file data.csv --auto-select")
     print("   → Automatically selects Claude Sonnet for schema extraction")
     print()
     
     print("2. Auto-select with analyze command:")
-    print("   stratumai analyze data.csv")
+    print("   stratifyai analyze data.csv")
     print("   → Auto-selects optimal model and shows selection reasoning")
     print()
     
     print("3. Override auto-selection:")
-    print("   stratumai analyze data.csv --provider openai --model gpt-4.5-turbo-20250205")
+    print("   stratifyai analyze data.csv --provider openai --model gpt-4.5-turbo-20250205")
     print("   → Uses specified provider/model instead of auto-selection")
     print()
     
     print("4. Auto-select for different file types:")
-    print("   stratumai chat --file app.log --auto-select")
+    print("   stratifyai chat --file app.log --auto-select")
     print("   → Selects DeepSeek Reasoner for log error analysis")
     print()
-    print("   stratumai chat --file script.py --auto-select")
+    print("   stratifyai chat --file script.py --auto-select")
     print("   → Selects DeepSeek or Claude for code analysis")
     print()
 

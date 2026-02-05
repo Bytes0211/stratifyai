@@ -1,8 +1,8 @@
-# **StratumAI Routing System: Intelligent Model Selection Across Providers**
+# **StratifyAI Routing System: Intelligent Model Selection Across Providers**
 
-## A complete guide to StratumAI’s multi‑provider routing engine, including strategies, complexity analysis, capability filtering, fallback chains, and extraction‑specific routing.
+## A complete guide to StratifyAI’s multi‑provider routing engine, including strategies, complexity analysis, capability filtering, fallback chains, and extraction‑specific routing.
 
-StratumAI’s Router is the intelligence layer that selects the optimal LLM model for any given task. It evaluates cost, quality, latency, capabilities, and prompt complexity to determine the best model across nine supported providers. The router ensures that applications remain fast, cost‑efficient, and resilient — even when providers fail or workloads vary.
+StratifyAI’s Router is the intelligence layer that selects the optimal LLM model for any given task. It evaluates cost, quality, latency, capabilities, and prompt complexity to determine the best model across nine supported providers. The router ensures that applications remain fast, cost‑efficient, and resilient — even when providers fail or workloads vary.
 
 This guide explains how routing works, how to configure it, and how to integrate it into production‑grade LLM workflows.
 
@@ -10,7 +10,7 @@ This guide explains how routing works, how to configure it, and how to integrate
 
 ## **1. Routing Overview**
 
-StratumAI’s routing pipeline follows a structured decision flow:
+StratifyAI’s routing pipeline follows a structured decision flow:
 
 ```txt
 Incoming Request
@@ -45,7 +45,7 @@ This ensures that routing decisions are:
 
 ## **2. Routing Strategies**
 
-StratumAI supports four routing strategies. Each strategy evaluates candidate models differently.
+StratifyAI supports four routing strategies. Each strategy evaluates candidate models differently.
 
 ---
 
@@ -187,7 +187,7 @@ router.route(
 
 ## **4. Complexity Analysis**
 
-StratumAI analyzes prompt complexity to adjust routing decisions.
+StratifyAI analyzes prompt complexity to adjust routing decisions.
 
 ### **Weighted Factors**
 
@@ -211,7 +211,7 @@ complexity = router._analyze_complexity(messages)
 
 ## **5. Fallback Chain Routing**
 
-StratumAI can return a ranked list of fallback models for resilient applications.
+StratifyAI can return a ranked list of fallback models for resilient applications.
 
 ### **Example**
 
@@ -332,10 +332,10 @@ class RoutingStrategy(str, Enum):
 ## **9. CLI Usage**
 
 ```bash
-stratumai route "Explain machine learning" --strategy hybrid
-stratumai route "Summarize this text" --strategy cost
-stratumai route "Quick question" --strategy latency
-stratumai route "Analyze this image" --strategy quality --capability vision
+stratifyai route "Explain machine learning" --strategy hybrid
+stratifyai route "Summarize this text" --strategy cost
+stratifyai route "Quick question" --strategy latency
+stratifyai route "Analyze this image" --strategy quality --capability vision
 ```
 
 ---

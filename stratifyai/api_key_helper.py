@@ -170,7 +170,7 @@ class APIKeyHelper:
         available = cls.check_available_providers()
         
         lines = [
-            "🔑 StratumAI API Key Setup",
+            "🔑 StratifyAI API Key Setup",
             "=" * 50,
             "",
             "Available Providers:",
@@ -189,7 +189,7 @@ class APIKeyHelper:
             "Setup Instructions:",
             "  1. Copy .env.example to .env: cp .env.example .env",
             "  2. Add your API keys to .env file",
-            "  3. Test with: python -m cli.stratumai_cli chat -p openai -m gpt-4o-mini -t 'Hello'",
+            "  3. Test with: python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 'Hello'",
             "",
             "Get API Keys:",
         ])

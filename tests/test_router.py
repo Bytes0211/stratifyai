@@ -1,8 +1,8 @@
 """Unit tests for router module."""
 
 import pytest
-from stratumai.router import Router, RoutingStrategy, ModelMetadata
-from stratumai.models import Message
+from stratifyai.router import Router, RoutingStrategy, ModelMetadata
+from stratifyai.models import Message
 
 
 class TestRouter:

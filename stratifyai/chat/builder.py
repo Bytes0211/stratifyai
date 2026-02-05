@@ -3,7 +3,7 @@
 Provides a fluent interface for configuring chat parameters before execution.
 
 Example:
-    from stratumai.chat import anthropic
+    from stratifyai.chat import anthropic
     
     # Model is always required
     response = await anthropic.chat("Hello", model="claude-sonnet-4-5")
@@ -27,8 +27,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, AsyncIterator, Callable, Optional, Union
 
 if TYPE_CHECKING:
-    from stratumai import LLMClient
-    from stratumai.models import ChatResponse, Message
+    from stratifyai import LLMClient
+    from stratifyai.models import ChatResponse, Message
 
 
 @dataclass
@@ -184,7 +184,7 @@ class ChatBuilder:
     def _get_client(self) -> "LLMClient":
         """Get or create the LLM client."""
         if self._client_factory is None:
-            from stratumai import LLMClient
+            from stratifyai import LLMClient
             return LLMClient(provider=self.provider)
         return self._client_factory()
     
@@ -196,7 +196,7 @@ class ChatBuilder:
     
     def _build_messages(self, prompt: Union[str, list]) -> list:
         """Build the messages list from prompt and configured prompts."""
-        from stratumai.models import Message
+        from stratifyai.models import Message
         
         if isinstance(prompt, str):
             messages = []
@@ -210,7 +210,7 @@ class ChatBuilder:
             messages = list(prompt)
             system_prompt = self._build_system_prompt()
             if system_prompt and (not messages or messages[0].role != "system"):
-                from stratumai.models import Message
+                from stratifyai.models import Message
                 messages.insert(0, Message(role="system", content=system_prompt))
             return messages
     

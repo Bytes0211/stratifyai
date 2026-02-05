@@ -1,19 +1,20 @@
-"""OpenAI chat interface for StratumAI.
+"""OpenRouter chat interface for StratifyAI.
 
-Provides convenient functions for OpenAI chat completions.
+Provides convenient functions for OpenRouter chat completions.
+OpenRouter provides unified access to models from multiple providers.
 Model must be specified for each request.
 
-Environment Variable: OPENAI_API_KEY
+Environment Variable: OPENROUTER_API_KEY
 
 Usage:
     # Model is always required
-    from stratumai.chat import openai
-    response = await openai.chat("Hello!", model="gpt-4.1-mini")
+    from stratifyai.chat import openrouter
+    response = await openrouter.chat("Hello!", model="meta-llama/llama-3.3-70b-instruct:free")
     
     # Builder pattern (model required)
     client = (
-        openai
-        .with_model("gpt-4.1")
+        openrouter
+        .with_model("anthropic/claude-3-5-sonnet")
         .with_system("You are a helpful assistant")
         .with_developer("Use markdown")
     )
@@ -23,9 +24,9 @@ Usage:
 import asyncio
 from typing import AsyncIterator, Optional, Union
 
-from stratumai import LLMClient
-from stratumai.models import ChatResponse, Message
-from stratumai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai import LLMClient
+from stratifyai.models import ChatResponse, Message
+from stratifyai.chat.builder import ChatBuilder, create_module_builder
 
 # Default configuration (no default model - must be specified)
 DEFAULT_TEMPERATURE = 0.7
@@ -39,13 +40,13 @@ def _get_client() -> LLMClient:
     """Get or create the module-level client."""
     global _client
     if _client is None:
-        _client = LLMClient(provider="openai")
+        _client = LLMClient(provider="openrouter")
     return _client
 
 
 # Module-level builder for chaining
 _builder = create_module_builder(
-    provider="openai",
+    provider="openrouter",
     default_temperature=DEFAULT_TEMPERATURE,
     default_max_tokens=DEFAULT_MAX_TOKENS,
     client_factory=_get_client,
@@ -94,11 +95,11 @@ async def chat(
     **kwargs,
 ) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
     """
-    Send an async chat completion request to OpenAI.
+    Send a chat completion request to OpenRouter.
 
     Args:
         prompt: User message string or list of Message objects.
-        model: Model name (required). E.g., "gpt-4.1-mini", "gpt-4.1", "gpt-4o"
+        model: Model name (required). E.g., "anthropic/claude-3-5-sonnet", "openai/gpt-4"
         system: Optional system prompt (ignored if prompt is list of Messages).
         temperature: Sampling temperature (0.0-2.0). Default: 0.7
         max_tokens: Maximum tokens to generate. Default: None (model default)
@@ -109,9 +110,15 @@ async def chat(
         ChatResponse object, or AsyncIterator[ChatResponse] if streaming.
 
     Example:
-        >>> from stratumai.chat import openai
-        >>> response = await openai.chat("What is Python?", model="gpt-4.1-mini")
+        >>> from stratifyai.chat import openrouter
+        >>> response = await openrouter.chat("What is Python?", model="meta-llama/llama-3.3-70b-instruct:free")
         >>> print(response.content)
+
+        # Use a different model
+        >>> response = openrouter.chat(
+        ...     "Explain AI",
+        ...     model="anthropic/claude-3-5-sonnet"
+        ... )
     """
     client = _get_client()
 
@@ -144,11 +151,11 @@ async def chat_stream(
     **kwargs,
 ) -> AsyncIterator[ChatResponse]:
     """
-    Send an async streaming chat completion request to OpenAI.
+    Send a streaming chat completion request to OpenRouter.
 
     Args:
         prompt: User message string or list of Message objects.
-        model: Model name (required). E.g., "gpt-4.1-mini", "gpt-4.1"
+        model: Model name (required). E.g., "anthropic/claude-3-5-sonnet"
         system: Optional system prompt (ignored if prompt is list of Messages).
         temperature: Sampling temperature (0.0-2.0). Default: 0.7
         max_tokens: Maximum tokens to generate. Default: None (model default)
@@ -158,8 +165,8 @@ async def chat_stream(
         ChatResponse chunks.
 
     Example:
-        >>> from stratumai.chat import openai
-        >>> async for chunk in openai.chat_stream("Tell me a story", model="gpt-4.1-mini"):
+        >>> from stratifyai.chat import openrouter
+        >>> async for chunk in openrouter.chat_stream("Tell me a story", model="anthropic/claude-3-5-sonnet"):
         ...     print(chunk.content, end="", flush=True)
     """
     return await chat(
@@ -174,15 +181,15 @@ async def chat_stream(
 
 
 def chat_sync(
-    prompt: Union[str, list[Message]],
+    prompt,
     *,
     model: str,
-    system: Optional[str] = None,
-    temperature: float = DEFAULT_TEMPERATURE,
-    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    system=None,
+    temperature=DEFAULT_TEMPERATURE,
+    max_tokens=DEFAULT_MAX_TOKENS,
     **kwargs,
-) -> ChatResponse:
-    """Synchronous wrapper for chat(). Model is required."""
+):
+    """Synchronous wrapper for chat()."""
     return asyncio.run(chat(
         prompt,
         model=model,
@@ -192,18 +199,3 @@ def chat_sync(
         stream=False,
         **kwargs,
     ))
-
-
-if __name__ == "__main__":
-    # Demo usage when run directly
-    print("OpenAI Chat Module")
-    print("\nSending test prompt...\n")
-    
-    response = chat_sync("Hello! Please respond with a brief greeting.", model="gpt-4.1-mini")
-    
-    print(f"Response: {response.content}")
-    print(f"\nModel: {response.model}")
-    print(f"Tokens: {response.usage.total_tokens} (prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens})")
-    print(f"Cost: ${response.usage.cost_usd:.6f}")
-    if response.latency_ms:
-        print(f"Latency: {response.latency_ms:.0f}ms")

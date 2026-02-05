@@ -29,25 +29,25 @@
 **Problem**: 2 MB file exceeds 128k token limit  
 **Solution**: Split into chunks, summarize each, combine summaries  
 **Savings**: 94% cost reduction  
-**Command**: `stratumai upload file.txt --chunked --chunk-size 50000`
+**Command**: `stratifyai upload file.txt --chunked --chunk-size 50000`
 
 ### 2. Intelligent Extraction (Best for: CSV, JSON, Logs)
 **Problem**: 10 MB CSV file  
 **Solution**: Extract schema + sample + stats instead of full data  
 **Savings**: 99%+ token reduction  
-**Command**: `stratumai analyze data.csv --extract-mode schema`
+**Command**: `stratifyai analyze data.csv --extract-mode schema`
 
 ### 3. Long-Context Models (Best for: Need full context)
 **Problem**: 3 MB file needs full analysis  
 **Solution**: Auto-select Gemini 2.5 Pro (1M context)  
 **Savings**: Fits in context (vs. failing with smaller models)  
-**Command**: `stratumai upload file.txt --auto-select-model`
+**Command**: `stratifyai upload file.txt --auto-select-model`
 
 ### 4. Prompt Caching (Best for: Multiple queries on same file)
 **Problem**: Re-analyzing same 2 MB file 10 times  
 **Solution**: Cache file context, subsequent queries 90% cheaper  
 **Savings**: 90% on queries 2-10  
-**Command**: `stratumai interactive-cached file.txt --provider anthropic`
+**Command**: `stratifyai interactive-cached file.txt --provider anthropic`
 
 ### 5. RAG/Vector DB (Best for: Massive datasets >10 MB)
 **Problem**: 50 MB documentation, only need relevant sections  
@@ -59,7 +59,7 @@
 **Problem**: Logs with duplicate entries  
 **Solution**: De-duplicate, extract errors only  
 **Savings**: 70-90% token reduction  
-**Command**: `stratumai analyze log.txt --compress deduplicate`
+**Command**: `stratifyai analyze log.txt --compress deduplicate`
 
 ## Decision Tree
 
@@ -102,7 +102,7 @@ File type specific:
 ### Scenario 1: Analyzing Large CSV
 ```bash
 # Problem: 5 MB CSV with 1M rows
-stratumai analyze sales_data.csv --extract-mode schema
+stratifyai analyze sales_data.csv --extract-mode schema
 
 # Result: 
 # - Extracted schema: 200 bytes
@@ -114,7 +114,7 @@ stratumai analyze sales_data.csv --extract-mode schema
 ### Scenario 2: Multiple Queries on Same Document
 ```bash
 # Problem: Need to query 2 MB research paper 10 times
-stratumai interactive-cached paper.pdf --provider anthropic
+stratifyai interactive-cached paper.pdf --provider anthropic
 
 # Cost comparison:
 # Without caching: 10 queries × $1.50 = $15.00
@@ -124,7 +124,7 @@ stratumai interactive-cached paper.pdf --provider anthropic
 ### Scenario 3: Processing Large Log File
 ```bash
 # Problem: 10 MB log file, need to find errors
-stratumai analyze server.log --extract errors
+stratifyai analyze server.log --extract errors
 
 # Result:
 # - Total lines: 500,000
@@ -135,7 +135,7 @@ stratumai analyze server.log --extract errors
 ### Scenario 4: Very Large Document
 ```bash
 # Problem: 8 MB documentation file
-python -m cli.stratumai_cli chat --file docs.txt --auto-select
+python -m cli.stratifyai_cli chat --file docs.txt --auto-select
 
 # Result:
 # - Auto-selected: google/gemini-2.5-pro (1M context)
@@ -146,7 +146,7 @@ python -m cli.stratumai_cli chat --file docs.txt --auto-select
 ### Scenario 5: RAG for Massive Documentation (✅ Now Available)
 ```python
 # Problem: 50 MB documentation, need to query multiple times
-from stratumai import RAGClient
+from stratifyai import RAGClient
 
 rag = RAGClient()
 
@@ -221,29 +221,29 @@ if token_count > context_window * 0.8:
 
 ```bash
 # Interactive mode with file (includes token warnings)
-python -m cli.stratumai_cli interactive --file large.txt
+python -m cli.stratifyai_cli interactive --file large.txt
 
 # Chat with file and auto-select model
-python -m cli.stratumai_cli chat --file large.txt --auto-select
+python -m cli.stratifyai_cli chat --file large.txt --auto-select
 
 # Chunk large file (automatic with --chunked flag)
-python -m cli.stratumai_cli chat --file huge.txt --chunked --chunk-size 50000
+python -m cli.stratifyai_cli chat --file huge.txt --chunked --chunk-size 50000
 
 # Analyze and extract schema from CSV
-python -m cli.stratumai_cli analyze data.csv
+python -m cli.stratifyai_cli analyze data.csv
 
 # View cache statistics
-python -m cli.stratumai_cli cache-stats --detailed
+python -m cli.stratifyai_cli cache-stats --detailed
 
 # Clear response cache
-python -m cli.stratumai_cli cache-clear
+python -m cli.stratifyai_cli cache-clear
 
 # Interactive mode (supports /file command with auto-extraction)
-python -m cli.stratumai_cli interactive --provider anthropic
+python -m cli.stratifyai_cli interactive --provider anthropic
 # Within interactive: /file large.csv (prompts for extraction)
 
 # Use AWS Bedrock models
-python -m cli.stratumai_cli chat "Hello" --provider bedrock --model anthropic.claude-3-5-sonnet-20241022-v2:0
+python -m cli.stratifyai_cli chat "Hello" --provider bedrock --model anthropic.claude-3-5-sonnet-20241022-v2:0
 ```
 
 ## Support Matrix

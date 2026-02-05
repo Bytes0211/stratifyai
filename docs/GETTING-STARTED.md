@@ -1,14 +1,14 @@
-# Getting Started with StratumAI
+# Getting Started with StratifyAI
 
-A step-by-step guide to using StratumAI, the unified multi-provider LLM abstraction module.
+A step-by-step guide to using StratifyAI, the unified multi-provider LLM abstraction module.
 
 **Last Updated:** February 1, 2026
 
 ---
 
-## What is StratumAI?
+## What is StratifyAI?
 
-StratumAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama) through a single, consistent API. Switch models without changing your code, track costs automatically, and leverage intelligent routing to select the best model for each task.
+StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama) through a single, consistent API. Switch models without changing your code, track costs automatically, and leverage intelligent routing to select the best model for each task.
 
 **Key Benefits:**
 - 🔄 **No Vendor Lock-In**: Switch between 8+ providers seamlessly
@@ -46,7 +46,7 @@ StratumAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, Gr
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd stratumai
+cd stratifyai
 
 # Create virtual environment
 python3 -m venv .venv
@@ -83,7 +83,7 @@ OLLAMA_BASE_URL=http://localhost:11434
 ### Your First Request (Python)
 
 ```python
-from stratumai import LLMClient
+from stratifyai import LLMClient
 
 # Initialize client (reads API keys from environment)
 client = LLMClient()
@@ -108,14 +108,14 @@ Cost: $0.0002
 
 ```bash
 # Simple chat command
-python -m cli.stratumai_cli chat "Explain AI in one sentence" \
+python -m cli.stratifyai_cli chat "Explain AI in one sentence" \
   --provider openai \
   --model gpt-4o-mini
 
 # Or use environment variables
 export STRATUMAI_PROVIDER=openai
 export STRATUMAI_MODEL=gpt-4o-mini
-python -m cli.stratumai_cli chat "Explain AI in one sentence"
+python -m cli.stratifyai_cli chat "Explain AI in one sentence"
 ```
 
 ---
@@ -125,7 +125,7 @@ python -m cli.stratumai_cli chat "Explain AI in one sentence"
 ### Sending Messages
 
 ```python
-from stratumai import LLMClient
+from stratifyai import LLMClient
 
 client = LLMClient()
 
@@ -173,7 +173,7 @@ response = client.chat(
 
 ## Switching Providers
 
-The power of StratumAI: Switch providers without changing your code!
+The power of StratifyAI: Switch providers without changing your code!
 
 ### Switch to Anthropic (Claude)
 
@@ -274,7 +274,7 @@ print(f"Cost: ${usage_info.cost_usd:.4f}")
 ### CLI Streaming
 
 ```bash
-python -m cli.stratumai_cli chat "Write a poem" \
+python -m cli.stratifyai_cli chat "Write a poem" \
   --provider openai \
   --model gpt-4o-mini \
   --stream
@@ -289,7 +289,7 @@ Monitor and control your LLM spending.
 ### Basic Cost Tracking
 
 ```python
-from stratumai import LLMClient, CostTracker
+from stratifyai import LLMClient, CostTracker
 
 client = LLMClient()
 tracker = CostTracker(budget_limit=5.0)  # $5 budget
@@ -339,12 +339,12 @@ response = client.chat(model=DEV_MODEL, messages=[...])
 
 ## Intelligent Routing
 
-Let StratumAI select the best model for your task.
+Let StratifyAI select the best model for your task.
 
 ### Basic Routing
 
 ```python
-from stratumai import Router, RoutingStrategy
+from stratifyai import Router, RoutingStrategy
 
 # Initialize router
 router = Router(client, default_strategy=RoutingStrategy.HYBRID)
@@ -411,13 +411,13 @@ print(f"Complexity: {complexity:.2f}")  # ~0.75 (complex)
 
 ```bash
 # Auto-select best model
-python -m cli.stratumai_cli route "What is machine learning?" --strategy hybrid
+python -m cli.stratifyai_cli route "What is machine learning?" --strategy hybrid
 
 # Cost-optimized
-python -m cli.stratumai_cli route "Simple question" --strategy cost
+python -m cli.stratifyai_cli route "Simple question" --strategy cost
 
 # Quality-optimized
-python -m cli.stratumai_cli route "Complex analysis task" --strategy quality
+python -m cli.stratifyai_cli route "Complex analysis task" --strategy quality
 ```
 
 ---
@@ -431,7 +431,7 @@ Save costs and latency with response and prompt caching.
 Cache identical requests to avoid duplicate API calls.
 
 ```python
-from stratumai.caching import cache_response
+from stratifyai.caching import cache_response
 
 # Decorator automatically caches responses
 @cache_response(ttl=3600)  # Cache for 1 hour
@@ -458,7 +458,7 @@ print(f"Same answer: {answer1 == answer2}")  # True
 Cache long context that you reuse (Anthropic, OpenAI, Google).
 
 ```python
-from stratumai.models import Message
+from stratifyai.models import Message
 
 # Load a long document once
 long_document = open("large_file.txt").read()  # 50,000 tokens
@@ -506,13 +506,13 @@ See [CACHING.md](CACHING.md) for complete caching documentation.
 
 ## CLI Usage
 
-StratumAI includes a powerful CLI for terminal usage.
+StratifyAI includes a powerful CLI for terminal usage.
 
 ### Interactive Mode
 
 ```bash
 # Start interactive chat
-python -m cli.stratumai_cli interactive \
+python -m cli.stratifyai_cli interactive \
   --provider anthropic \
   --model claude-sonnet-4-5-20250929
 
@@ -530,22 +530,22 @@ You: exit  # Exit the conversation
 
 ```bash
 # Single message
-python -m cli.stratumai_cli chat "Hello" -p openai -m gpt-4o-mini
+python -m cli.stratifyai_cli chat "Hello" -p openai -m gpt-4o-mini
 
 # Streaming
-python -m cli.stratumai_cli chat "Write a poem" -p openai -m gpt-4o-mini --stream
+python -m cli.stratifyai_cli chat "Write a poem" -p openai -m gpt-4o-mini --stream
 
 # List all models
-python -m cli.stratumai_cli models
+python -m cli.stratifyai_cli models
 
 # List models for specific provider
-python -m cli.stratumai_cli models --provider anthropic
+python -m cli.stratifyai_cli models --provider anthropic
 
 # List all providers
-python -m cli.stratumai_cli providers
+python -m cli.stratifyai_cli providers
 
 # Auto-route to best model
-python -m cli.stratumai_cli route "Complex question" --strategy quality
+python -m cli.stratifyai_cli route "Complex question" --strategy quality
 ```
 
 ### Environment Variables
@@ -556,18 +556,18 @@ export STRATUMAI_PROVIDER=anthropic
 export STRATUMAI_MODEL=claude-sonnet-4-5-20250929
 
 # Now you can omit --provider and --model
-python -m cli.stratumai_cli chat "Hello"
+python -m cli.stratifyai_cli chat "Hello"
 ```
 
 ### Load Content from Files
 
 ```bash
 # Chat about a file
-python -m cli.stratumai_cli chat --file document.txt \
+python -m cli.stratifyai_cli chat --file document.txt \
   -p openai -m gpt-4o-mini
 
 # With custom prompt
-python -m cli.stratumai_cli chat "Summarize this:" --file document.txt \
+python -m cli.stratifyai_cli chat "Summarize this:" --file document.txt \
   -p openai -m gpt-4o-mini
 ```
 
@@ -588,7 +588,7 @@ See [cli-usage.md](cli-usage.md) for complete CLI documentation.
 
 1. **Retry Logic**: Automatic fallback to alternative models
    ```python
-   from stratumai.retry import with_retry, RetryConfig
+   from stratifyai.retry import with_retry, RetryConfig
    
    @with_retry(RetryConfig(fallback_models=["gpt-4.1", "gpt-4o-mini"]))
    def robust_chat(messages):
@@ -602,7 +602,7 @@ See [cli-usage.md](cli-usage.md) for complete CLI documentation.
 
 3. **Logging**: Track all LLM calls
    ```python
-   from stratumai.utils import log_llm_call
+   from stratifyai.utils import log_llm_call
    
    @log_llm_call
    def my_function():
@@ -614,7 +614,7 @@ See [cli-usage.md](cli-usage.md) for complete CLI documentation.
 **Idea:** Build a code review assistant
 
 ```python
-from stratumai import LLMClient, Router, RoutingStrategy
+from stratifyai import LLMClient, Router, RoutingStrategy
 
 client = LLMClient()
 router = Router(client)
@@ -692,7 +692,7 @@ for question in questions:
 ### Pattern 3: Error Handling
 
 ```python
-from stratumai.exceptions import (
+from stratifyai.exceptions import (
     RateLimitException,
     ModelNotFoundError,
     ProviderAPIError
@@ -751,7 +751,7 @@ except ProviderAPIError as e:
 **Solution:**
 ```bash
 # Make sure you're in the right directory
-cd stratumai
+cd stratifyai
 
 # Activate virtual environment
 source .venv/bin/activate
@@ -794,14 +794,14 @@ response = client.chat(model=models[0], messages=[...])
 model = "gpt-4o-mini"  # instead of "gpt-4.1"
 
 # 2. Enable caching
-from stratumai.caching import cache_response
+from stratifyai.caching import cache_response
 
 @cache_response(ttl=3600)
 def ask(question):
     return client.chat(model="gpt-4o-mini", messages=[...])
 
 # 3. Use Router with COST strategy
-from stratumai import Router, RoutingStrategy
+from stratifyai import Router, RoutingStrategy
 
 router = Router(client)
 response = router.route(messages=[...], strategy=RoutingStrategy.COST)
@@ -811,7 +811,7 @@ response = router.route(messages=[...], strategy=RoutingStrategy.COST)
 
 ## What You've Learned
 
-✅ How to install and configure StratumAI  
+✅ How to install and configure StratifyAI  
 ✅ How to send basic chat requests  
 ✅ How to switch between providers seamlessly  
 ✅ How to use streaming for better UX  

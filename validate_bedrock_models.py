@@ -1,5 +1,5 @@
 """
-Validates available Amazon Bedrock models and compares with StratumAI config.
+Validates available Amazon Bedrock models and compares with StratifyAI config.
 """
 import logging
 import json
@@ -29,8 +29,8 @@ def list_foundation_models(bedrock_client):
 def main():
     """Entry point for the example."""
     
-    # Import StratumAI config
-    from stratumai.config import BEDROCK_MODELS
+    # Import StratifyAI config
+    from stratifyai.config import BEDROCK_MODELS
     
     aws_region = "us-east-1"
     
@@ -53,7 +53,7 @@ def main():
     
     # Check which models in our config are available
     print(f"\n{'='*80}")
-    print("StratumAI Config Validation")
+    print("StratifyAI Config Validation")
     print(f"{'='*80}\n")
     
     valid_models = []
@@ -93,7 +93,7 @@ def main():
     
     # Show available models NOT in config
     print(f"\n{'='*80}")
-    print("Available Models NOT in StratumAI Config")
+    print("Available Models NOT in StratifyAI Config")
     print(f"{'='*80}\n")
     
     config_model_ids = set(BEDROCK_MODELS.keys())

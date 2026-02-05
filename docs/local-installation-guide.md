@@ -1,6 +1,6 @@
-# StratumAI Local Installation Guide
+# StratifyAI Local Installation Guide
 
-This guide provides step-by-step instructions for installing StratumAI as a local Python library/package for development and use in other projects.
+This guide provides step-by-step instructions for installing StratifyAI as a local Python library/package for development and use in other projects.
 
 ## Table of Contents
 - [Installation Methods](#installation-methods)
@@ -16,7 +16,7 @@ This guide provides step-by-step instructions for installing StratumAI as a loca
 
 ## Installation Methods
 
-There are three primary methods to install StratumAI locally:
+There are three primary methods to install StratifyAI locally:
 
 1. **Editable Install** - Best for active development (changes are reflected immediately)
 2. **Local Package Install** - Standard installation from local directory
@@ -41,7 +41,7 @@ python3 -m pip install --upgrade pip
 ### Step 1: Navigate to Project Directory
 
 ```bash
-cd /home/scotton/dev/projects/stratumai
+cd /home/scotton/dev/projects/stratifyai
 ```
 
 ### Step 2: Create/Activate Virtual Environment (Recommended)
@@ -67,14 +67,14 @@ pip install -e ".[dev]"
 ### Step 4: Verify Installation
 
 ```bash
-# Check that stratumai is installed
-pip show stratumai
+# Check that stratifyai is installed
+pip show stratifyai
 
 # Test import
-python -c "from stratumai import LLMClient; print('Success!')"
+python -c "from stratifyai import LLMClient; print('Success!')"
 
 # Test CLI
-stratumai --help
+stratifyai --help
 ```
 
 ### Benefits of Editable Install
@@ -92,7 +92,7 @@ This method installs the package normally from the local directory.
 ### Step 1: Navigate to Project Directory
 
 ```bash
-cd /home/scotton/dev/projects/stratumai
+cd /home/scotton/dev/projects/stratifyai
 ```
 
 ### Step 2: Create/Activate Virtual Environment
@@ -115,8 +115,8 @@ pip install ".[dev]"
 ### Step 4: Verify Installation
 
 ```bash
-pip show stratumai
-python -c "from stratumai import LLMClient; print('Success!')"
+pip show stratifyai
+python -c "from stratifyai import LLMClient; print('Success!')"
 ```
 
 ### Note
@@ -134,7 +134,7 @@ This method creates a distribution file (.whl) that can be installed or shared.
 ### Step 1: Install Build Tools
 
 ```bash
-cd /home/scotton/dev/projects/stratumai
+cd /home/scotton/dev/projects/stratifyai
 source .venv/bin/activate
 
 # Install build tools
@@ -148,26 +148,26 @@ pip install build
 python -m build
 
 # This creates files in dist/:
-# - stratumai-0.1.0-py3-none-any.whl
-# - stratumai-0.1.0.tar.gz
+# - stratifyai-0.1.0-py3-none-any.whl
+# - stratifyai-0.1.0.tar.gz
 ```
 
 ### Step 3: Install the Wheel
 
 ```bash
 # Install the built wheel
-pip install dist/stratumai-0.1.0-py3-none-any.whl
+pip install dist/stratifyai-0.1.0-py3-none-any.whl
 
 # OR install in another environment/project
-# (from outside the stratumai directory)
-pip install /home/scotton/dev/projects/stratumai/dist/stratumai-0.1.0-py3-none-any.whl
+# (from outside the stratifyai directory)
+pip install /home/scotton/dev/projects/stratifyai/dist/stratifyai-0.1.0-py3-none-any.whl
 ```
 
 ### Step 4: Verify Installation
 
 ```bash
-pip show stratumai
-stratumai --help
+pip show stratifyai
+stratifyai --help
 ```
 
 ### Benefits of Wheel Install
@@ -185,18 +185,18 @@ After installation (any method), verify everything works:
 ### 1. Check Package Installation
 
 ```bash
-pip show stratumai
+pip show stratifyai
 ```
 
 Expected output:
 ```
-Name: stratumai
+Name: stratifyai
 Version: 0.1.0
 Summary: Unified LLM abstraction layer for 8 providers
-Home-page: https://github.com/yourusername/stratumai
+Home-page: https://github.com/yourusername/stratifyai
 Author: Your Name
 Author-email: your.email@example.com
-Location: /home/scotton/dev/projects/stratumai
+Location: /home/scotton/dev/projects/stratifyai
 Requires: anthropic, google-genai, httpx, openai, python-dotenv, rich, typer
 ```
 
@@ -204,8 +204,8 @@ Requires: anthropic, google-genai, httpx, openai, python-dotenv, rich, typer
 
 ```bash
 python3 << 'EOF'
-from stratumai import LLMClient, ChatRequest, Message
-from stratumai.router import Router, RoutingStrategy
+from stratifyai import LLMClient, ChatRequest, Message
+from stratifyai.router import Router, RoutingStrategy
 
 # Test client initialization
 client = LLMClient()
@@ -225,16 +225,16 @@ EOF
 
 ```bash
 # Test CLI installation
-stratumai --help
+stratifyai --help
 
 # List providers
-stratumai providers
+stratifyai providers
 
 # List models
-stratumai models
+stratifyai models
 
 # Test cache stats
-stratumai cache-stats
+stratifyai cache-stats
 ```
 
 ### 4. Run Unit Tests
@@ -254,15 +254,15 @@ pytest tests/test_cli_chat.py -v
 
 ## Usage Examples
 
-### Using StratumAI in Your Python Projects
+### Using StratifyAI in Your Python Projects
 
-Once installed, you can use StratumAI in any Python project:
+Once installed, you can use StratifyAI in any Python project:
 
 #### Example 1: Basic Usage
 
 ```python
 # your_project/main.py
-from stratumai import LLMClient, ChatRequest, Message
+from stratifyai import LLMClient, ChatRequest, Message
 
 # Initialize client
 client = LLMClient(provider="openai")
@@ -289,8 +289,8 @@ print(f"Cost: ${response.usage.cost_usd:.6f}")
 # Use Router with cost optimization and auto model selection
 
 from dotenv import load_dotenv
-from stratumai import Message
-from stratumai.router import Router, RoutingStrategy
+from stratifyai import Message
+from stratifyai.router import Router, RoutingStrategy
 
 # Load environment variables from .env file
 load_dotenv()
@@ -314,7 +314,7 @@ print(f"Cost: ${response.usage.cost_usd:.6f}")
 
 ```python
 from dotenv import load_dotenv
-from stratumai import LLMClient, ChatRequest, Message
+from stratifyai import LLMClient, ChatRequest, Message
 
 # Load environment variables from .env file
 load_dotenv()
@@ -338,7 +338,7 @@ for provider in providers:
 
 #### Example 4: Using the CLI
 
-The StratumAI CLI provides a rich terminal interface for interacting with LLMs:
+The StratifyAI CLI provides a rich terminal interface for interacting with LLMs:
 
 ```python
 # example_cli_usage.py
@@ -349,24 +349,24 @@ import subprocess
 load_dotenv()
 
 # Example: Simple chat via CLI
-# Run: stratumai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
+# Run: stratifyai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
 result = subprocess.run(
-    ["stratumai", "chat", "Explain Python decorators", "-p", "openai", "-m", "gpt-4.1-mini"],
+    ["stratifyai", "chat", "Explain Python decorators", "-p", "openai", "-m", "gpt-4.1-mini"],
     capture_output=True,
     text=True
 )
 print(result.stdout)
 
 # Example: Using CLI with streaming
-# Run: stratumai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
+# Run: stratifyai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
 subprocess.run(
-    ["stratumai", "chat", "Tell me a story", "-p", "openai", "-m", "gpt-4.1-mini", "--stream"]
+    ["stratifyai", "chat", "Tell me a story", "-p", "openai", "-m", "gpt-4.1-mini", "--stream"]
 )
 
 # Example: Chat with file input
-# Run: stratumai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
+# Run: stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
 subprocess.run(
-    ["stratumai", "chat", "Summarize this:", "-f", "document.txt", "-p", "openai", "-m", "gpt-4.1-mini"]
+    ["stratifyai", "chat", "Summarize this:", "-f", "document.txt", "-p", "openai", "-m", "gpt-4.1-mini"]
 )
 ```
 
@@ -374,38 +374,38 @@ subprocess.run(
 
 ```bash
 # Quick chat
-stratumai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
+stratifyai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
 
 # Interactive mode with conversation history
-stratumai interactive -p anthropic -m claude-3-5-sonnet-20241022
+stratifyai interactive -p anthropic -m claude-3-5-sonnet-20241022
 
 # Smart routing with quality optimization
-stratumai route "Complex analysis task" --strategy quality --execute
+stratifyai route "Complex analysis task" --strategy quality --execute
 
 # Stream response in real-time
-stratumai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
+stratifyai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
 
 # With file input
-stratumai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
+stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
 
 # With system message and custom temperature
-stratumai chat "Explain quantum physics" -p openai -m gpt-4.1-mini -s "You are a physics professor" -t 0.3
+stratifyai chat "Explain quantum physics" -p openai -m gpt-4.1-mini -s "You are a physics professor" -t 0.3
 
 # List available providers
-stratumai providers
+stratifyai providers
 
 # List available models
-stratumai models
+stratifyai models
 
 # Check cache statistics
-stratumai cache-stats
+stratifyai cache-stats
 ```
 
 ---
 
 ## Setting Up API Keys
 
-StratumAI requires API keys for the providers you want to use.
+StratifyAI requires API keys for the providers you want to use.
 
 ### Method 1: Environment Variables
 
@@ -438,12 +438,12 @@ DEEPSEEK_API_KEY=sk-...
 OPENROUTER_API_KEY=sk-or-...
 ```
 
-StratumAI will automatically load from `.env` when available.
+StratifyAI will automatically load from `.env` when available.
 
 ### Method 3: Pass Directly to Client
 
 ```python
-from stratumai import LLMClient
+from stratifyai import LLMClient
 
 client = LLMClient(provider="openai", api_key="sk-...")
 ```
@@ -461,11 +461,11 @@ From any other project:
 cd /path/to/your/other/project
 source venv/bin/activate
 
-# Install stratumai from local path
-pip install /home/scotton/dev/projects/stratumai
+# Install stratifyai from local path
+pip install /home/scotton/dev/projects/stratifyai
 
 # OR in editable mode (links to source)
-pip install -e /home/scotton/dev/projects/stratumai
+pip install -e /home/scotton/dev/projects/stratifyai
 ```
 
 ### Add to requirements.txt
@@ -474,13 +474,13 @@ pip install -e /home/scotton/dev/projects/stratumai
 # requirements.txt
 
 # Install from local path
-/home/scotton/dev/projects/stratumai
+/home/scotton/dev/projects/stratifyai
 
 # OR as editable install
--e /home/scotton/dev/projects/stratumai
+-e /home/scotton/dev/projects/stratifyai
 
 # OR if you built a wheel
-/home/scotton/dev/projects/stratumai/dist/stratumai-0.1.0-py3-none-any.whl
+/home/scotton/dev/projects/stratifyai/dist/stratifyai-0.1.0-py3-none-any.whl
 ```
 
 ---
@@ -490,8 +490,8 @@ pip install -e /home/scotton/dev/projects/stratumai
 ### Remove Package
 
 ```bash
-# Uninstall stratumai
-pip uninstall stratumai
+# Uninstall stratifyai
+pip uninstall stratifyai
 
 # Confirm
 # y
@@ -500,7 +500,7 @@ pip uninstall stratumai
 ### Clean Build Artifacts
 
 ```bash
-cd /home/scotton/dev/projects/stratumai
+cd /home/scotton/dev/projects/stratifyai
 
 # Remove build directories
 rm -rf build/
@@ -527,7 +527,7 @@ python -c "import sys; print(sys.prefix)"  # Should show .venv path
 
 **Solution 2**: Reinstall package
 ```bash
-pip uninstall stratumai
+pip uninstall stratifyai
 pip install -e .
 ```
 
@@ -542,13 +542,13 @@ print('\n'.join(sys.path))
 **Solution 1**: Ensure scripts directory is in PATH
 ```bash
 # Add to ~/.bashrc
-export PATH="$HOME/dev/projects/stratumai/.venv/bin:$PATH"
+export PATH="$HOME/dev/projects/stratifyai/.venv/bin:$PATH"
 source ~/.bashrc
 ```
 
 **Solution 2**: Use full path
 ```bash
-.venv/bin/stratumai --help
+.venv/bin/stratifyai --help
 ```
 
 **Solution 3**: Reinstall with CLI extras
@@ -590,13 +590,13 @@ pip install -e .
 cd /path/to/project1
 python3 -m venv venv
 source venv/bin/activate
-pip install -e /home/scotton/dev/projects/stratumai
+pip install -e /home/scotton/dev/projects/stratifyai
 
 # Project 2
 cd /path/to/project2
 python3 -m venv venv
 source venv/bin/activate
-pip install -e /home/scotton/dev/projects/stratumai
+pip install -e /home/scotton/dev/projects/stratifyai
 ```
 
 ---
@@ -606,9 +606,9 @@ pip install -e /home/scotton/dev/projects/stratumai
 After successful installation:
 
 1. **Set up API keys** for the providers you want to use
-2. **Review examples** in `docs/stratumai-technical-approach.md`
+2. **Review examples** in `docs/stratifyai-technical-approach.md`
 3. **Run tests** to ensure everything works: `pytest`
-4. **Explore CLI** commands: `stratumai --help`
+4. **Explore CLI** commands: `stratifyai --help`
 5. **Try the Web GUI** (if Phase 3.5 is implemented)
 6. **Read the API documentation** for advanced usage
 7. **Consider publishing to PyPI** for easier distribution (Phase 6)
@@ -617,11 +617,11 @@ After successful installation:
 
 ## Additional Resources
 
-- **Project README**: `/home/scotton/dev/projects/stratumai/README.md`
-- **Technical Approach**: `docs/stratumai-technical-approach.md`
+- **Project README**: `/home/scotton/dev/projects/stratifyai/README.md`
+- **Technical Approach**: `docs/stratifyai-technical-approach.md`
 - **Project Status**: `docs/project-status.md`
 - **Development Guide**: `WARP.md`
-- **CLI Documentation**: Available via `stratumai --help` for each command
+- **CLI Documentation**: Available via `stratifyai --help` for each command
 
 ---
 
@@ -633,6 +633,6 @@ Once ready for public release:
 2. Configure `~/.pypirc` with credentials
 3. Build distribution: `python -m build`
 4. Upload to PyPI: `python -m twine upload dist/*`
-5. Install from PyPI: `pip install stratumai`
+5. Install from PyPI: `pip install stratifyai`
 
 See Phase 6 in `docs/project-status.md` for production readiness tasks.

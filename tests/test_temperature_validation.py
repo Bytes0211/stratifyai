@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Test temperature validation for providers."""
 
-from stratumai import LLMClient
-from stratumai.exceptions import ValidationError
-from stratumai.models import Message
+from stratifyai import LLMClient
+from stratifyai.exceptions import ValidationError
+from stratifyai.models import Message
 
 def test_anthropic_temperature_validation():
     """Test that Anthropic rejects temperature > 1.0."""

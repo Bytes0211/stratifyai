@@ -1,5 +1,5 @@
 """
-StratumAI Web Server Example
+StratifyAI Web Server Example
 
 A complete FastAPI server demonstrating SSE and WebSocket streaming
 for frontend integration.
@@ -19,7 +19,7 @@ Usage:
     # Open browser for interactive demo
     http://localhost:8000/
 
-Author: StratumAI Team
+Author: StratifyAI Team
 """
 
 import asyncio
@@ -36,9 +36,9 @@ from pydantic import BaseModel, field_validator
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stratumai import LLMClient
-from stratumai.models import Message, ChatRequest as LLMChatRequest
-from stratumai.exceptions import (
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest as LLMChatRequest
+from stratifyai.exceptions import (
     RateLimitError,
     AuthenticationError,
     InvalidModelError,
@@ -48,8 +48,8 @@ from stratumai.exceptions import (
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="StratumAI Web Server",
-    description="SSE and WebSocket streaming for StratumAI",
+    title="StratifyAI Web Server",
+    description="SSE and WebSocket streaming for StratifyAI",
     version="1.0.0",
 )
 
@@ -61,7 +61,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize StratumAI client
+# Initialize StratifyAI client
 client = LLMClient()
 
 
@@ -144,7 +144,7 @@ async def root():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>StratumAI Demo</title>
+        <title>StratifyAI Demo</title>
         <style>
             * { box-sizing: border-box; }
             body { 
@@ -197,7 +197,7 @@ async def root():
         </style>
     </head>
     <body>
-        <h1>🚀 StratumAI Demo</h1>
+        <h1>🚀 StratifyAI Demo</h1>
         <div class="container">
             <div class="input-group">
                 <select id="model">
@@ -290,7 +290,7 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": "stratumai-web"}
+    return {"status": "healthy", "service": "stratifyai-web"}
 
 
 @app.get("/models", response_model=ModelsResponse)
@@ -524,6 +524,6 @@ async def websocket_chat(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
 
-    print("Starting StratumAI Web Server...")
+    print("Starting StratifyAI Web Server...")
     print("Open http://localhost:8000 in your browser for the demo")
     uvicorn.run(app, host="0.0.0.0", port=8000)

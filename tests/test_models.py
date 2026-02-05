@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from stratumai.models import ChatRequest, ChatResponse, Message, Usage
+from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 
 class TestMessage:

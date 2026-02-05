@@ -1,4 +1,4 @@
-"""StratumAI CLI - Unified LLM interface via terminal."""
+"""StratifyAI CLI - Unified LLM interface via terminal."""
 
 import os
 import sys
@@ -16,18 +16,18 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from stratumai import LLMClient, ChatRequest, Message, Router, RoutingStrategy, get_cache_stats
-from stratumai.caching import get_cache_entries, clear_cache
-from stratumai.config import MODEL_CATALOG, PROVIDER_ENV_VARS
-from stratumai.exceptions import InvalidProviderError, InvalidModelError, AuthenticationError
-from stratumai.summarization import summarize_file
-from stratumai.utils.file_analyzer import analyze_file
+from stratifyai import LLMClient, ChatRequest, Message, Router, RoutingStrategy, get_cache_stats
+from stratifyai.caching import get_cache_entries, clear_cache
+from stratifyai.config import MODEL_CATALOG, PROVIDER_ENV_VARS
+from stratifyai.exceptions import InvalidProviderError, InvalidModelError, AuthenticationError
+from stratifyai.summarization import summarize_file
+from stratifyai.utils.file_analyzer import analyze_file
 from pathlib import Path
 
 # Initialize Typer app and Rich console
 app = typer.Typer(
-    name="stratumai",
-    help="StratumAI - Unified LLM CLI across 9 providers",
+    name="stratifyai",
+    help="StratifyAI - Unified LLM CLI across 9 providers",
     add_completion=True,
 )
 console = Console()
@@ -101,7 +101,7 @@ def chat(
 ):
     """Send a chat message to an LLM provider.
     
-    Note: For multi-turn conversations with context, use 'stratumai interactive' instead.
+    Note: For multi-turn conversations with context, use 'stratifyai interactive' instead.
     """
     return _chat_impl(message, provider, model, temperature, max_tokens, stream, system, file, cache_control, chunked, chunk_size, auto_select=auto_select)
 
@@ -125,7 +125,7 @@ def _chat_impl(
     try:
         # Auto-select model based on file type if enabled
         if auto_select and file and not (provider and model):
-            from stratumai.utils.model_selector import select_model_for_file
+            from stratifyai.utils.model_selector import select_model_for_file
             
             try:
                 auto_provider, auto_model, reasoning = select_model_for_file(file)
@@ -467,7 +467,7 @@ def _chat_impl(
         # Continue conversation (options "1" or "2")
         # Suggest interactive mode for better UX
         if _conversation_history is None and len(messages) > 2:
-            console.print("\n[dim]Tip: Use 'stratumai interactive' for a better multi-turn conversation experience[/dim]")
+            console.print("\n[dim]Tip: Use 'stratifyai interactive' for a better multi-turn conversation experience[/dim]")
         
         # Recursive call with conversation history
         _chat_impl(None, provider, model, temperature, max_tokens, stream, None, None, False, chunked, chunk_size, False, messages)
@@ -760,10 +760,10 @@ def interactive(
                     
                     if use_extraction:
                         try:
-                            from stratumai.utils.csv_extractor import analyze_csv_file
-                            from stratumai.utils.json_extractor import analyze_json_file
-                            from stratumai.utils.log_extractor import extract_log_summary
-                            from stratumai.utils.code_extractor import analyze_code_file
+                            from stratifyai.utils.csv_extractor import analyze_csv_file
+                            from stratifyai.utils.json_extractor import analyze_json_file
+                            from stratifyai.utils.log_extractor import extract_log_summary
+                            from stratifyai.utils.code_extractor import analyze_code_file
                             
                             if extension == '.csv':
                                 result = analyze_csv_file(file_path)
@@ -862,7 +862,7 @@ def interactive(
         
         if not model:
             # Validate and display curated models for all providers
-            from stratumai.utils.provider_validator import get_validated_interactive_models
+            from stratifyai.utils.provider_validator import get_validated_interactive_models
             
             # Show spinner while validating
             with console.status(f"[cyan]Validating {provider} models...", spinner="dots"):
@@ -890,7 +890,7 @@ def interactive(
             console.print(f"\n[bold cyan]Available {provider} models:[/bold cyan]")
             
             # Get interactive models config for fallback
-            from stratumai.config import (
+            from stratifyai.config import (
                 INTERACTIVE_OPENAI_MODELS, INTERACTIVE_ANTHROPIC_MODELS,
                 INTERACTIVE_GOOGLE_MODELS, INTERACTIVE_DEEPSEEK_MODELS,
                 INTERACTIVE_GROQ_MODELS, INTERACTIVE_GROK_MODELS,
@@ -1010,7 +1010,7 @@ def interactive(
                 console.print(f"[dim]File loaded as initial context[/dim]")
         
         # Welcome message
-        console.print(f"\n[bold green]StratumAI Interactive Mode[/bold green]")
+        console.print(f"\n[bold green]StratifyAI Interactive Mode[/bold green]")
         
         # Display context info with API limit warning if applicable
         if api_max_input and api_max_input < context_window:
@@ -1164,7 +1164,7 @@ def interactive(
                     continue
                 
                 # Validate and display ALL models for the selected provider
-                from stratumai.utils.provider_validator import get_validated_interactive_models
+                from stratifyai.utils.provider_validator import get_validated_interactive_models
                 
                 with console.status(f"[cyan]Validating {new_provider} models...", spinner="dots"):
                     validation_data = get_validated_interactive_models(new_provider, all_models=True)
@@ -1465,11 +1465,11 @@ def analyze(
     If --provider and --model are not specified, the optimal model is auto-selected.
     """
     try:
-        from stratumai.utils.csv_extractor import analyze_csv_file
-        from stratumai.utils.json_extractor import analyze_json_file
-        from stratumai.utils.log_extractor import extract_log_summary
-        from stratumai.utils.code_extractor import analyze_code_file
-        from stratumai.utils.model_selector import select_model_for_file
+        from stratifyai.utils.csv_extractor import analyze_csv_file
+        from stratifyai.utils.json_extractor import analyze_json_file
+        from stratifyai.utils.log_extractor import extract_log_summary
+        from stratifyai.utils.code_extractor import analyze_code_file
+        from stratifyai.utils.model_selector import select_model_for_file
         
         # Auto-select model if not specified
         if not provider or not model:
@@ -1671,12 +1671,12 @@ def setup():
     Shows which providers have API keys configured and provides
     links to get API keys for providers you want to use.
     """
-    from stratumai.api_key_helper import (
+    from stratifyai.api_key_helper import (
         APIKeyHelper,
         print_setup_instructions
     )
     
-    console.print("\n[bold cyan]🔑 StratumAI Setup Wizard[/bold cyan]\n")
+    console.print("\n[bold cyan]🔑 StratifyAI Setup Wizard[/bold cyan]\n")
     
     # Create .env from .env.example if needed
     if APIKeyHelper.create_env_file_if_missing():
@@ -1692,8 +1692,8 @@ def setup():
     # Instructions
     console.print("\n[bold cyan]Next Steps:[/bold cyan]")
     console.print("  1. Edit .env file and add API keys for providers you want to use")
-    console.print("  2. Run [green]stratumai check-keys[/green] to verify your setup")
-    console.print("  3. Test with: [cyan]stratumai chat -p openai -m gpt-4o-mini 'Hello'[/cyan]\n")
+    console.print("  2. Run [green]stratifyai check-keys[/green] to verify your setup")
+    console.print("  3. Test with: [cyan]stratifyai chat -p openai -m gpt-4o-mini 'Hello'[/cyan]\n")
 
 
 @app.command(name="check-keys")
@@ -1704,7 +1704,7 @@ def check_keys():
     Displays a status report showing which providers are ready to use
     and which ones need API keys.
     """
-    from stratumai.api_key_helper import APIKeyHelper
+    from stratifyai.api_key_helper import APIKeyHelper
     
     available = APIKeyHelper.check_available_providers()
     
@@ -1733,7 +1733,7 @@ def check_keys():
     # Summary
     if configured_count == 0:
         console.print(f"\n[yellow]⚠ No providers configured[/yellow]")
-        console.print("[dim]Run [cyan]stratumai setup[/cyan] to get started[/dim]\n")
+        console.print("[dim]Run [cyan]stratifyai setup[/cyan] to get started[/dim]\n")
     elif configured_count == total_count:
         console.print(f"\n[green]✓ All {total_count} providers configured![/green]\n")
     else:
@@ -1741,7 +1741,7 @@ def check_keys():
     
     # Help tip
     if configured_count < total_count:
-        console.print("[dim]💡 Tip: Run [cyan]stratumai setup[/cyan] to see how to configure missing providers[/dim]\n")
+        console.print("[dim]💡 Tip: Run [cyan]stratifyai setup[/cyan] to see how to configure missing providers[/dim]\n")
 
 
 def main():

@@ -2,13 +2,13 @@
 
 import pytest
 from pathlib import Path
-from stratumai.utils.model_selector import (
+from stratifyai.utils.model_selector import (
     ModelSelector,
     ExtractionMode,
     ModelRecommendation,
     select_model_for_file,
 )
-from stratumai.utils.file_analyzer import FileType
+from stratifyai.utils.file_analyzer import FileType
 
 
 class TestModelSelector:

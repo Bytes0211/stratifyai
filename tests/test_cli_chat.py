@@ -6,8 +6,8 @@ from pathlib import Path
 from datetime import datetime
 from typer.testing import CliRunner
 
-from cli.stratumai_cli import app, _chat_impl
-from stratumai.models import Message, ChatRequest, ChatResponse, Usage
+from cli.stratifyai_cli import app, _chat_impl
+from stratifyai.models import Message, ChatRequest, ChatResponse, Usage
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def runner():
 @pytest.fixture
 def mock_client():
     """Create a mock LLMClient."""
-    with patch('cli.stratumai_cli.LLMClient') as mock:
+    with patch('cli.stratifyai_cli.LLMClient') as mock:
         client_instance = MagicMock()
         mock.return_value = client_instance
         
@@ -50,14 +50,14 @@ def mock_client():
 @pytest.fixture
 def mock_prompt():
     """Mock Rich Prompt.ask."""
-    with patch('cli.stratumai_cli.Prompt.ask') as mock:
+    with patch('cli.stratifyai_cli.Prompt.ask') as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_console():
     """Mock Rich console."""
-    with patch('cli.stratumai_cli.console') as mock:
+    with patch('cli.stratifyai_cli.console') as mock:
         yield mock
 
 
@@ -136,7 +136,7 @@ class TestChatCommand:
         mock_client[1].chat_completion_sync.side_effect = capture_request
         
         # Patch MODEL_CATALOG to avoid interactive temperature prompt
-        with patch('cli.stratumai_cli.MODEL_CATALOG', {'openai': {'gpt-4.1-mini': {'context': 128000}}}):
+        with patch('cli.stratifyai_cli.MODEL_CATALOG', {'openai': {'gpt-4.1-mini': {'context': 128000}}}):
             result = runner.invoke(app, [
                 'chat',
                 'Hello',
@@ -161,9 +161,9 @@ class TestChatCommand:
 class TestChatImplSingleTurn:
     """Tests for _chat_impl single-turn conversation."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_single_turn_conversation_with_exit(
         self, mock_client_class, mock_prompt, mock_console
     ):
@@ -214,9 +214,9 @@ class TestChatImplSingleTurn:
         # Verify exit message was printed
         mock_console.print.assert_any_call("[dim]Goodbye![/dim]")
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_exit_without_save(
         self, mock_client_class, mock_prompt, mock_console
     ):
@@ -272,9 +272,9 @@ class TestChatImplSingleTurn:
 class TestChatImplMultiTurn:
     """Tests for _chat_impl multi-turn conversation."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     def test_maintains_conversation_history_across_turns(
         self, mock_client_class, mock_prompt, mock_console
     ):
@@ -375,11 +375,11 @@ class TestChatImplMultiTurn:
 class TestChatImplSave:
     """Tests for _chat_impl save functionality."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('cli.stratumai_cli.datetime')
+    @patch('cli.stratifyai_cli.datetime')
     def test_saves_conversation_on_save_and_exit(
         self, mock_datetime, mock_file, mock_client_class, mock_prompt, mock_console
     ):
@@ -457,11 +457,11 @@ class TestChatImplSave:
         # Verify goodbye message
         mock_console.print.assert_any_call("[dim]Goodbye![/dim]")
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('cli.stratumai_cli.datetime')
+    @patch('cli.stratifyai_cli.datetime')
     def test_saves_and_continues_conversation(
         self, mock_datetime, mock_file, mock_client_class, mock_prompt, mock_console
     ):
@@ -563,11 +563,11 @@ class TestChatImplSave:
         assert captured_requests[1][2].role == "user"
         assert captured_requests[1][2].content == "Follow-up"
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('cli.stratumai_cli.datetime')
+    @patch('cli.stratifyai_cli.datetime')
     def test_saves_multi_turn_conversation_history(
         self, mock_datetime, mock_file, mock_client_class, mock_prompt, mock_console
     ):
@@ -647,11 +647,11 @@ class TestChatImplSave:
         assert "**You:** Message 3" in written_content
         assert "**Assistant:** Response 3" in written_content
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open)
-    @patch('cli.stratumai_cli.datetime')
+    @patch('cli.stratifyai_cli.datetime')
     def test_adds_md_extension_if_missing(
         self, mock_datetime, mock_file, mock_client_class, mock_prompt, mock_console
     ):
@@ -703,9 +703,9 @@ class TestChatImplSave:
 class TestChatImplFileInput:
     """Tests for _chat_impl file input functionality."""
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open, read_data="File content here")
     def test_loads_content_from_file(
         self, mock_file, mock_client_class, mock_prompt, mock_console
@@ -750,9 +750,9 @@ class TestChatImplFileInput:
         request = call_args[0][0]
         assert "File content here" in request.messages[0].content
     
-    @patch('cli.stratumai_cli.console')
-    @patch('cli.stratumai_cli.Prompt.ask')
-    @patch('cli.stratumai_cli.LLMClient')
+    @patch('cli.stratifyai_cli.console')
+    @patch('cli.stratifyai_cli.Prompt.ask')
+    @patch('cli.stratifyai_cli.LLMClient')
     @patch('builtins.open', new_callable=mock_open, read_data="File content")
     def test_combines_message_and_file_content(
         self, mock_file, mock_client_class, mock_prompt, mock_console

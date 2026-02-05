@@ -1,4 +1,4 @@
-"""Examples demonstrating prompt caching functionality in StratumAI."""
+"""Examples demonstrating prompt caching functionality in StratifyAI."""
 
 import os
 import sys
@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 load_dotenv()
 
-from stratumai import (
+from stratifyai import (
     LLMClient,
     Message,
     ResponseCache,
@@ -253,7 +253,7 @@ def example_5_cost_comparison():
 def main():
     """Run all examples."""
     print("\n" + "=" * 60)
-    print("StratumAI Prompt Caching Examples")
+    print("StratifyAI Prompt Caching Examples")
     print("=" * 60)
     
     # Clear cache before starting

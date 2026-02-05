@@ -1,6 +1,6 @@
-# StratumAI CLI Usage Guide
+# StratifyAI CLI Usage Guide
 
-Comprehensive guide to using the StratumAI command-line interface.
+Comprehensive guide to using the StratifyAI command-line interface.
 
 ## Installation
 
@@ -16,19 +16,19 @@ uv pip install -r requirements.txt
 
 ```bash
 # Interactive mode - just run chat and you'll be prompted
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 
 # Or provide some/all parameters
-python -m cli.stratumai_cli chat -p openai
-python -m cli.stratumai_cli chat "Hello, world!"
+python -m cli.stratifyai_cli chat -p openai
+python -m cli.stratifyai_cli chat "Hello, world!"
 
 # Or set environment variables
 export STRATUMAI_PROVIDER=openai
 export STRATUMAI_MODEL=gpt-4o-mini
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 
 # Or fully non-interactive
-python -m cli.stratumai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Explain quantum computing"
+python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Explain quantum computing"
 ```
 
 ## Commands
@@ -39,7 +39,7 @@ Send a message to an LLM provider. **All parameters are optional** - if not prov
 
 **Usage:**
 ```bash
-python -m cli.stratumai_cli chat [OPTIONS] [MESSAGE]
+python -m cli.stratifyai_cli chat [OPTIONS] [MESSAGE]
 ```
 
 **Options:**
@@ -63,37 +63,37 @@ After each response, you'll be presented with options:
 - **[3] Save & exit**: Save conversation to markdown and exit
 - **[4] Exit**: Exit without saving
 
-**Note:** For extended multi-turn conversations, use `stratumai interactive` instead for a better experience.
+**Note:** For extended multi-turn conversations, use `stratifyai interactive` instead for a better experience.
 
 **Examples:**
 
 ```bash
 # Interactive mode - will prompt for everything
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 
 # Partial interactive - provide provider, prompted for rest
-python -m cli.stratumai_cli chat -p anthropic
+python -m cli.stratifyai_cli chat -p anthropic
 
 # Basic usage (fully specified)
-python -m cli.stratumai_cli chat -p anthropic -m claude-3-5-sonnet-20241022 "Hello"
+python -m cli.stratifyai_cli chat -p anthropic -m claude-3-5-sonnet-20241022 "Hello"
 
 # With system message
-python -m cli.stratumai_cli chat -p openai -m gpt-4o \
+python -m cli.stratifyai_cli chat -p openai -m gpt-4o \
   --system "You are a helpful coding assistant" \
   "How do I reverse a list in Python?"
 
 # With streaming
-python -m cli.stratumai_cli chat -p groq -m llama-3.3-70b --stream \
+python -m cli.stratifyai_cli chat -p groq -m llama-3.3-70b --stream \
   "Tell me a story"
 
 # With custom temperature
-python -m cli.stratumai_cli chat -p openai -m gpt-4o -t 1.5 \
+python -m cli.stratifyai_cli chat -p openai -m gpt-4o -t 1.5 \
   "Write a creative poem"
 
 # Using environment variables
 export STRATUMAI_PROVIDER=anthropic
 export STRATUMAI_MODEL=claude-3-5-sonnet-20241022
-python -m cli.stratumai_cli chat "What is the capital of France?"
+python -m cli.stratifyai_cli chat "What is the capital of France?"
 ```
 
 ---
@@ -104,7 +104,7 @@ Display all available models with context window sizes.
 
 **Usage:**
 ```bash
-python -m cli.stratumai_cli models [OPTIONS]
+python -m cli.stratifyai_cli models [OPTIONS]
 ```
 
 **Options:**
@@ -114,11 +114,11 @@ python -m cli.stratumai_cli models [OPTIONS]
 
 ```bash
 # List all models
-python -m cli.stratumai_cli models
+python -m cli.stratifyai_cli models
 
 # List models for specific provider
-python -m cli.stratumai_cli models --provider openai
-python -m cli.stratumai_cli models -p anthropic
+python -m cli.stratifyai_cli models --provider openai
+python -m cli.stratifyai_cli models -p anthropic
 ```
 
 **Output:**
@@ -141,13 +141,13 @@ Display all available LLM providers.
 
 **Usage:**
 ```bash
-python -m cli.stratumai_cli providers
+python -m cli.stratifyai_cli providers
 ```
 
 **Example:**
 
 ```bash
-python -m cli.stratumai_cli providers
+python -m cli.stratifyai_cli providers
 ```
 
 **Output:**
@@ -175,7 +175,7 @@ Use the intelligent router to automatically select the best model based on your 
 
 **Usage:**
 ```bash
-python -m cli.stratumai_cli route [OPTIONS] MESSAGE
+python -m cli.stratifyai_cli route [OPTIONS] MESSAGE
 ```
 
 **Options:**
@@ -194,27 +194,27 @@ python -m cli.stratumai_cli route [OPTIONS] MESSAGE
 
 ```bash
 # Use hybrid strategy (default)
-python -m cli.stratumai_cli route "What is 2+2?"
+python -m cli.stratifyai_cli route "What is 2+2?"
 
 # Use cost strategy
-python -m cli.stratumai_cli route --strategy cost "Simple question"
+python -m cli.stratifyai_cli route --strategy cost "Simple question"
 
 # Use quality strategy
-python -m cli.stratumai_cli route --strategy quality \
+python -m cli.stratifyai_cli route --strategy quality \
   "Explain quantum entanglement in detail"
 
 # Use latency strategy
-python -m cli.stratumai_cli route --strategy latency \
+python -m cli.stratifyai_cli route --strategy latency \
   "Quick answer needed"
 
 # Auto-execute without confirmation
-python -m cli.stratumai_cli route --execute "Hello"
+python -m cli.stratifyai_cli route --execute "Hello"
 
 # With cost constraint
-python -m cli.stratumai_cli route --max-cost 0.002 "Simple query"
+python -m cli.stratifyai_cli route --max-cost 0.002 "Simple query"
 
 # With latency constraint
-python -m cli.stratumai_cli route --max-latency 1000 "Fast response please"
+python -m cli.stratifyai_cli route --max-latency 1000 "Fast response please"
 ```
 
 **Output:**
@@ -243,7 +243,7 @@ Start an interactive chat session with conversation history.
 
 **Usage:**
 ```bash
-python -m cli.stratumai_cli interactive [OPTIONS]
+python -m cli.stratifyai_cli interactive [OPTIONS]
 ```
 
 **Options:**
@@ -254,20 +254,20 @@ python -m cli.stratumai_cli interactive [OPTIONS]
 
 ```bash
 # Interactive mode with prompts
-python -m cli.stratumai_cli interactive
+python -m cli.stratifyai_cli interactive
 
 # With provider and model specified
-python -m cli.stratumai_cli interactive -p anthropic -m claude-3-5-sonnet-20241022
+python -m cli.stratifyai_cli interactive -p anthropic -m claude-3-5-sonnet-20241022
 
 # Using environment variables
 export STRATUMAI_PROVIDER=openai
 export STRATUMAI_MODEL=gpt-4o-mini
-python -m cli.stratumai_cli interactive
+python -m cli.stratifyai_cli interactive
 ```
 
 **Interactive Session:**
 ```
-StratumAI Interactive Mode
+StratifyAI Interactive Mode
 Provider: openai | Model: gpt-4o-mini
 Type 'exit', 'quit', or 'q' to exit
 
@@ -315,13 +315,13 @@ Install shell completion for bash, zsh, or fish:
 
 ```bash
 # Bash
-python -m cli.stratumai_cli --install-completion bash
+python -m cli.stratifyai_cli --install-completion bash
 
 # Zsh
-python -m cli.stratumai_cli --install-completion zsh
+python -m cli.stratifyai_cli --install-completion zsh
 
 # Fish
-python -m cli.stratumai_cli --install-completion fish
+python -m cli.stratifyai_cli --install-completion fish
 ```
 
 ---
@@ -333,9 +333,9 @@ python -m cli.stratumai_cli --install-completion fish
 Add to your `.bashrc` or `.zshrc`:
 
 ```bash
-alias sm="python -m cli.stratumai_cli"
-alias smc="python -m cli.stratumai_cli chat"
-alias smi="python -m cli.stratumai_cli interactive"
+alias sm="python -m cli.stratifyai_cli"
+alias smc="python -m cli.stratifyai_cli chat"
+alias smi="python -m cli.stratifyai_cli interactive"
 ```
 
 Usage:
@@ -349,17 +349,17 @@ smi
 
 ```bash
 # Pipe file content
-cat file.txt | xargs python -m cli.stratumai_cli chat -p openai -m gpt-4o
+cat file.txt | xargs python -m cli.stratifyai_cli chat -p openai -m gpt-4o
 
 # Use with other commands
-echo "Explain docker" | xargs python -m cli.stratumai_cli chat -p anthropic -m claude-3-5-sonnet-20241022
+echo "Explain docker" | xargs python -m cli.stratifyai_cli chat -p anthropic -m claude-3-5-sonnet-20241022
 ```
 
 ### 3. Cost-Effective Usage
 
 ```bash
 # Use cost strategy for simple queries
-python -m cli.stratumai_cli route --strategy cost --execute "Simple question"
+python -m cli.stratifyai_cli route --strategy cost --execute "Simple question"
 
 # Set a low-cost model as default
 export STRATUMAI_PROVIDER=groq
@@ -370,7 +370,7 @@ export STRATUMAI_MODEL=llama-3.3-70b
 
 ```bash
 # Enable streaming for stories, explanations, code generation
-python -m cli.stratumai_cli chat --stream -p anthropic -m claude-3-5-sonnet-20241022 \
+python -m cli.stratifyai_cli chat --stream -p anthropic -m claude-3-5-sonnet-20241022 \
   "Write a detailed explanation of machine learning"
 ```
 
@@ -409,7 +409,7 @@ Invalid provider: Provider 'xyz' not supported
 
 **Solution:** Check available providers:
 ```bash
-python -m cli.stratumai_cli providers
+python -m cli.stratifyai_cli providers
 ```
 
 ### Module Not Found Error

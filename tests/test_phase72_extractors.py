@@ -4,24 +4,24 @@ import pytest
 import json
 import tempfile
 from pathlib import Path
-from stratumai.utils.csv_extractor import (
+from stratifyai.utils.csv_extractor import (
     extract_csv_schema,
     analyze_csv_file,
     estimate_token_reduction
 )
-from stratumai.utils.json_extractor import (
+from stratifyai.utils.json_extractor import (
     infer_json_schema,
     extract_json_schema,
     analyze_json_file
 )
-from stratumai.utils.log_extractor import (
+from stratifyai.utils.log_extractor import (
     extract_timestamp,
     extract_log_level,
     extract_error_pattern,
     analyze_log_file,
     extract_log_summary
 )
-from stratumai.utils.code_extractor import (
+from stratifyai.utils.code_extractor import (
     extract_python_structure,
     analyze_code_file
 )

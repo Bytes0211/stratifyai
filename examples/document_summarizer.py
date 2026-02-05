@@ -29,10 +29,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Load environment variables
 load_dotenv()
 
-from stratumai import LLMClient, Router, RoutingStrategy, CostTracker
-from stratumai.models import Message
-from stratumai.exceptions import LLMAbstractionError
-from stratumai.caching import cache_response
+from stratifyai import LLMClient, Router, RoutingStrategy, CostTracker
+from stratifyai.models import Message
+from stratifyai.exceptions import LLMAbstractionError
+from stratifyai.caching import cache_response
 
 console = Console()
 
@@ -276,7 +276,7 @@ Document:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Summarize multiple documents using StratumAI"
+        description="Summarize multiple documents using StratifyAI"
     )
     parser.add_argument(
         "files",

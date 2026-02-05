@@ -2,9 +2,9 @@
 
 import pytest
 from pathlib import Path
-from stratumai.utils.token_counter import estimate_tokens, count_tokens_for_messages, get_context_window, check_token_limit
-from stratumai.utils.file_analyzer import detect_file_type, analyze_file, FileType
-from stratumai.chunking import chunk_content, get_chunk_metadata
+from stratifyai.utils.token_counter import estimate_tokens, count_tokens_for_messages, get_context_window, check_token_limit
+from stratifyai.utils.file_analyzer import detect_file_type, analyze_file, FileType
+from stratifyai.chunking import chunk_content, get_chunk_metadata
 
 
 class TestTokenCounter:
@@ -28,7 +28,7 @@ class TestTokenCounter:
     
     def test_count_tokens_for_messages(self):
         """Test token counting for message lists with formatting overhead."""
-        from stratumai.models import Message
+        from stratifyai.models import Message
         
         messages = [
             Message(role="user", content="Hello"),

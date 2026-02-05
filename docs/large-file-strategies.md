@@ -13,7 +13,7 @@ When uploading files to LLMs, you face token limits that vary by provider:
 
 ## Current Implementation
 
-### File Upload Constraints (cli/stratumai_cli.py)
+### File Upload Constraints (cli/stratifyai_cli.py)
 ```python
 MAX_FILE_SIZE_MB = 5          # Hard limit on file size
 LARGE_FILE_THRESHOLD_KB = 500 # Warn users about large files
@@ -400,7 +400,7 @@ def compress_content(file_content: str, mode: str = "auto"):
 ### Current Usage (Basic)
 ```bash
 # Upload file with size warnings
-stratumai interactive --file large_doc.txt --provider openai --model gpt-4o
+stratifyai interactive --file large_doc.txt --provider openai --model gpt-4o
 
 # Warning: File too large: 2.3 MB
 # This will consume substantial tokens and may incur significant costs
@@ -410,23 +410,23 @@ stratumai interactive --file large_doc.txt --provider openai --model gpt-4o
 ### Enhanced Usage (Proposed)
 ```bash
 # Auto-select model based on file size
-stratumai upload large_doc.txt --auto-select-model
+stratifyai upload large_doc.txt --auto-select-model
 # → Auto-selected google/gemini-2.5-pro for 1,234,567 chars (1M context)
 
 # Chunk and summarize large file
-stratumai upload huge_log.txt --chunked --chunk-size 50000
+stratifyai upload huge_log.txt --chunked --chunk-size 50000
 # → Processing in 12 chunks, summarizing...
 
 # Extract only relevant data
-stratumai analyze data.csv --extract-mode schema
+stratifyai analyze data.csv --extract-mode schema
 # → Extracting schema + sample (200 rows) from 1M row dataset
 
 # Use caching for multiple queries
-stratumai interactive-cached report.pdf --provider anthropic
+stratifyai interactive-cached report.pdf --provider anthropic
 # → File cached - subsequent queries will be ~90% cheaper
 
 # Intelligent extraction by file type
-stratumai analyze error.log --extract errors
+stratifyai analyze error.log --extract errors
 # → Extracted 234 errors from 50,000 log lines
 ```
 
@@ -465,10 +465,10 @@ Create test files:
 python -c "print('x' * 1000000)" > test_1mb.txt
 
 # Test chunking
-stratumai upload test_1mb.txt --chunked --chunk-size 100000
+stratifyai upload test_1mb.txt --chunked --chunk-size 100000
 
 # Test auto-select
-stratumai upload test_1mb.txt --auto-select-model
+stratifyai upload test_1mb.txt --auto-select-model
 ```
 
 ## Future Enhancements

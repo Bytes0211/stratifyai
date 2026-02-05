@@ -2,8 +2,8 @@
 
 import pytest
 import time
-from stratumai.caching import ResponseCache, CacheEntry, get_cache_stats, get_cache_entries, clear_cache
-from stratumai.models import ChatResponse, Usage
+from stratifyai.caching import ResponseCache, CacheEntry, get_cache_stats, get_cache_entries, clear_cache
+from stratifyai.models import ChatResponse, Usage
 from datetime import datetime
 
 

@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from stratumai.client import LLMClient
-from stratumai.exceptions import InvalidModelError, InvalidProviderError
-from stratumai.models import ChatRequest, Message
+from stratifyai.client import LLMClient
+from stratifyai.exceptions import InvalidModelError, InvalidProviderError
+from stratifyai.models import ChatRequest, Message
 
 
 class TestLLMClient:
@@ -19,7 +19,7 @@ class TestLLMClient:
         assert client.provider_name is None
         assert client._provider_instance is None
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     def test_client_initialization_with_provider(self, mock_openai):
         """Test client initialization with specific provider."""
         mock_openai.return_value = MagicMock()
@@ -56,7 +56,7 @@ class TestLLMClient:
         with pytest.raises(InvalidModelError):
             client._detect_provider("nonexistent-model")
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_chat_with_auto_detection(self, mock_openai):
         """Test chat method with automatic provider detection."""
@@ -84,7 +84,7 @@ class TestLLMClient:
         assert client._provider_instance is not None
         mock_client.chat.completions.create.assert_called_once()
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_chat_completion_request(self, mock_openai):
         """Test chat_completion method with ChatRequest."""
@@ -113,7 +113,7 @@ class TestLLMClient:
         # Verify
         assert response.content == "Hi"
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_chat_with_parameters(self, mock_openai):
         """Test chat method with additional parameters."""
@@ -167,7 +167,7 @@ class TestLLMClient:
         assert "gpt-4.1-mini" in openai_models
         assert "claude-3-5-sonnet-20241022" not in openai_models
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_streaming_request(self, mock_openai):
         """Test streaming chat completion."""

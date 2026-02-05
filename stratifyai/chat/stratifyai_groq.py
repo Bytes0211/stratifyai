@@ -1,4 +1,4 @@
-"""Groq chat interface for StratumAI.
+"""Groq chat interface for StratifyAI.
 
 Provides convenient functions for Groq chat completions.
 Groq provides ultra-fast inference for open-source models.
@@ -8,7 +8,7 @@ Environment Variable: GROQ_API_KEY
 
 Usage:
     # Model is always required
-    from stratumai.chat import groq
+    from stratifyai.chat import groq
     response = await groq.chat("Hello!", model="llama-3.3-70b-versatile")
     
     # Builder pattern (model required)
@@ -24,9 +24,9 @@ Usage:
 import asyncio
 from typing import AsyncIterator, Optional, Union
 
-from stratumai import LLMClient
-from stratumai.models import ChatResponse, Message
-from stratumai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai import LLMClient
+from stratifyai.models import ChatResponse, Message
+from stratifyai.chat.builder import ChatBuilder, create_module_builder
 
 # Default configuration (no default model - must be specified)
 DEFAULT_TEMPERATURE = 0.7
@@ -110,7 +110,7 @@ async def chat(
         ChatResponse object, or AsyncIterator[ChatResponse] if streaming.
 
     Example:
-        >>> from stratumai.chat import groq
+        >>> from stratifyai.chat import groq
         >>> response = await groq.chat("What is Python?", model="llama-3.3-70b-versatile")
         >>> print(response.content)
     """
@@ -159,7 +159,7 @@ async def chat_stream(
         ChatResponse chunks.
 
     Example:
-        >>> from stratumai.chat import groq
+        >>> from stratifyai.chat import groq
         >>> async for chunk in groq.chat_stream("Tell me a story", model="llama-3.3-70b-versatile"):
         ...     print(chunk.content, end="", flush=True)
     """

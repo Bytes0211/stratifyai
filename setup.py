@@ -1,4 +1,4 @@
-"""Setup script for StratumAI package.
+"""Setup script for StratifyAI package.
 
 For backwards compatibility. Modern installation uses pyproject.toml.
 """

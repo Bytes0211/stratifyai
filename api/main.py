@@ -1,4 +1,4 @@
-"""FastAPI application for StratumAI."""
+"""FastAPI application for StratifyAI."""
 
 import json
 import logging
@@ -14,9 +14,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from stratumai import LLMClient, ChatRequest, Message, ProviderType
-from stratumai.cost_tracker import CostTracker
-from stratumai.config import MODEL_CATALOG
+from stratifyai import LLMClient, ChatRequest, Message, ProviderType
+from stratifyai.cost_tracker import CostTracker
+from stratifyai.config import MODEL_CATALOG
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="StratumAI API",
+    title="StratifyAI API",
     description="Unified API for multiple LLM providers",
     version="0.1.0",
 )
@@ -90,7 +90,7 @@ async def root():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {
-        "name": "StratumAI API",
+        "name": "StratifyAI API",
         "version": "0.1.0",
         "message": "Frontend not found. API endpoints available at /docs"
     }

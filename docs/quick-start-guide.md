@@ -1,15 +1,15 @@
-# StratumAI Quick Start Guide
+# StratifyAI Quick Start Guide
 
 **For Non-Technical Users**
 
-This guide shows you how to use StratumAI without needing to know command-line flags or technical details.
+This guide shows you how to use StratifyAI without needing to know command-line flags or technical details.
 
 ## Starting a Chat Session
 
 Simply run the chat command without any arguments:
 
 ```bash
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 ```
 
 You'll be guided through a series of simple prompts:
@@ -130,13 +130,13 @@ What would you like to do?:
 For ongoing conversations with multiple questions:
 
 ```bash
-python -m cli.stratumai_cli interactive
+python -m cli.stratifyai_cli interactive
 ```
 
 You'll go through the same steps 1-4 above, then enter an interactive chat mode:
 
 ```
-StratumAI Interactive Mode
+StratifyAI Interactive Mode
 Provider: openai | Model: gpt-4o-mini | Context: 128,000 tokens
 Commands: /file <path> | /attach <path> | /clear | exit
 
@@ -174,7 +174,7 @@ You: exit
 
 ## New: RAG (Semantic Search) Features ✨
 
-StratumAI now supports indexing documents into a vector database for semantic search and retrieval-augmented generation (RAG).
+StratifyAI now supports indexing documents into a vector database for semantic search and retrieval-augmented generation (RAG).
 
 ### What is RAG?
 Instead of sending entire files to the AI (which costs tokens), RAG:
@@ -186,7 +186,7 @@ Instead of sending entire files to the AI (which costs tokens), RAG:
 ### Using RAG with Python
 
 ```python
-from stratumai import RAGClient
+from stratifyai import RAGClient
 
 # Initialize RAG
 rag = RAGClient()
@@ -223,7 +223,7 @@ print(f"Sources: {response.sources}")
 ### 1. Ask a Quick Question
 
 ```bash
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 ```
 
 1. Choose provider: `1` (OpenAI)
@@ -236,7 +236,7 @@ python -m cli.stratumai_cli chat
 ### 2. Analyze a Document
 
 ```bash
-python -m cli.stratumai_cli chat
+python -m cli.stratifyai_cli chat
 ```
 
 1. Choose provider: `2` (Anthropic)
@@ -248,7 +248,7 @@ python -m cli.stratumai_cli chat
 ### 3. Review Code
 
 ```bash
-python -m cli.stratumai_cli interactive
+python -m cli.stratifyai_cli interactive
 ```
 
 1. Choose provider: `2` (Anthropic)
@@ -263,7 +263,7 @@ python -m cli.stratumai_cli interactive
 ### 4. Multi-Document Analysis
 
 ```bash
-python -m cli.stratumai_cli interactive
+python -m cli.stratifyai_cli interactive
 ```
 
 1. Set up your provider and model
@@ -280,7 +280,7 @@ python -m cli.stratumai_cli interactive
 For very large document sets, use the Python API with RAG:
 
 ```python
-from stratumai import RAGClient
+from stratifyai import RAGClient
 
 # Initialize
 rag = RAGClient()
@@ -310,7 +310,7 @@ This approach:
 
 ## Don't Worry About Mistakes!
 
-StratumAI is designed to be forgiving. If you make a mistake:
+StratifyAI is designed to be forgiving. If you make a mistake:
 
 - **You get 3 tries**: The system gives you up to 3 attempts to enter valid input
 - **Helpful messages**: Clear explanations of what went wrong and how to fix it
@@ -365,7 +365,7 @@ Select model: 2
 
 ### "Cannot read file (not a text file)"
 - The file is binary (image, PDF, executable)
-- StratumAI only supports text files
+- StratifyAI only supports text files
 - Convert PDF to text first if needed
 
 ### Cost is too high
@@ -376,7 +376,7 @@ Select model: 2
 ## Need Help?
 
 - Read the full documentation: `docs/file-attachments.md`
-- Check available commands: `python -m cli.stratumai_cli --help`
-- For interactive mode: `python -m cli.stratumai_cli interactive --help`
+- Check available commands: `python -m cli.stratifyai_cli --help`
+- For interactive mode: `python -m cli.stratifyai_cli interactive --help`
 - RAG examples: See `examples/rag_example.py` for complete demonstrations
 - API Reference: `docs/API-REFERENCE.md`

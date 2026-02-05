@@ -1,6 +1,6 @@
-# StratumAI API Server
+# StratifyAI API Server
 
-FastAPI-based REST API and Web GUI for StratumAI multi-provider LLM abstraction.
+FastAPI-based REST API and Web GUI for StratifyAI multi-provider LLM abstraction.
 
 ## Features
 
@@ -243,7 +243,7 @@ lsof -ti:8000 | xargs kill -9  # Kill process on port 8000
 Make sure you're in the project root and the virtual environment is activated:
 
 ```bash
-cd /path/to/stratumai
+cd /path/to/stratifyai
 source .venv/bin/activate
 python -m uvicorn api.main:app
 ```

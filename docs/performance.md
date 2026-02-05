@@ -1,6 +1,6 @@
-# StratumAI Performance Report
+# StratifyAI Performance Report
 
-Performance analysis, benchmarks, and optimization guide for StratumAI.
+Performance analysis, benchmarks, and optimization guide for StratifyAI.
 
 **Last Updated:** February 1, 2026  
 **Version:** 1.0.0
@@ -20,7 +20,7 @@ Performance analysis, benchmarks, and optimization guide for StratumAI.
 
 ## Executive Summary
 
-StratumAI meets all production performance targets:
+StratifyAI meets all production performance targets:
 
 ✅ **Cold Start:** <1000ms (actual: ~100-200ms)  
 ✅ **Response Time (P95):** <2000ms (actual: varies by provider, typically 500-1500ms)  
@@ -82,7 +82,7 @@ Min                | 651ms
 Max                | 754ms
 ```
 
-**Note:** Latency is dominated by API call time (~650ms). StratumAI overhead is <5ms.
+**Note:** Latency is dominated by API call time (~650ms). StratifyAI overhead is <5ms.
 
 ### Router Overhead
 
@@ -265,7 +265,7 @@ def generate_cache_key(model: str, messages: List[Message], **kwargs) -> str:
 ### 1. Use Caching Aggressively
 
 ```python
-from stratumai.caching import cache_response
+from stratifyai.caching import cache_response
 
 @cache_response(ttl=3600)  # Cache for 1 hour
 def ask_llm(question: str) -> str:
@@ -298,7 +298,7 @@ for chunk in client.chat_stream(model="gpt-4o-mini", messages=[...]):
 ### 3. Use Router for Cost Optimization
 
 ```python
-from stratumai import Router, RoutingStrategy
+from stratifyai import Router, RoutingStrategy
 
 router = Router(client, default_strategy=RoutingStrategy.COST)
 
@@ -341,7 +341,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
 ### 5. Use Prompt Caching for Long Contexts
 
 ```python
-from stratumai.models import Message
+from stratifyai.models import Message
 
 long_document = "..." * 50000  # 50K tokens
 
@@ -469,7 +469,7 @@ stats.print_stats(20)  # Show top 20 functions
 ### Example Monitoring Code
 
 ```python
-from stratumai import LLMClient, CostTracker
+from stratifyai import LLMClient, CostTracker
 import time
 
 client = LLMClient()
@@ -509,7 +509,7 @@ print(f"Total cost: ${summary['total_cost']:.4f}")
 
 ## Optimization Checklist
 
-Use this checklist to optimize your StratumAI application:
+Use this checklist to optimize your StratifyAI application:
 
 - [ ] Enable response caching for repeated queries
 - [ ] Use prompt caching for long context documents
@@ -539,7 +539,7 @@ Potential future optimizations:
 
 ## Conclusion
 
-StratumAI is designed for production use with minimal overhead:
+StratifyAI is designed for production use with minimal overhead:
 
 - **Fast**: <1ms routing overhead, <0.1ms cache hits
 - **Efficient**: <20MB memory for typical workload

@@ -1,18 +1,20 @@
-![StratumAI](stratum_logo.png)
+![StratifyAI](stratum_logo.png)
 
-# **StratumAI — Unified Intelligence Across Every Model Layer**
+# **StratifyAI — Unified Intelligence Across Every Model Layer**
+
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-300%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
 **Status:** Phase 7.8 Complete  
 **Providers:** 9 Fully Integrated  
 **Capabilities:** Routing • RAG • Caching • Streaming • CLI • Web UI • Builder Pattern • Async-First
 
-StratumAI is a production‑ready Python framework that unifies access to frontier LLM providers through a single, consistent API. It eliminates vendor lock‑in, simplifies multi‑model development, and provides intelligent routing, cost tracking, caching, streaming, and RAG capabilities for enterprise‑grade AI systems.
+StratifyAI is a production‑ready Python framework that unifies access to frontier LLM providers through a single, consistent API. It eliminates vendor lock‑in, simplifies multi‑model development, and provides intelligent routing, cost tracking, caching, streaming, and RAG capabilities for enterprise‑grade AI systems.
 
 ---
 
-# **1. Why StratumAI Matters**
+# **1. Why StratifyAI Matters**
 
-Modern AI applications require flexibility across providers, models, and capabilities. StratumAI provides:
+Modern AI applications require flexibility across providers, models, and capabilities. StratifyAI provides:
 
 - A **single interface** for 9+ LLM providers  
 - **Automatic routing** to the best model for each task  
@@ -20,7 +22,7 @@ Modern AI applications require flexibility across providers, models, and capabil
 - **Resilience** through retries and fallback chains  
 - **Advanced workflows** including RAG, extraction, and large‑file handling  
 
-StratumAI is designed for teams that need reliability, performance, and multi‑provider optionality without rewriting code.
+StratifyAI is designed for teams that need reliability, performance, and multi‑provider optionality without rewriting code.
 
 ---
 
@@ -48,7 +50,7 @@ StratumAI is designed for teams that need reliability, performance, and multi‑
 
 # **3. Platform Overview**
 
-StratumAI is a multi‑provider LLM abstraction layer that allows developers to switch between AI models without changing their code. It provides:
+StratifyAI is a multi‑provider LLM abstraction layer that allows developers to switch between AI models without changing their code. It provides:
 
 - Unified interface  
 - Intelligent routing  
@@ -97,7 +99,30 @@ StratumAI is a multi‑provider LLM abstraction layer that allows developers to 
 
 # **5. Architecture Overview**
 
+```mermaid
+flowchart LR
+
+    A[User / Client Code] --> B[LLMClient]
+
+    B --> C[Router]
+    B --> D[Cost Tracker]
+    B --> E[Response Cache]
+
+    C --> F[Provider Implementations]
+    F --> G[LLM APIs]
+
+    G --> D
+    G --> E
+
+    D --> H[Budget Enforcement]
+    E --> I[Cached / Fresh Response]
+
+    H --> J[Final Response]
+    I --> J
+```
+
 ## **5.1 Design Principles**
+
 - Abstraction first  
 - Strategy pattern for providers  
 - Configuration‑driven model catalogs  
@@ -129,7 +154,6 @@ StratumAI is a multi‑provider LLM abstraction layer that allows developers to 
         F --> G[Budget Enforcement]
 
         G --> H[Return Response]
-
 ```
 
 ---
@@ -150,8 +174,8 @@ StratumAI is a multi‑provider LLM abstraction layer that allows developers to 
 ## **7.1 Installation**
 
 ```bash
-git clone https://github.com/Bytes0211/stratumai.git
-cd stratumai
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
 pip install -e .
 ```
 
@@ -171,32 +195,32 @@ cp .env.example .env
 Check configuration:
 
 ```bash
-stratumai check-keys
+stratifyai check-keys
 ```
 
 ## **7.3 First Chat**
 
 ```bash
-stratumai chat -p openai -m gpt-4o-mini -t "Hello!"
+stratifyai chat -p openai -m gpt-4o-mini -t "Hello!"
 ```
 
 ## **7.4 Python Example (LLMClient)**
 
 ```python
-from stratumai import LLMClient
-from stratumai.models import Message, ChatRequest
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest, ChatResponse
 
-client = LLMClient()
-request = ChatRequest(
+client: LLMClient = LLMClient()
+request: ChatRequest = ChatRequest(
     model="gpt-4o-mini",
     messages=[Message(role="user", content="Explain quantum computing")]
 )
 
 # Async (recommended)
-response = await client.chat_completion(request)
+response: ChatResponse = await client.chat_completion(request)
 
 # Sync wrapper for scripts/CLI
-response = client.chat_completion_sync(request)
+response: ChatResponse = client.chat_completion_sync(request)
 
 print(response.content)
 print(f"Cost: ${response.usage.cost_usd:.6f}")
@@ -206,14 +230,15 @@ print(f"Latency: {response.latency_ms:.0f}ms")
 ## **7.5 Chat Package (Simplified)**
 
 ```python
-from stratumai.chat import anthropic, openai
+from stratifyai.chat import anthropic, openai
+from stratifyai.models import ChatResponse
 
 # Quick usage - model is always required
-response = await anthropic.chat("Hello!", model="claude-sonnet-4-5")
+response: ChatResponse = await anthropic.chat("Hello!", model="claude-sonnet-4-5")
 print(response.content)
 
 # With options
-response = await openai.chat(
+response: ChatResponse = await openai.chat(
     "Explain quantum computing",
     model="gpt-4o-mini",
     system="Be concise",
@@ -224,10 +249,12 @@ response = await openai.chat(
 ## **7.6 Builder Pattern (Fluent Configuration)**
 
 ```python
-from stratumai.chat import anthropic
+from stratifyai.chat import anthropic
+from stratifyai.chat.builder import ChatBuilder
+from stratifyai.models import ChatResponse
 
 # Configure once, use multiple times
-client = (
+client: ChatBuilder = (
     anthropic
     .with_model("claude-sonnet-4-5")
     .with_system("You are a helpful assistant")
@@ -235,8 +262,8 @@ client = (
 )
 
 # All subsequent calls use the configured settings
-response = await client.chat("Hello!")
-response = await client.chat("Tell me more")
+response: ChatResponse = await client.chat("Hello!")
+response: ChatResponse = await client.chat("Tell me more")
 
 # Stream with builder
 async for chunk in client.chat_stream("Write a story"):
@@ -272,7 +299,7 @@ async for chunk in client.chat_stream("Write a story"):
 # **10. Project Structure**
 
 ```
-stratumai/
+stratifyai/
 ├── llm_abstraction/      # Core package
 │   ├── providers/        # Provider implementations (9 providers)
 │   ├── router.py         # Intelligent routing
@@ -280,7 +307,7 @@ stratumai/
 │   └── utils/            # Utilities (token counting, extraction)
 ├── chat/                 # Simplified chat modules
 │   ├── builder.py        # ChatBuilder class for fluent configuration
-│   └── stratumai_*.py    # Provider-specific modules (model required)
+│   └── stratifyai_*.py    # Provider-specific modules (model required)
 ├── cli/                  # Typer CLI
 ├── api/                  # Optional FastAPI server
 ├── examples/             # Usage examples
@@ -304,6 +331,7 @@ pytest -v
 **Progress:** Phases 1–7.8 Complete  
 
 ### Completed Phases
+
 - **Phase 1-6:** Core implementation, providers, CLI, routing, caching
 - **Phase 7.1:** Large file handling with token estimation & chunking
 - **Phase 7.2:** Intelligent extraction (CSV, JSON, logs, code)
@@ -320,7 +348,33 @@ A detailed breakdown of all phases is included in the full README and project do
 
 ---
 
-# **13. License**
+### Commit Messages
+
+- Use clear, descriptive commit messages. Examples:
+- feat(router): add hybrid routing strategy
+- fix(caching): handle missing cache keys safely
+- docs(readme): update quick start section
+
+---
+
+### **13.`CONTRIBUTING.md**`
+
+#### Contributing to StratifyAI
+
+Thanks for your interest in StratifyAI. This project is structured as a production‑grade Python library, and contributions should follow the guidelines below.
+
+#### Development Setup
+
+1. **Clone the repository**
+
+```bash
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
+```
+
+---
+
+## 14. License
 
 Internal project — All rights reserved.
 

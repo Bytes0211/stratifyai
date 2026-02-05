@@ -1,6 +1,6 @@
 # Frontend Integration Guide
 
-Integrate StratumAI streaming with any frontend framework using Server-Sent Events (SSE) or WebSockets.
+Integrate StratifyAI streaming with any frontend framework using Server-Sent Events (SSE) or WebSockets.
 
 **Last Updated:** February 4, 2026
 
@@ -21,10 +21,10 @@ Integrate StratumAI streaming with any frontend framework using Server-Sent Even
 
 ## Overview
 
-StratumAI provides streaming responses via Python generators. To expose this to web frontends, you need a thin HTTP layer that converts these generators into SSE or WebSocket streams.
+StratifyAI provides streaming responses via Python generators. To expose this to web frontends, you need a thin HTTP layer that converts these generators into SSE or WebSocket streams.
 
 **Key Principles:**
-- StratumAI stays framework-agnostic — no frontend dependencies
+- StratifyAI stays framework-agnostic — no frontend dependencies
 - Standard SSE/WebSocket protocols work with any frontend
 - Consistent event format across all providers
 
@@ -34,7 +34,7 @@ StratumAI provides streaming responses via Python generators. To expose this to 
 
 ```
 ┌─────────────────┐     SSE/WS      ┌─────────────────┐     Generator    ┌─────────────────┐
-│  Frontend       │ ◄─────────────► │  HTTP Server    │ ◄──────────────► │  StratumAI      │
+│  Frontend       │ ◄─────────────► │  HTTP Server    │ ◄──────────────► │  StratifyAI      │
 │  (React/Vue/    │                 │  (FastAPI/      │                  │  LLMClient      │
 │   vanilla JS)   │                 │   Flask/etc)    │                  │                 │
 └─────────────────┘                 └─────────────────┘                  └─────────────────┘
@@ -55,8 +55,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 
-from stratumai import LLMClient
-from stratumai.models import Message
+from stratifyai import LLMClient
+from stratifyai.models import Message
 
 app = FastAPI()
 
@@ -153,8 +153,8 @@ async def chat(request: ChatRequest):
 from flask import Flask, request, Response
 import json
 
-from stratumai import LLMClient
-from stratumai.models import Message
+from stratifyai import LLMClient
+from stratifyai.models import Message
 
 app = Flask(__name__)
 client = LLMClient()
@@ -196,8 +196,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 import asyncio
 
-from stratumai import LLMClient
-from stratumai.models import Message
+from stratifyai import LLMClient
+from stratifyai.models import Message
 
 app = FastAPI()
 client = LLMClient()
@@ -482,7 +482,7 @@ For long-running operations, emit progress updates:
 ### Server-Side
 
 ```python
-from stratumai.exceptions import (
+from stratifyai.exceptions import (
     RateLimitError,
     AuthenticationError,
     InvalidModelError,

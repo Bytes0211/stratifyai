@@ -1,6 +1,6 @@
-# StratumAI API Reference
+# StratifyAI API Reference
 
-Complete API documentation for StratumAI multi-provider LLM abstraction module.
+Complete API documentation for StratifyAI multi-provider LLM abstraction module.
 
 **Version:** 1.0.0  
 **Last Updated:** February 1, 2026
@@ -28,7 +28,7 @@ Complete API documentation for StratumAI multi-provider LLM abstraction module.
 ```bash
 # Clone repository
 git clone <repo-url>
-cd stratumai
+cd stratifyai
 
 # Install dependencies
 python3 -m venv .venv
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from stratumai import LLMClient
+from stratifyai import LLMClient
 
 # Initialize client
 client = LLMClient()
@@ -215,7 +215,7 @@ class Message:
 
 **Example:**
 ```python
-from stratumai.models import Message
+from stratifyai.models import Message
 
 msg = Message(
     role="user",
@@ -352,7 +352,7 @@ response = client.chat(
 
 **Prompt Caching:**
 ```python
-from stratumai.models import Message
+from stratifyai.models import Message
 
 # Explicit cache control
 messages = [
@@ -443,7 +443,7 @@ route(
 
 **Example:**
 ```python
-from stratumai import Router, RoutingStrategy
+from stratifyai import Router, RoutingStrategy
 
 router = Router(client, default_strategy=RoutingStrategy.HYBRID)
 
@@ -455,7 +455,7 @@ response = router.route(
 print(f"Selected model: {response.model}")
 
 # With constraints
-from stratumai.router import RoutingConstraints
+from stratifyai.router import RoutingConstraints
 
 response = router.route(
     messages=[{"role": "user", "content": "Complex analysis task"}],
@@ -540,7 +540,7 @@ record_call(
 
 **Example:**
 ```python
-from stratumai import CostTracker
+from stratifyai import CostTracker
 
 tracker = CostTracker(budget_limit=10.0)
 
@@ -611,7 +611,7 @@ ResponseCache(
 #### Usage
 
 ```python
-from stratumai.caching import ResponseCache
+from stratifyai.caching import ResponseCache
 
 cache = ResponseCache(max_size=500, ttl=1800)
 
@@ -634,7 +634,7 @@ else:
 ### Decorator Usage
 
 ```python
-from stratumai.caching import cache_response
+from stratifyai.caching import cache_response
 
 @cache_response(ttl=1800)
 def ask_llm(question: str) -> str:
@@ -668,7 +668,7 @@ Provider-level prompt caching for repeated long contexts.
 **Example:**
 ```python
 # Anthropic explicit caching
-from stratumai.models import Message
+from stratifyai.models import Message
 
 long_doc = "..." * 10000  # Large document
 
@@ -721,7 +721,7 @@ LLMException (base)
 ### Usage
 
 ```python
-from stratumai.exceptions import (
+from stratifyai.exceptions import (
     RateLimitException,
     BudgetExceededException,
     ModelNotFoundError
@@ -742,7 +742,7 @@ except BudgetExceededException as e:
 Automatic retry with exponential backoff.
 
 ```python
-from stratumai.retry import with_retry, RetryConfig
+from stratifyai.retry import with_retry, RetryConfig
 
 config = RetryConfig(
     max_retries=3,
@@ -779,7 +779,7 @@ pip install typer[all]
 Send a chat message.
 
 ```bash
-python -m cli.stratumai_cli chat [OPTIONS] [TEXT]
+python -m cli.stratifyai_cli chat [OPTIONS] [TEXT]
 
 Options:
   -p, --provider TEXT      Provider name
@@ -793,16 +793,16 @@ Options:
 **Examples:**
 ```bash
 # Simple chat
-python -m cli.stratumai_cli chat "Hello" -p openai -m gpt-4o-mini
+python -m cli.stratifyai_cli chat "Hello" -p openai -m gpt-4o-mini
 
 # Streaming
-python -m cli.stratumai_cli chat "Write a poem" -p anthropic -m claude-sonnet-4-5-20250929 -s
+python -m cli.stratifyai_cli chat "Write a poem" -p anthropic -m claude-sonnet-4-5-20250929 -s
 
 # From file
-python -m cli.stratumai_cli chat --file document.txt -p openai -m gpt-4o-mini
+python -m cli.stratifyai_cli chat --file document.txt -p openai -m gpt-4o-mini
 
 # With prompt caching
-python -m cli.stratumai_cli chat "Summarize" --file large_doc.txt --cache-control
+python -m cli.stratifyai_cli chat "Summarize" --file large_doc.txt --cache-control
 ```
 
 #### `interactive`
@@ -810,7 +810,7 @@ python -m cli.stratumai_cli chat "Summarize" --file large_doc.txt --cache-contro
 Interactive chat mode with conversation history.
 
 ```bash
-python -m cli.stratumai_cli interactive [OPTIONS]
+python -m cli.stratifyai_cli interactive [OPTIONS]
 
 Options:
   -p, --provider TEXT  Provider name
@@ -819,7 +819,7 @@ Options:
 
 **Example:**
 ```bash
-python -m cli.stratumai_cli interactive -p anthropic -m claude-sonnet-4-5-20250929
+python -m cli.stratifyai_cli interactive -p anthropic -m claude-sonnet-4-5-20250929
 ```
 
 #### `models`
@@ -827,7 +827,7 @@ python -m cli.stratumai_cli interactive -p anthropic -m claude-sonnet-4-5-202509
 List available models.
 
 ```bash
-python -m cli.stratumai_cli models [OPTIONS]
+python -m cli.stratifyai_cli models [OPTIONS]
 
 Options:
   -p, --provider TEXT  Filter by provider
@@ -836,10 +836,10 @@ Options:
 **Example:**
 ```bash
 # All models
-python -m cli.stratumai_cli models
+python -m cli.stratifyai_cli models
 
 # OpenAI models only
-python -m cli.stratumai_cli models -p openai
+python -m cli.stratifyai_cli models -p openai
 ```
 
 #### `providers`
@@ -847,7 +847,7 @@ python -m cli.stratumai_cli models -p openai
 List all providers.
 
 ```bash
-python -m cli.stratumai_cli providers
+python -m cli.stratifyai_cli providers
 ```
 
 #### `route`
@@ -855,7 +855,7 @@ python -m cli.stratumai_cli providers
 Auto-select best model via router.
 
 ```bash
-python -m cli.stratumai_cli route [OPTIONS] TEXT
+python -m cli.stratifyai_cli route [OPTIONS] TEXT
 
 Options:
   --strategy [cost|quality|latency|hybrid]  Routing strategy
@@ -864,10 +864,10 @@ Options:
 **Example:**
 ```bash
 # Cost-optimized
-python -m cli.stratumai_cli route "What is 2+2?" --strategy cost
+python -m cli.stratifyai_cli route "What is 2+2?" --strategy cost
 
 # Quality-optimized for complex task
-python -m cli.stratumai_cli route "Prove Fermat's Last Theorem" --strategy quality
+python -m cli.stratifyai_cli route "Prove Fermat's Last Theorem" --strategy quality
 ```
 
 #### `cache-stats`
@@ -875,7 +875,7 @@ python -m cli.stratumai_cli route "Prove Fermat's Last Theorem" --strategy quali
 Display cache statistics.
 
 ```bash
-python -m cli.stratumai_cli cache-stats
+python -m cli.stratifyai_cli cache-stats
 ```
 
 ### Environment Variables
@@ -886,7 +886,7 @@ export STRATUMAI_PROVIDER=anthropic
 export STRATUMAI_MODEL=claude-sonnet-4-5-20250929
 
 # Now you can omit --provider and --model
-python -m cli.stratumai_cli chat "Hello"
+python -m cli.stratifyai_cli chat "Hello"
 ```
 
 See [cli-usage.md](cli-usage.md) for complete CLI documentation.
@@ -898,8 +898,8 @@ See [cli-usage.md](cli-usage.md) for complete CLI documentation.
 ### Multi-Provider Fallback
 
 ```python
-from stratumai import LLMClient
-from stratumai.retry import with_retry, RetryConfig
+from stratifyai import LLMClient
+from stratifyai.retry import with_retry, RetryConfig
 
 client = LLMClient()
 
@@ -920,8 +920,8 @@ print(f"Model used: {response.model}")
 ### Budget-Aware Routing
 
 ```python
-from stratumai import Router, CostTracker
-from stratumai.router import RoutingStrategy, RoutingConstraints
+from stratifyai import Router, CostTracker
+from stratifyai.router import RoutingStrategy, RoutingConstraints
 
 tracker = CostTracker(budget_limit=5.0)
 router = Router(client)
@@ -944,7 +944,7 @@ print(f"Budget remaining: ${remaining:.2f}")
 ### Streaming with Cost Tracking
 
 ```python
-from stratumai import LLMClient, CostTracker
+from stratifyai import LLMClient, CostTracker
 
 client = LLMClient()
 tracker = CostTracker()
@@ -1012,7 +1012,7 @@ tracker.record_call(final_chunk.model, final_chunk.provider, final_chunk.usage)
 
 ## API Version Compatibility
 
-| StratumAI Version | OpenAI SDK | Anthropic SDK | Google SDK |
+| StratifyAI Version | OpenAI SDK | Anthropic SDK | Google SDK |
 |-------------------|------------|---------------|------------|
 | 1.0.0 | >=1.12.0 | >=0.18.0 | >=0.3.0 |
 

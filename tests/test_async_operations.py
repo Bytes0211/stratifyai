@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from stratumai.caching import ResponseCache, cache_response
-from stratumai.client import LLMClient
-from stratumai.models import ChatRequest, ChatResponse, Message, Usage
+from stratifyai.caching import ResponseCache, cache_response
+from stratifyai.client import LLMClient
+from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 
 def create_mock_response(content: str = "Hello!", model: str = "gpt-4.1-mini") -> dict:
@@ -48,7 +48,7 @@ def create_chat_response(
 class TestAsyncChatCompletion:
     """Tests for LLMClient.chat async method."""
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_chat_async_completion(self, mock_openai):
         """Verify that LLMClient.chat correctly performs an asynchronous chat completion."""
@@ -70,7 +70,7 @@ class TestAsyncChatCompletion:
         assert response.model == "gpt-4.1-mini"
         mock_client.chat.completions.create.assert_awaited_once()
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_chat_async_is_non_blocking(self, mock_openai):
         """Verify that multiple async chat calls can run concurrently."""
@@ -106,7 +106,7 @@ class TestAsyncChatCompletion:
 class TestSyncChatWrapper:
     """Tests for LLMClient.chat_sync synchronous wrapper."""
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     def test_chat_sync_wraps_async(self, mock_openai):
         """Verify that LLMClient.chat_sync correctly performs a synchronous chat completion."""
         mock_client = MagicMock()
@@ -126,7 +126,7 @@ class TestSyncChatWrapper:
         assert response.model == "gpt-4.1-mini"
         mock_client.chat.completions.create.assert_called_once()
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     def test_chat_completion_sync_wraps_async(self, mock_openai):
         """Verify that LLMClient.chat_completion_sync correctly wraps async call."""
         mock_client = MagicMock()
@@ -152,7 +152,7 @@ class TestSyncChatWrapper:
 class TestStreamingAsyncIterator:
     """Tests for LLMClient.chat_completion_stream async iterator."""
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_chat_completion_stream_yields_async_iterator(self, mock_openai):
         """Verify that LLMClient.chat_completion_stream correctly yields an async iterator."""
@@ -202,7 +202,7 @@ class TestStreamingAsyncIterator:
         assert collected_chunks[1].content == " World"
         assert collected_chunks[2].content == "!"
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_streaming_via_chat_method(self, mock_openai):
         """Verify streaming works via the chat() method with stream=True."""
@@ -235,7 +235,7 @@ class TestStreamingAsyncIterator:
 class TestLatencyTracking:
     """Tests for ChatResponse.latency_ms tracking."""
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_latency_ms_populated_after_chat_completion(self, mock_openai):
         """Verify that ChatResponse.latency_ms is accurately populated after async completion."""
@@ -263,7 +263,7 @@ class TestLatencyTracking:
         assert response.latency_ms >= 50  # At least 50ms (our simulated delay)
         assert response.latency_ms < 500  # Sanity check - should not be too long
 
-    @patch("stratumai.providers.openai.AsyncOpenAI")
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
     @pytest.mark.asyncio
     async def test_latency_ms_reflects_actual_execution_time(self, mock_openai):
         """Verify latency_ms accurately reflects the actual execution time."""

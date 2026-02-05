@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from stratumai.exceptions import (
+from stratifyai.exceptions import (
     AuthenticationError,
     InvalidModelError,
     ProviderAPIError,
 )
-from stratumai.models import ChatRequest, Message
-from stratumai.providers.openai import OpenAIProvider
+from stratifyai.models import ChatRequest, Message
+from stratifyai.providers.openai import OpenAIProvider
 
 
 class TestOpenAIProvider:
@@ -20,7 +20,7 @@ class TestOpenAIProvider:
     
     def test_initialization_with_api_key(self):
         """Test provider initialization with explicit API key."""
-        with patch('stratumai.providers.openai.AsyncOpenAI'):
+        with patch('stratifyai.providers.openai.AsyncOpenAI'):
             provider = OpenAIProvider(api_key="test-key")
             assert provider.api_key == "test-key"
             assert provider.provider_name == "openai"
@@ -34,13 +34,13 @@ class TestOpenAIProvider:
     def test_initialization_with_env_var(self):
         """Test provider initialization from environment variable."""
         with patch.dict('os.environ', {'OPENAI_API_KEY': 'env-key'}):
-            with patch('stratumai.providers.openai.AsyncOpenAI'):
+            with patch('stratifyai.providers.openai.AsyncOpenAI'):
                 provider = OpenAIProvider()
                 assert provider.api_key == "env-key"
     
     def test_get_supported_models(self):
         """Test getting list of supported models."""
-        with patch('stratumai.providers.openai.AsyncOpenAI'):
+        with patch('stratifyai.providers.openai.AsyncOpenAI'):
             provider = OpenAIProvider(api_key="test-key")
             models = provider.get_supported_models()
             assert isinstance(models, list)
@@ -50,7 +50,7 @@ class TestOpenAIProvider:
     
     def test_validate_model(self):
         """Test model validation."""
-        with patch('stratumai.providers.openai.AsyncOpenAI'):
+        with patch('stratifyai.providers.openai.AsyncOpenAI'):
             provider = OpenAIProvider(api_key="test-key")
             assert provider.validate_model("gpt-4.1-mini") is True
             assert provider.validate_model("invalid-model") is False
@@ -58,7 +58,7 @@ class TestOpenAIProvider:
     @pytest.mark.asyncio
     async def test_chat_completion_invalid_model(self):
         """Test chat completion with invalid model raises error."""
-        with patch('stratumai.providers.openai.AsyncOpenAI'):
+        with patch('stratifyai.providers.openai.AsyncOpenAI'):
             provider = OpenAIProvider(api_key="test-key")
             request = ChatRequest(
                 model="invalid-model",
@@ -67,7 +67,7 @@ class TestOpenAIProvider:
             with pytest.raises(InvalidModelError):
                 await provider.chat_completion(request)
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_chat_completion_success(self, mock_openai_class):
         """Test successful chat completion."""
@@ -114,7 +114,7 @@ class TestOpenAIProvider:
         assert response.usage.total_tokens == 30
         assert response.provider == "openai"
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_cost_calculation(self, mock_openai_class):
         """Test cost calculation for requests."""
@@ -154,7 +154,7 @@ class TestOpenAIProvider:
         expected_cost = (1000 / 1_000_000 * 0.15) + (2000 / 1_000_000 * 0.60)
         assert abs(response.usage.cost_usd - expected_cost) < 0.00001
     
-    @patch('stratumai.providers.openai.AsyncOpenAI')
+    @patch('stratifyai.providers.openai.AsyncOpenAI')
     @pytest.mark.asyncio
     async def test_chat_completion_with_options(self, mock_openai_class):
         """Test chat completion with additional options."""

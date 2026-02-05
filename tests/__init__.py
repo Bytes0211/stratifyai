@@ -1,1 +1,1 @@
-"""Test suite for StratumAI."""
+"""Test suite for StratifyAI."""

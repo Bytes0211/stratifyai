@@ -3,16 +3,16 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "stratumai"
+name = "stratifyai"
 version = "0.1.0"
 description = "Unified multi-provider LLM abstraction module with intelligent routing, cost tracking, and caching"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "Scott Jones", email = "scotton@example.com"}
+    {name = "Steven Cotton", email = "cototnbytes@gmail.com"}
 ]
 maintainers = [
-    {name = "Scott Jones", email = "scotton@example.com"}
+    {name = "Steven Cotton", email = "cototnbytes@gmail.com"}
 ]
 license = {text = "MIT"}
 keywords = [
@@ -68,7 +68,7 @@ dev = [
     "mypy>=1.0.0",
 ]
 cli = [
-    "typer[all]>=0.9.0",
+    "typer>=0.9.0",
     "rich>=13.0.0",
 ]
 web = [
@@ -80,23 +80,23 @@ rag = [
     "chromadb>=0.5.0",
 ]
 all = [
-    "stratumai[dev,cli,web,rag]",
+    "stratifyai[dev,cli,web,rag]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/Bytes0211/stratumai"
-Repository = "https://github.com/Bytes0211/stratumai"
-Documentation = "https://github.com/Bytes0211/stratumai#readme"
-"Bug Tracker" = "https://github.com/Bytes0211/stratumai/issues"
+Homepage = "https://github.com/Bytes0211/stratifyai"
+Repository = "https://github.com/Bytes0211/stratifyai"
+Documentation = "https://github.com/Bytes0211/stratifyai#readme"
+"Bug Tracker" = "https://github.com/Bytes0211/stratifyai/issues"
 
 [project.scripts]
-stratumai = "cli.stratumai_cli:main"
+stratifyai = "cli.stratifyai_cli:main"
 
 [tool.setuptools]
-packages = ["stratumai", "stratumai.chat", "stratumai.providers", "stratumai.utils", "cli"]
+packages = ["stratifyai", "stratifyai.chat", "stratifyai.providers", "stratifyai.utils", "cli"]
 
 [tool.setuptools.package-data]
-stratumai = ["py.typed"]
+stratifyai = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
