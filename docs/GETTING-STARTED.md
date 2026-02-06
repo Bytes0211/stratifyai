@@ -2,16 +2,16 @@
 
 A step-by-step guide to using StratifyAI, the unified multi-provider LLM abstraction module.
 
-**Last Updated:** February 1, 2026
+**Last Updated:** February 6, 2026
 
 ---
 
 ## What is StratifyAI?
 
-StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama) through a single, consistent API. Switch models without changing your code, track costs automatically, and leverage intelligent routing to select the best model for each task.
+StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, AWS Bedrock) through a single, consistent API. Switch models without changing your code, track costs automatically, and leverage intelligent routing to select the best model for each task.
 
 **Key Benefits:**
-- 🔄 **No Vendor Lock-In**: Switch between 8+ providers seamlessly
+- 🔄 **No Vendor Lock-In**: Switch between 9 providers seamlessly
 - 💰 **Cost Tracking**: Automatic token usage and cost calculation
 - 🧠 **Smart Routing**: Select optimal models based on complexity
 - ⚡ **Production Ready**: Retry logic, caching, error handling
@@ -45,7 +45,7 @@ StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, G
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/Bytes0211/stratifyai.git
 cd stratifyai
 
 # Create virtual environment
@@ -58,23 +58,292 @@ pip install -r requirements.txt
 
 ### Configure API Keys
 
-Create a `.env` file in the project root:
+**Requirements:** At least ONE provider API key is required to use StratifyAI. You only need keys for the providers you plan to use.
+
+#### Step 1: Copy the Example Environment File
+
+StratifyAI includes a template `.env.example` file with all supported providers:
 
 ```bash
-# Required: At least one provider key
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=...
-
-# Optional: Additional providers
-DEEPSEEK_API_KEY=...
-GROQ_API_KEY=...
-XAI_API_KEY=...
-OPENROUTER_API_KEY=...
-OLLAMA_BASE_URL=http://localhost:11434
+# Copy the example file to create your .env
+cp .env.example .env
 ```
 
-**Security Note:** Never commit `.env` files to version control!
+#### Step 2: Get API Keys from Providers
+
+Choose one or more providers and obtain API keys:
+
+##### Primary Providers (Most Popular)
+
+**OpenAI** (GPT-4, GPT-4o, o1, o3-mini)
+- **Get your key:** https://platform.openai.com/api-keys
+- **Steps:**
+  1. Sign up or log in to OpenAI Platform
+  2. Navigate to API Keys section
+  3. Click "Create new secret key"
+  4. Copy the key (starts with `sk-proj-` or `sk-`)
+- **Add to .env:** `OPENAI_API_KEY=sk-proj-your-key-here`
+
+**Anthropic** (Claude 3.5, Claude 4, Claude 4.5)
+- **Get your key:** https://console.anthropic.com/settings/keys
+- **Steps:**
+  1. Sign up or log in to Anthropic Console
+  2. Go to Settings → API Keys
+  3. Click "Create Key"
+  4. Copy the key (starts with `sk-ant-`)
+- **Add to .env:** `ANTHROPIC_API_KEY=sk-ant-your-key-here`
+
+**Google Gemini** (Gemini 1.5, Gemini 2.0, Gemini 2.5)
+- **Get your key:** https://makersuite.google.com/app/apikey
+- **Steps:**
+  1. Sign in with Google account
+  2. Click "Get API Key" or "Create API Key"
+  3. Copy the key (starts with `AIza`)
+- **Add to .env:** `GOOGLE_API_KEY=AIzaYour-Key-Here`
+
+##### AWS Bedrock (Claude, Llama, Mistral, Nova via AWS)
+
+**Option 1: Bearer Token** (Simplest)
+- **Get credentials:** https://docs.aws.amazon.com/bedrock/
+- **Add to .env:** `AWS_BEARER_TOKEN_BEDROCK=your-bearer-token`
+
+**Option 2: Access Key + Secret Key**
+```bash
+# Add both to .env
+AWS_ACCESS_KEY_ID=your-access-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-access-key
+AWS_DEFAULT_REGION=us-east-1  # Optional, defaults to us-east-1
+```
+
+**Option 3: IAM Roles** (When running on AWS infrastructure)
+- No explicit credentials needed
+- boto3 automatically uses the instance's IAM role
+
+**Option 4: AWS Credentials File**
+```bash
+# Configure AWS CLI (creates ~/.aws/credentials)
+aws configure
+```
+
+##### Alternative Providers (Optional)
+
+**DeepSeek** (deepseek-chat, deepseek-reasoner, deepseek-r1)
+- **Get your key:** https://platform.deepseek.com/api-docs/
+- **Add to .env:** `DEEPSEEK_API_KEY=sk-your-key-here`
+
+**Groq** (Fast inference for Llama, Mixtral, Gemma)
+- **Get your key:** https://console.groq.com/keys
+- **Add to .env:** `GROQ_API_KEY=gsk_your-key-here`
+
+**Grok (X.AI)** (grok-beta)
+- **Get your key:** https://x.ai/api
+- **Steps:**
+  1. Visit X.AI API console
+  2. Sign up or log in with X/Twitter account
+  3. Generate API key
+  4. Copy the key (starts with `xai-`)
+- **Add to .env:** `GROK_API_KEY=xai-your-key-here`
+
+**OpenRouter** (Access 100+ models through one API)
+- **Get your key:** https://openrouter.ai/keys
+- **Add to .env:** `OPENROUTER_API_KEY=sk-or-v1-your-key-here`
+
+**Ollama** (Local models - no API key needed)
+- **Install:** https://ollama.ai/download
+- **Note:** Runs locally on localhost:11434, no API key required
+- **Optional .env:** `OLLAMA_BASE_URL=http://localhost:11434`
+
+#### Step 3: Add Keys to Your .env File
+
+Open the `.env` file and add your API keys:
+
+```bash
+# Example .env file (use your actual keys)
+
+# Primary Providers
+OPENAI_API_KEY=sk-proj-8B5oLousaY9Er2xwxrAOxFtr8hkwhWF8NsUrCEz...
+ANTHROPIC_API_KEY=sk-ant-api03-6WeN6pEHU-3XFbfNwcUtWR2xjj4Vo7b...
+GOOGLE_API_KEY=AIzaSyBZqW4tMlZiBbFkr9FXMwnB6vce00p3Z1k
+
+# AWS Bedrock (choose one authentication method)
+AWS_BEARER_TOKEN_BEDROCK=ABSKQmVkcm9ja0FQSUtleS1hZm0w...
+# OR
+# AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+# AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+# AWS_DEFAULT_REGION=us-east-1
+
+# Alternative Providers (optional)
+DEEPSEEK_API_KEY=sk-c4b3123546b1480d904f7d4d2f7cb892
+GROQ_API_KEY=gsk_h8NUJy5XIMtVIjd2fzBbWGdyb3FY0YUHeAyNqb...
+GROK_API_KEY=xai-IySZoehC5IP2Zspnj6b7L64KoB5Z8qn1UQZgPo...
+OPENROUTER_API_KEY=sk-or-v1-eede4b25662eaf2e25d5fa1590...
+
+# Ollama (local models - no key needed)
+# OLLAMA_BASE_URL=http://localhost:11434
+```
+
+#### Step 4: Verify Your Configuration
+
+Use the built-in CLI command to check which providers are configured:
+
+```bash
+# Activate virtual environment first
+source .venv/bin/activate
+
+# Check API key status
+stratifyai check-keys
+```
+
+**Expected Output:**
+```
+🔑 StratifyAI API Key Status
+════════════════════════════════════════════════════════
+
+Provider              Status          Environment Variable
+────────────────────────────────────────────────────────
+OpenAI                ✓ Configured    OPENAI_API_KEY
+Anthropic             ✓ Configured    ANTHROPIC_API_KEY
+Google Gemini         ✓ Configured    GOOGLE_API_KEY
+DeepSeek              ✓ Configured    DEEPSEEK_API_KEY
+Groq                  ✓ Configured    GROQ_API_KEY
+Grok (X.AI)           ✓ Configured    GROK_API_KEY
+OpenRouter            ⚠ Missing       OPENROUTER_API_KEY
+Ollama                ✓ Configured    OLLAMA_API_KEY
+AWS Bedrock           ✓ Configured    AWS_BEARER_TOKEN_BEDROCK
+
+6/9 providers configured
+```
+
+#### Step 5: Test Your Setup
+
+Verify that StratifyAI can connect to your configured providers:
+
+```bash
+# Test with OpenAI
+stratifyai chat -p openai -m gpt-4o-mini -t "Hello, StratifyAI!"
+
+# Test with Anthropic
+stratifyai chat -p anthropic -m claude-sonnet-4-5 -t "Hello, Claude!"
+
+# Test with Google
+stratifyai chat -p google -m gemini-2.5-flash-lite -t "Hello, Gemini!"
+```
+
+**Expected Output:**
+```
+✓ Response from gpt-4o-mini
+
+Hello! I'm StratifyAI, ready to help you with any questions or tasks.
+
+📊 Response Metadata:
+  • Provider: openai
+  • Model: gpt-4o-mini
+  • Tokens: 23 (input: 12, output: 11)
+  • Cost: $0.000003
+  • Latency: 847ms
+```
+
+#### Security Best Practices
+
+**⚠️ CRITICAL: Never commit API keys to version control!**
+
+1. **Verify .gitignore includes .env:**
+   ```bash
+   # Check that .env is ignored
+   git check-ignore .env
+   # Should output: .env
+   ```
+
+2. **Use separate keys for different environments:**
+   - Development: `.env.development`
+   - Staging: `.env.staging`
+   - Production: Use secrets manager (AWS Secrets Manager, HashiCorp Vault, etc.)
+
+3. **Rotate keys regularly:**
+   - Rotate API keys every 90 days
+   - Immediately rotate if compromised
+
+4. **Set budget limits:**
+   - OpenAI: https://platform.openai.com/account/billing/limits
+   - Anthropic: https://console.anthropic.com/settings/limits
+   - Most providers offer usage limits and alerts
+
+5. **Monitor usage:**
+   ```bash
+   # Use StratifyAI's cost tracking
+   stratifyai cache-stats
+   ```
+
+6. **Use environment-specific keys:**
+   ```bash
+   # Development
+   export OPENAI_API_KEY=$OPENAI_DEV_KEY
+   
+   # Production
+   export OPENAI_API_KEY=$OPENAI_PROD_KEY
+   ```
+
+#### Troubleshooting API Keys
+
+**Problem: "Missing API key for [provider]"**
+
+Solution:
+```bash
+# 1. Check if .env file exists
+ls -la .env
+
+# 2. Verify the key is in .env
+grep OPENAI_API_KEY .env
+
+# 3. Check if environment variable is loaded
+echo $OPENAI_API_KEY
+
+# 4. Manually export the key (temporary)
+export OPENAI_API_KEY="your-key-here"
+
+# 5. Pass key directly in code
+client = LLMClient(provider="openai", api_key="your-key-here")
+```
+
+**Problem: "Authentication failed"**
+
+Solution:
+- Verify the API key is correct (no extra spaces, complete key)
+- Check if the key has been revoked or expired
+- Ensure you have credits/quota remaining
+- Verify the key format matches the provider:
+  - OpenAI: `sk-proj-` or `sk-`
+  - Anthropic: `sk-ant-`
+  - Google: `AIza`
+  - Grok: `xai-`
+
+**Problem: "Provider not available"**
+
+Solution:
+```python
+# Check which providers are available
+from stratifyai.api_key_helper import APIKeyHelper
+available = APIKeyHelper.check_available_providers()
+print(available)
+# Output: {'openai': True, 'anthropic': True, 'google': False, ...}
+```
+
+**Problem: AWS Bedrock authentication issues**
+
+Solution:
+```bash
+# Option 1: Check bearer token
+echo $AWS_BEARER_TOKEN_BEDROCK
+
+# Option 2: Check AWS credentials
+aws configure list
+
+# Option 3: Test AWS connection
+aws bedrock list-foundation-models --region us-east-1
+
+# Option 4: Verify IAM permissions
+# Ensure your IAM user/role has bedrock:InvokeModel permission
+```
 
 ---
 
@@ -82,20 +351,33 @@ OLLAMA_BASE_URL=http://localhost:11434
 
 ### Your First Request (Python)
 
+**Note:** StratifyAI is async-first. Use `await` for async code or `_sync` methods for convenience.
+
 ```python
 from stratifyai import LLMClient
+from stratifyai.models import Message
 
 # Initialize client (reads API keys from environment)
 client = LLMClient()
 
-# Send a message to GPT-4o-mini
-response = client.chat(
+# Option 1: Sync wrapper (simpler for scripts)
+response = client.chat_sync(
     model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Explain AI in one sentence"}]
+    messages=[Message(role="user", content="Explain AI in one sentence")]
 )
 
 print(response.content)
 print(f"Cost: ${response.usage.cost_usd:.4f}")
+
+# Option 2: Async (recommended for production)
+# import asyncio
+# async def main():
+#     response = await client.chat(
+#         model="gpt-4o-mini",
+#         messages=[Message(role="user", content="Explain AI in one sentence")]
+#     )
+#     print(response.content)
+# asyncio.run(main())
 ```
 
 **Output:**
@@ -325,14 +607,14 @@ print(f"By provider: {summary['by_provider']}")
 
 ```python
 # Test with cheap models first
-DEV_MODEL = "gpt-4o-mini"  # $0.00015 per 1K tokens
-PROD_MODEL = "gpt-4.1"     # $0.0050 per 1K tokens
+DEV_MODEL = "gpt-4o-mini"  # $0.15 per 1M input, $0.60 per 1M output
+PROD_MODEL = "gpt-4o"      # $2.50 per 1M input, $10.0 per 1M output
 
 # Development
-response = client.chat(model=DEV_MODEL, messages=[...])
+response = client.chat_sync(model=DEV_MODEL, messages=[...])
 
 # Production (after testing)
-# response = client.chat(model=PROD_MODEL, messages=[...])
+# response = client.chat_sync(model=PROD_MODEL, messages=[...])
 ```
 
 ---
@@ -693,19 +975,19 @@ for question in questions:
 
 ```python
 from stratifyai.exceptions import (
-    RateLimitException,
-    ModelNotFoundError,
+    RateLimitError,
+    InvalidModelError,
     ProviderAPIError
 )
 
 try:
-    response = client.chat(
+    response = client.chat_sync(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": "Hello"}]
     )
-except ModelNotFoundError:
+except InvalidModelError:
     print("Model not found - check spelling")
-except RateLimitException as e:
+except RateLimitError as e:
     print(f"Rate limited - retry after {e.retry_after}s")
 except ProviderAPIError as e:
     print(f"API error: {e}")
@@ -716,7 +998,7 @@ except ProviderAPIError as e:
 ## Tips and Best Practices
 
 1. **Start with cheap models during development**
-   - Use `gpt-4o-mini` ($0.00015/1K tokens) instead of `gpt-4.1` ($0.0050/1K tokens)
+   - Use `gpt-4o-mini` ($0.15/1M input, $0.60/1M output) instead of `gpt-4o` ($2.50/1M input, $10.0/1M output)
 
 2. **Use streaming for long responses**
    - Improves user experience with instant feedback
@@ -791,7 +1073,7 @@ response = client.chat(model=models[0], messages=[...])
 **Solution:**
 ```python
 # 1. Use cheaper models
-model = "gpt-4o-mini"  # instead of "gpt-4.1"
+model = "gpt-4o-mini"  # instead of "gpt-4o"
 
 # 2. Enable caching
 from stratifyai.caching import cache_response

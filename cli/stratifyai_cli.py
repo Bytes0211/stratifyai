@@ -32,6 +32,21 @@ app = typer.Typer(
 )
 console = Console()
 
+# Mode-specific colors and icons
+CHAT_COLOR = "magenta"
+CHAT_ACCENT = "bold magenta"
+CHAT_ICON = "💬"
+INTERACTIVE_COLOR = "cyan"
+INTERACTIVE_ACCENT = "bold cyan"
+INTERACTIVE_ICON = "⚡"
+
+
+def mode_prompt(text: str, mode: str = "chat") -> str:
+    """Add mode icon prefix to prompt text."""
+    icon = CHAT_ICON if mode == "chat" else INTERACTIVE_ICON
+    color = CHAT_ACCENT if mode == "chat" else INTERACTIVE_ACCENT
+    return f"[{color}]{icon}[/{color}] {text}"
+
 
 @app.command()
 def chat(
@@ -122,6 +137,10 @@ def _chat_impl(
     _conversation_history: Optional[List[Message]] = None,
 ):
     """Internal implementation of chat with conversation history support."""
+    # Show mode banner
+    console.print(f"\n[{CHAT_ACCENT}]─── 💬 CHAT MODE ───[/{CHAT_ACCENT}]")
+    console.print(f"[dim]Single message mode - use 'interactive' for conversations[/dim]\n")
+    
     try:
         # Auto-select model based on file type if enabled
         if auto_select and file and not (provider and model):
@@ -152,7 +171,7 @@ def _chat_impl(
             # Retry loop for provider selection
             max_attempts = 3
             for attempt in range(max_attempts):
-                provider_choice = Prompt.ask("\nChoose provider", default="1")
+                provider_choice = Prompt.ask(mode_prompt("Choose provider", "chat"), default="1")
                 
                 try:
                     provider_idx = int(provider_choice) - 1
@@ -232,12 +251,12 @@ def _chat_impl(
                     if description:
                         label += f" [dim]- {description}[/dim]"
                     console.print(label)
-            
+                
                 # Retry loop for model selection
                 max_attempts = 3
                 model = None
                 for attempt in range(max_attempts):
-                    model_choice = Prompt.ask("\nSelect model")
+                    model_choice = Prompt.ask(mode_prompt("Select model", "chat"))
                     
                     try:
                         model_idx = int(model_choice) - 1
@@ -275,7 +294,7 @@ def _chat_impl(
                 temperature = None
                 for attempt in range(max_attempts):
                     temp_input = Prompt.ask(
-                        "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                        mode_prompt("Temperature (0.0-2.0)", "chat"),
                         default="0.7"
                     )
                     
@@ -309,7 +328,7 @@ def _chat_impl(
             max_file_attempts = 3
             file = None
             for file_attempt in range(max_file_attempts):
-                file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+                file_path_input = Prompt.ask(mode_prompt("File path (or Enter to skip)", "chat"), default="")
                 
                 if not file_path_input.strip():
                     # User pressed Enter to skip
@@ -448,8 +467,8 @@ def _chat_impl(
         
         if not message:
             if is_image_file or not file_content:
-                console.print("\n[bold cyan]Enter your message:[/bold cyan]")
-                message = Prompt.ask("Message")
+                console.print(f"\n[{CHAT_ACCENT}]Enter your message:[/{CHAT_ACCENT}]")
+                message = Prompt.ask(mode_prompt("Message", "chat"))
         
         # Build messages - use conversation history if this is a follow-up
         if _conversation_history is None:
@@ -532,8 +551,8 @@ def _chat_impl(
                 response = client.chat_completion_sync(request)
                 response_content = response.content
             
-            # Display metadata before response
-            console.print(f"\n[bold]Provider:[/bold] [cyan]{provider}[/cyan] | [bold]Model:[/bold] [cyan]{model}[/cyan]")
+            # Display metadata before response (chat mode - magenta)
+            console.print(f"\n[bold]Provider:[/bold] [{CHAT_COLOR}]{provider}[/{CHAT_COLOR}] | [bold]Model:[/bold] [{CHAT_COLOR}]{model}[/{CHAT_COLOR}]")
             
             # Build usage line with token breakdown and cache info
             usage_parts = [
@@ -558,15 +577,15 @@ def _chat_impl(
             
             console.print(f"[dim]{' | '.join(usage_parts)}[/dim]")
             
-            # Print response with Rich formatting
-            console.print(f"\n{response_content}", style="cyan")
+            # Print response with chat mode color (magenta)
+            console.print(f"\n{response_content}", style=CHAT_COLOR)
         
         # Add assistant response to history for multi-turn conversation
         messages.append(Message(role="assistant", content=response_content))
         
         # Ask what to do next
         console.print("\n[dim]Options: [1] Continue conversation  [2] Save & continue  [3] Save & exit  [4] Exit[/dim]")
-        next_action = Prompt.ask("What would you like to do?", choices=["1", "2", "3", "4"], default="1")
+        next_action = Prompt.ask(mode_prompt("What would you like to do?", "chat"), choices=["1", "2", "3", "4"], default="1")
         
         # Handle save requests
         if next_action in ["2", "3"]:
@@ -1163,7 +1182,7 @@ def interactive(
             # Retry loop for provider selection
             max_attempts = 3
             for attempt in range(max_attempts):
-                provider_choice = Prompt.ask("\nChoose provider", default="1")
+                provider_choice = Prompt.ask(mode_prompt("Choose provider", "interactive"), default="1")
                 
                 try:
                     provider_idx = int(provider_choice) - 1
@@ -1269,7 +1288,7 @@ def interactive(
             max_attempts = 3
             model = None
             for attempt in range(max_attempts):
-                model_choice = Prompt.ask("\nSelect model")
+                model_choice = Prompt.ask(mode_prompt("Select model", "interactive"))
                 
                 try:
                     model_idx = int(model_choice) - 1
@@ -1303,7 +1322,7 @@ def interactive(
             temperature = None
             for attempt in range(max_attempts):
                 temp_input = Prompt.ask(
-                    "\n[bold cyan]Temperature[/bold cyan] (0.0-2.0, default 0.7)",
+                    mode_prompt("Temperature (0.0-2.0)", "interactive"),
                     default="0.7"
                 )
                 
@@ -1355,7 +1374,7 @@ def interactive(
             # File prompt with retry loop
             max_file_attempts = 3
             for file_attempt in range(max_file_attempts):
-                file_path_input = Prompt.ask("\nFile path (or press Enter to skip)", default="")
+                file_path_input = Prompt.ask(mode_prompt("File path (or Enter to skip)", "interactive"), default="")
                 
                 if not file_path_input.strip():
                     # User pressed Enter to skip
@@ -1408,14 +1427,15 @@ def interactive(
                 ))
                 console.print(f"[dim]File loaded as initial context[/dim]")
         
-        # Welcome message
-        console.print(f"\n[bold green]StratifyAI Interactive Mode[/bold green]")
+        # Welcome message with mode banner
+        console.print(f"\n[{INTERACTIVE_ACCENT}]═══ ⚡ INTERACTIVE MODE ═══[/{INTERACTIVE_ACCENT}]")
+        console.print(f"[dim]Multi-turn conversation with context preservation[/dim]\n")
         
         # Display context info with API limit warning if applicable
         if api_max_input and api_max_input < context_window:
-            console.print(f"Provider: [cyan]{provider}[/cyan] | Model: [cyan]{model}[/cyan] | Context: [cyan]{context_window:,} tokens[/cyan] [yellow](API limit: {api_max_input:,})[/yellow]")
+            console.print(f"Provider: [{INTERACTIVE_COLOR}]{provider}[/{INTERACTIVE_COLOR}] | Model: [{INTERACTIVE_COLOR}]{model}[/{INTERACTIVE_COLOR}] | Context: [{INTERACTIVE_COLOR}]{context_window:,} tokens[/{INTERACTIVE_COLOR}] [yellow](API limit: {api_max_input:,})[/yellow]")
         else:
-            console.print(f"Provider: [cyan]{provider}[/cyan] | Model: [cyan]{model}[/cyan] | Context: [cyan]{context_window:,} tokens[/cyan]")
+            console.print(f"Provider: [{INTERACTIVE_COLOR}]{provider}[/{INTERACTIVE_COLOR}] | Model: [{INTERACTIVE_COLOR}]{model}[/{INTERACTIVE_COLOR}] | Context: [{INTERACTIVE_COLOR}]{context_window:,} tokens[/{INTERACTIVE_COLOR}]")
         
         console.print("[dim]Commands: /file <path> | /attach <path> | /clear | /save [path] | /provider | /help | exit[/dim]")
         console.print(f"[dim]File size limit: {MAX_FILE_SIZE_MB} MB | Ctrl+C to exit[/dim]\n")
@@ -1426,16 +1446,16 @@ def interactive(
         last_response = None  # Track last assistant response for /save command
         
         while True:
-            # Show staged file indicator
-            prompt_text = "[bold blue]You[/bold blue]"
+            # Show staged file indicator with interactive mode styling
+            prompt_text = f"[{INTERACTIVE_ACCENT}]⚡ You[/{INTERACTIVE_ACCENT}]"
             if staged_file_content:
-                prompt_text = f"[bold blue]You[/bold blue] [dim]📎 {staged_file_name}[/dim]"
+                prompt_text = f"[{INTERACTIVE_ACCENT}]⚡ You[/{INTERACTIVE_ACCENT}] [dim]📎 {staged_file_name}[/dim]"
             
             # Get user input
             try:
                 user_input = Prompt.ask(prompt_text)
             except (KeyboardInterrupt, EOFError):
-                console.print("\n[dim]Exiting...[/dim]")
+                console.print("\n[dim]Exiting interactive mode...[/dim]")
                 break
             
             # Check for exit commands
@@ -1811,9 +1831,9 @@ def interactive(
                 # Store last response for /save command
                 last_response = response
                 
-                # Display metadata and response
-                console.print(f"\n[bold green]Assistant[/bold green]")
-                console.print(f"[bold]Provider:[/bold] [cyan]{provider}[/cyan] | [bold]Model:[/bold] [cyan]{model}[/cyan]")
+                # Display metadata and response (interactive mode - cyan)
+                console.print(f"\n[{INTERACTIVE_ACCENT}]⚡ Assistant[/{INTERACTIVE_ACCENT}]")
+                console.print(f"[bold]Provider:[/bold] [{INTERACTIVE_COLOR}]{provider}[/{INTERACTIVE_COLOR}] | [bold]Model:[/bold] [{INTERACTIVE_COLOR}]{model}[/{INTERACTIVE_COLOR}]")
                 
                 # Build usage line with token breakdown and cache info
                 usage_parts = [
@@ -1837,7 +1857,7 @@ def interactive(
                     usage_parts.append(f"Cache Read: {response.usage.cache_read_tokens:,}")
                 
                 console.print(f"[dim]{' | '.join(usage_parts)}[/dim]")
-                console.print(f"\n{response.content}", style="cyan")
+                console.print(f"\n{response.content}", style=INTERACTIVE_COLOR)
                 console.print("[dim]💡 Tip: Use /save to save this response to a file[/dim]\n")
             
             except AuthenticationError as e:

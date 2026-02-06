@@ -38,20 +38,45 @@ pip install -r requirements.txt
 
 ### Basic Usage
 
+**Async (Recommended):**
+```python
+import asyncio
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest, ChatResponse
+
+async def main():
+    client = LLMClient()
+    
+    request = ChatRequest(
+        model="gpt-4o-mini",
+        messages=[Message(role="user", content="Hello!")]
+    )
+    
+    response: ChatResponse = await client.chat_completion(request)
+    
+    print(response.content)
+    print(f"Cost: ${response.usage.cost_usd:.6f}")
+    print(f"Latency: {response.latency_ms:.0f}ms")
+
+asyncio.run(main())
+```
+
+**Sync (CLI/Scripts):**
 ```python
 from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest, ChatResponse
 
-# Initialize client
 client = LLMClient()
 
-# Send a message
-response = client.chat(
+request = ChatRequest(
     model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Hello!"}]
+    messages=[Message(role="user", content="Hello!")]
 )
 
+response: ChatResponse = client.chat_completion_sync(request)
+
 print(response.content)
-print(f"Cost: ${response.usage.cost_usd:.4f}")
+print(f"Cost: ${response.usage.cost_usd:.6f}")
 ```
 
 ---
@@ -91,68 +116,117 @@ LLMClient(
 
 #### Methods
 
-##### `chat()`
+##### `chat_completion()` (Async)
 
-Send a chat completion request.
+Send an async chat completion request.
 
 ```python
-chat(
-    model: str,
-    messages: List[Dict[str, str]],
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
-    stream: bool = False,
-    **kwargs
+async def chat_completion(
+    request: ChatRequest
 ) -> ChatResponse
 ```
 
 **Parameters:**
-- `model` (str): Model identifier (e.g., "gpt-4o-mini", "claude-sonnet-4-5-20250929")
-- `messages` (list): List of message dicts with "role" and "content" keys
-- `temperature` (float, optional): Sampling temperature (0.0-2.0)
-- `max_tokens` (int, optional): Maximum tokens in response
-- `stream` (bool): Enable streaming response (default: False)
-- `**kwargs`: Provider-specific parameters
+- `request` (ChatRequest): Chat completion request with model, messages, temperature, etc.
 
 **Returns:** `ChatResponse` object
 
 **Example:**
 ```python
-response = client.chat(
+import asyncio
+from stratifyai.models import Message, ChatRequest, ChatResponse
+
+request = ChatRequest(
     model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Explain quantum computing"}
+        Message(role="system", content="You are a helpful assistant."),
+        Message(role="user", content="Explain quantum computing")
     ],
     temperature=0.7,
     max_tokens=500
 )
+
+response: ChatResponse = await client.chat_completion(request)
+print(response.content)
 ```
 
-##### `chat_stream()`
+##### `chat_completion_sync()` (Sync)
 
-Stream chat completion responses.
+Synchronous wrapper for chat completion (for CLI/scripts).
 
 ```python
-chat_stream(
-    model: str,
-    messages: List[Dict[str, str]],
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
-    **kwargs
+def chat_completion_sync(
+    request: ChatRequest
+) -> ChatResponse
+```
+
+**Parameters:** Same as `chat_completion()`
+
+**Returns:** `ChatResponse` object
+
+**Example:**
+```python
+request = ChatRequest(
+    model="gpt-4o-mini",
+    messages=[Message(role="user", content="Hello!")]
+)
+
+response: ChatResponse = client.chat_completion_sync(request)
+print(response.content)
+```
+
+##### `chat_completion_stream()` (Async)
+
+Stream async chat completion responses.
+
+```python
+async def chat_completion_stream(
+    request: ChatRequest
+) -> AsyncIterator[ChatResponse]
+```
+
+**Parameters:**
+- `request` (ChatRequest): Chat completion request with stream=True
+
+**Returns:** AsyncIterator yielding `ChatResponse` chunks
+
+**Example:**
+```python
+import asyncio
+
+request = ChatRequest(
+    model="gpt-4o-mini",
+    messages=[Message(role="user", content="Write a poem")],
+    stream=True
+)
+
+async for chunk in client.chat_completion_stream(request):
+    print(chunk.content, end="", flush=True)
+```
+
+##### `chat_completion_stream_sync()` (Sync)
+
+Synchronous streaming wrapper.
+
+```python
+def chat_completion_stream_sync(
+    request: ChatRequest
 ) -> Iterator[ChatResponse]
 ```
 
-**Parameters:** Same as `chat()` but without `stream` parameter
+**Parameters:** Same as `chat_completion_stream()`
 
 **Returns:** Iterator yielding `ChatResponse` chunks
 
 **Example:**
 ```python
-for chunk in client.chat_stream(
+request = ChatRequest(
     model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Write a poem"}]
-):
+    messages=[Message(role="user", content="Write a story")],
+    stream=True
+)
+
+for chunk in client.chat_completion_stream_sync(request):
     print(chunk.content, end="", flush=True)
 ```
 
@@ -253,17 +327,25 @@ class ChatResponse:
     model: str                          # Model used
     provider: str                       # Provider name
     usage: Usage                        # Token usage and cost
+    latency_ms: float                   # Response latency in milliseconds
     finish_reason: Optional[str] = None # "stop", "length", etc.
     created_at: Optional[datetime] = None
 ```
 
 **Example:**
 ```python
-response = client.chat(model="gpt-4o-mini", messages=[...])
+request = ChatRequest(
+    model="gpt-4o-mini",
+    messages=[Message(role="user", content="Hello!")]
+)
+
+response: ChatResponse = await client.chat_completion(request)
 print(f"Content: {response.content}")
 print(f"Model: {response.model}")
+print(f"Provider: {response.provider}")
 print(f"Tokens: {response.usage.total_tokens}")
-print(f"Cost: ${response.usage.cost_usd:.4f}")
+print(f"Cost: ${response.usage.cost_usd:.6f}")
+print(f"Latency: {response.latency_ms:.0f}ms")
 ```
 
 ### Usage
@@ -308,6 +390,8 @@ All providers implement the `BaseProvider` abstract interface.
 
 **Location:** `llm_abstraction/providers/base.py`
 
+All providers are async-first and use native SDK async clients.
+
 ```python
 class BaseProvider(ABC):
     @property
@@ -317,13 +401,13 @@ class BaseProvider(ABC):
         pass
     
     @abstractmethod
-    def chat(self, request: ChatRequest) -> ChatResponse:
-        """Send chat completion request."""
+    async def chat(self, request: ChatRequest) -> ChatResponse:
+        """Send async chat completion request."""
         pass
     
     @abstractmethod
-    def chat_stream(self, request: ChatRequest) -> Iterator[ChatResponse]:
-        """Stream chat completion."""
+    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[ChatResponse]:
+        """Stream async chat completion."""
         pass
     
     @abstractmethod
@@ -338,23 +422,32 @@ class BaseProvider(ABC):
 
 **Prompt Caching:**
 ```python
+import asyncio
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest
+
 # Automatic prompt caching for long contexts
-response = client.chat(
+request = ChatRequest(
     model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": long_context},  # Cached automatically if >1024 tokens
-        {"role": "user", "content": "What is the main theme?"}
+        Message(role="system", content=long_context),  # Cached automatically if >1024 tokens
+        Message(role="user", content="What is the main theme?")
     ]
 )
+
+response = await client.chat_completion(request)
+print(f"Cached tokens: {response.usage.cached_tokens}")
 ```
 
 #### Anthropic Provider
 
 **Prompt Caching:**
 ```python
-from stratifyai.models import Message
+import asyncio
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest
 
-# Explicit cache control
+# Explicit cache control for Claude
 messages = [
     Message(
         role="user",
@@ -364,21 +457,34 @@ messages = [
     Message(role="user", content="Summarize this")
 ]
 
-response = client.chat(model="claude-sonnet-4-5-20250929", messages=messages)
+request = ChatRequest(
+    model="claude-sonnet-4-5",  # Claude Sonnet 4.5
+    messages=messages
+)
+
+response = await client.chat_completion(request)
 print(f"Cache read tokens: {response.usage.cache_read_tokens}")
+print(f"Cost savings: ${response.usage.cost_breakdown.get('cache_savings', 0):.6f}")
 ```
 
 #### Ollama Provider
 
 **Local Deployment:**
 ```python
-# Requires Ollama running locally
-# ollama serve (default: http://localhost:11434)
+import asyncio
+from stratifyai import LLMClient
+from stratifyai.models import Message, ChatRequest
 
-response = client.chat(
+# Requires Ollama running locally
+# Start server: ollama serve (default: http://localhost:11434)
+
+request = ChatRequest(
     model="llama3.3",
-    messages=[{"role": "user", "content": "Hello"}]
+    messages=[Message(role="user", content="Hello")]
 )
+
+response = await client.chat_completion(request)
+print(response.content)
 ```
 
 ---
@@ -420,13 +526,13 @@ class RoutingStrategy(Enum):
 
 #### Methods
 
-##### `route()`
+##### `route()` (Async)
 
-Select optimal model and send request.
+Select optimal model and send async request.
 
 ```python
-route(
-    messages: List[Dict[str, str]],
+async def route(
+    prompt: str,
     strategy: Optional[RoutingStrategy] = None,
     constraints: Optional[RoutingConstraints] = None,
     **kwargs
@@ -434,37 +540,69 @@ route(
 ```
 
 **Parameters:**
-- `messages` (list): Chat messages
+- `prompt` (str): User prompt/query
 - `strategy` (RoutingStrategy, optional): Override default strategy
 - `constraints` (RoutingConstraints, optional): Additional constraints
-- `**kwargs`: Passed to underlying chat call
+- `**kwargs`: Passed to underlying chat call (temperature, max_tokens, etc.)
 
 **Returns:** `ChatResponse` with selected model
 
 **Example:**
 ```python
-from stratifyai import Router, RoutingStrategy
-
-router = Router(client, default_strategy=RoutingStrategy.HYBRID)
-
-# Simple routing
-response = router.route(
-    messages=[{"role": "user", "content": "What is 2+2?"}],
-    strategy=RoutingStrategy.COST  # Use cheapest model
-)
-print(f"Selected model: {response.model}")
-
-# With constraints
+import asyncio
+from stratifyai import LLMClient, Router, RoutingStrategy
 from stratifyai.router import RoutingConstraints
 
-response = router.route(
-    messages=[{"role": "user", "content": "Complex analysis task"}],
+client = LLMClient()
+router = Router(client, default_strategy=RoutingStrategy.HYBRID)
+
+# Simple routing (cheapest model)
+response = await router.route(
+    prompt="What is 2+2?",
+    strategy=RoutingStrategy.COST
+)
+print(f"Selected model: {response.model}")
+print(f"Cost: ${response.usage.cost_usd:.6f}")
+
+# Complex task with constraints
+response = await router.route(
+    prompt="Analyze this complex dataset...",
     strategy=RoutingStrategy.QUALITY,
     constraints=RoutingConstraints(
         max_cost_per_1k_tokens=0.01,
-        min_context_window=32000
-    )
+        min_context_window=32000,
+        capabilities=["reasoning"]
+    ),
+    temperature=0.3
 )
+print(f"Selected: {response.model} via {response.provider}")
+```
+
+##### `route_sync()` (Sync)
+
+Synchronous wrapper for routing.
+
+```python
+def route_sync(
+    prompt: str,
+    strategy: Optional[RoutingStrategy] = None,
+    constraints: Optional[RoutingConstraints] = None,
+    **kwargs
+) -> ChatResponse
+```
+
+**Example:**
+```python
+from stratifyai import LLMClient, Router, RoutingStrategy
+
+client = LLMClient()
+router = Router(client)
+
+response = router.route_sync(
+    prompt="Explain relativity",
+    strategy=RoutingStrategy.HYBRID
+)
+print(response.content)
 ```
 
 ##### `analyze_complexity()`

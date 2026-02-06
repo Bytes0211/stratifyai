@@ -75,24 +75,24 @@ python -m cli.stratifyai_cli chat
 python -m cli.stratifyai_cli chat -p anthropic
 
 # Basic usage (fully specified)
-python -m cli.stratifyai_cli chat -p anthropic -m claude-3-5-sonnet-20241022 "Hello"
+python -m cli.stratifyai_cli chat -p anthropic -m claude-sonnet-4-5 "Hello"
 
 # With system message
-python -m cli.stratifyai_cli chat -p openai -m gpt-4o \
+python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini \
   --system "You are a helpful coding assistant" \
   "How do I reverse a list in Python?"
 
 # With streaming
-python -m cli.stratifyai_cli chat -p groq -m llama-3.3-70b --stream \
+python -m cli.stratifyai_cli chat -p groq -m llama-3.3-70b-versatile --stream \
   "Tell me a story"
 
 # With custom temperature
-python -m cli.stratifyai_cli chat -p openai -m gpt-4o -t 1.5 \
+python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 1.5 \
   "Write a creative poem"
 
 # Using environment variables
 export STRATUMAI_PROVIDER=anthropic
-export STRATUMAI_MODEL=claude-3-5-sonnet-20241022
+export STRATUMAI_MODEL=claude-sonnet-4-5
 python -m cli.stratifyai_cli chat "What is the capital of France?"
 ```
 
@@ -127,9 +127,10 @@ python -m cli.stratifyai_cli models -p anthropic
 ┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
 ┃ Provider     ┃ Model                                    ┃    Context ┃
 ┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-│ openai       │ gpt-4o                                   │    128,000 │
 │ openai       │ gpt-4o-mini                              │    128,000 │
-│ anthropic    │ claude-3-5-sonnet-20241022               │    200,000 │
+│ openai       │ gpt-4.1                                  │    128,000 │
+│ anthropic    │ claude-sonnet-4-5                        │    200,000 │
+│ google       │ gemini-2.0-flash-exp                     │  1,000,000 │
 └──────────────┴──────────────────────────────────────────┴────────────┘
 ```
 
@@ -156,14 +157,15 @@ python -m cli.stratifyai_cli providers
 ┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Provider        ┃     Models ┃ Example Model                            ┃
 ┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ openai          │         16 │ gpt-4o                                   │
-│ anthropic       │         10 │ claude-sonnet-4-5-20250929               │
-│ google          │          3 │ gemini-2.5-pro                           │
+│ openai          │         16 │ gpt-4o-mini                              │
+│ anthropic       │         10 │ claude-sonnet-4-5                        │
+│ google          │          7 │ gemini-2.0-flash-exp                     │
 │ deepseek        │          2 │ deepseek-chat                            │
-│ groq            │          3 │ llama-3.1-70b-versatile                  │
-│ grok            │          1 │ grok-beta                                │
-│ openrouter      │          2 │ anthropic/claude-3-5-sonnet              │
-│ ollama          │          3 │ llama3.2                                 │
+│ groq            │          3 │ llama-3.3-70b-versatile                  │
+│ grok            │          2 │ grok-2-1212                              │
+│ openrouter      │          2 │ anthropic/claude-3.5-sonnet              │
+│ ollama          │          3 │ llama3.3                                 │
+│ bedrock         │         16 │ anthropic.claude-3-5-sonnet-20241022-v2:0│
 └─────────────────┴────────────┴──────────────────────────────────────────┘
 ```
 
@@ -186,7 +188,7 @@ python -m cli.stratifyai_cli route [OPTIONS] MESSAGE
 
 **Routing Strategies:**
 - `cost`: Select cheapest models (Groq, Google Flash, DeepSeek)
-- `quality`: Select best models (GPT-5, o1, Claude 4, Gemini Pro)
+- `quality`: Select best models (GPT-4.1, o3-mini, Claude Sonnet 4.5, Gemini 2.0 Pro)
 - `latency`: Select fastest models (Groq, Ollama local models)
 - `hybrid`: Dynamically balance based on prompt complexity
 
@@ -222,7 +224,7 @@ python -m cli.stratifyai_cli route --max-latency 1000 "Fast response please"
 Routing Decision
 Strategy: hybrid
 Complexity: 0.150
-Selected: groq/llama-3.3-70b
+Selected: groq/llama-3.3-70b-versatile
 Quality: 0.85
 Latency: 800ms
 
@@ -232,7 +234,7 @@ Executing...
 
 2 + 2 = 4
 
-Cost: $0.000050 | Tokens: 12
+Cost: $0.000050 | Tokens: 12 | Latency: 782ms
 ```
 
 ---
@@ -257,7 +259,7 @@ python -m cli.stratifyai_cli interactive [OPTIONS]
 python -m cli.stratifyai_cli interactive
 
 # With provider and model specified
-python -m cli.stratifyai_cli interactive -p anthropic -m claude-3-5-sonnet-20241022
+python -m cli.stratifyai_cli interactive -p anthropic -m claude-sonnet-4-5
 
 # Using environment variables
 export STRATUMAI_PROVIDER=openai
@@ -302,8 +304,14 @@ export ANTHROPIC_API_KEY=your-key-here
 export GOOGLE_API_KEY=your-key-here
 export DEEPSEEK_API_KEY=your-key-here
 export GROQ_API_KEY=your-key-here
-export GROK_API_KEY=your-key-here
+export XAI_API_KEY=your-key-here
 export OPENROUTER_API_KEY=your-key-here
+
+# AWS Bedrock credentials (uses boto3)
+export AWS_ACCESS_KEY_ID=your-access-key
+export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_DEFAULT_REGION=us-east-1
+
 # Ollama doesn't require an API key (runs locally)
 ```
 
@@ -352,7 +360,7 @@ smi
 cat file.txt | xargs python -m cli.stratifyai_cli chat -p openai -m gpt-4o
 
 # Use with other commands
-echo "Explain docker" | xargs python -m cli.stratifyai_cli chat -p anthropic -m claude-3-5-sonnet-20241022
+echo "Explain docker" | xargs python -m cli.stratifyai_cli chat -p anthropic -m claude-sonnet-4-5
 ```
 
 ### 3. Cost-Effective Usage
@@ -363,14 +371,14 @@ python -m cli.stratifyai_cli route --strategy cost --execute "Simple question"
 
 # Set a low-cost model as default
 export STRATUMAI_PROVIDER=groq
-export STRATUMAI_MODEL=llama-3.3-70b
+export STRATUMAI_MODEL=llama-3.3-70b-versatile
 ```
 
 ### 4. Streaming for Long Responses
 
 ```bash
 # Enable streaming for stories, explanations, code generation
-python -m cli.stratifyai_cli chat --stream -p anthropic -m claude-3-5-sonnet-20241022 \
+python -m cli.stratifyai_cli chat --stream -p anthropic -m claude-sonnet-4-5 \
   "Write a detailed explanation of machine learning"
 ```
 

@@ -20,13 +20,14 @@ class GrokProvider(OpenAICompatibleProvider):
         Initialize Grok provider.
         
         Args:
-            api_key: Grok API key (defaults to GROK_API_KEY env var)
+            api_key: Grok API key (defaults to XAI_API_KEY or GROK_API_KEY env var)
             config: Optional provider-specific configuration
             
         Raises:
             AuthenticationError: If API key not provided
         """
-        api_key = api_key or os.getenv("GROK_API_KEY")
+        # Support both XAI_API_KEY (official) and GROK_API_KEY (legacy) for backward compatibility
+        api_key = api_key or os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
         if not api_key:
             raise AuthenticationError("grok")
         

@@ -439,6 +439,105 @@ GROQ_MODELS: Dict[str, Dict[str, Any]] = {
 
 # Grok (X.AI) Model Catalog (OpenAI-compatible)
 GROK_MODELS: Dict[str, Dict[str, Any]] = {
+    # Grok 4.1 Fast - Best for agentic tool calling
+    "grok-4-1-fast-reasoning": {
+        "context": 2000000,  # 2M tokens
+        "cost_input": 0.20,
+        "cost_output": 0.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "reasoning_model": True,
+    },
+    "grok-4-1-fast-non-reasoning": {
+        "context": 2000000,
+        "cost_input": 0.20,
+        "cost_output": 0.50,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    # Grok 4 Fast - High performance
+    "grok-4-fast-reasoning": {
+        "context": 2000000,
+        "cost_input": 0.50,
+        "cost_output": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+        "reasoning_model": True,
+    },
+    "grok-4-fast-non-reasoning": {
+        "context": 2000000,
+        "cost_input": 0.50,
+        "cost_output": 1.50,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    # Grok 4 - Flagship reasoning model
+    "grok-4": {
+        "context": 128000,
+        "cost_input": 5.0,
+        "cost_output": 15.0,
+        "supports_vision": True,
+        "supports_tools": True,
+        "reasoning_model": True,
+        "fixed_temperature": 1.0,
+    },
+    # Grok Code Fast - Specialized for coding
+    "grok-code-fast-1": {
+        "context": 256000,
+        "cost_input": 0.0,  # Free during promotional period
+        "cost_output": 0.0,
+        "supports_vision": False,
+        "supports_tools": True,
+        "reasoning_model": True,
+    },
+    # Grok 3 - Full model
+    "grok-3": {
+        "context": 128000,
+        "cost_input": 2.0,
+        "cost_output": 10.0,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    "grok-3-fast": {
+        "context": 128000,
+        "cost_input": 1.0,
+        "cost_output": 5.0,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    # Grok 3 Mini - Smaller, configurable reasoning
+    "grok-3-mini": {
+        "context": 128000,
+        "cost_input": 0.40,
+        "cost_output": 1.60,
+        "supports_vision": False,
+        "supports_tools": True,
+        "reasoning_model": True,  # Supports reasoning_effort parameter
+    },
+    "grok-3-mini-fast": {
+        "context": 128000,
+        "cost_input": 0.20,
+        "cost_output": 0.80,
+        "supports_vision": False,
+        "supports_tools": True,
+        "reasoning_model": True,
+    },
+    # Grok 2 - Legacy models
+    "grok-2-1212": {
+        "context": 131072,
+        "cost_input": 2.0,
+        "cost_output": 10.0,
+        "supports_vision": False,
+        "supports_tools": True,
+    },
+    "grok-2-vision": {
+        "context": 131072,
+        "cost_input": 2.0,
+        "cost_output": 10.0,
+        "supports_vision": True,
+        "supports_tools": True,
+    },
+    # Legacy aliases
     "grok-beta": {
         "context": 131072,
         "cost_input": 5.0,
@@ -1125,12 +1224,42 @@ INTERACTIVE_GROQ_MODELS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# Grok (X.AI) - 1 curated model
+# Grok (X.AI) - 7 curated models
 INTERACTIVE_GROK_MODELS: Dict[str, Dict[str, Any]] = {
-    "grok-beta": {
-        "display_name": "Grok Beta",
-        "description": "X.AI flagship model",
-        "category": "Grok",
+    "grok-4-1-fast-reasoning": {
+        "display_name": "Grok 4.1 Fast (Reasoning)",
+        "description": "BEST VALUE - 2M context, agentic tools",
+        "category": "Grok 4.1 Fast (Latest)",
+    },
+    "grok-4-1-fast-non-reasoning": {
+        "display_name": "Grok 4.1 Fast (Non-Reasoning)",
+        "description": "FASTEST - instant responses, 2M context",
+        "category": "Grok 4.1 Fast (Latest)",
+    },
+    "grok-code-fast-1": {
+        "display_name": "Grok Code Fast",
+        "description": "FREE - specialized for coding",
+        "category": "Grok Specialized",
+    },
+    "grok-4": {
+        "display_name": "Grok 4",
+        "description": "Flagship reasoning model",
+        "category": "Grok 4 (Premium)",
+    },
+    "grok-3": {
+        "display_name": "Grok 3",
+        "description": "Stable production model",
+        "category": "Grok 3",
+    },
+    "grok-3-mini": {
+        "display_name": "Grok 3 Mini",
+        "description": "Configurable reasoning effort",
+        "category": "Grok 3",
+    },
+    "grok-2-1212": {
+        "display_name": "Grok 2",
+        "description": "Legacy stable model",
+        "category": "Grok 2 (Legacy)",
     },
 }
 

@@ -15,7 +15,7 @@ class APIKeyHelper:
         "google": "GOOGLE_API_KEY",
         "deepseek": "DEEPSEEK_API_KEY",
         "groq": "GROQ_API_KEY",
-        "grok": "GROK_API_KEY",
+        "grok": "XAI_API_KEY",  # X.AI official environment variable
         "openrouter": "OPENROUTER_API_KEY",
         "ollama": "OLLAMA_API_KEY",
         "bedrock": "AWS_BEARER_TOKEN_BEDROCK",  # Bedrock bearer token (or AWS_ACCESS_KEY_ID)

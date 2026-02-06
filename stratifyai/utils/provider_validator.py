@@ -238,11 +238,13 @@ def _validate_groq(model_ids: List[str], api_key: Optional[str] = None) -> Dict[
 
 def _validate_grok(model_ids: List[str], api_key: Optional[str] = None) -> Dict[str, Any]:
     """Validate Grok (X.AI) models using OpenAI-compatible API."""
+    # Support both XAI_API_KEY (official) and GROK_API_KEY (legacy)
+    key = api_key or os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
     return _validate_openai_compatible(
         model_ids,
         "https://api.x.ai/v1",
-        api_key,
-        "GROK_API_KEY",
+        key,
+        "XAI_API_KEY",
     )
 
 
