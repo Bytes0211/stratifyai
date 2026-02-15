@@ -1,6 +1,7 @@
 <script lang="ts">
   import { marked } from 'marked';
   import hljs from 'highlight.js';
+  import DOMPurify from 'isomorphic-dompurify';
   
   export let content: string;
   
@@ -19,7 +20,13 @@
     gfm: true,
   });
   
-  $: html = marked.parse(content) as string;
+  // Sanitize HTML to prevent XSS attacks
+  $: html = DOMPurify.sanitize(marked.parse(content) as string, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                   'ul', 'ol', 'li', 'blockquote', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'hr', 'span'],
+    ALLOWED_ATTR: ['href', 'class', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+  });
 </script>
 
 <div class="markdown-content">

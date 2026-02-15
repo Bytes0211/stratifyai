@@ -139,8 +139,22 @@
       if (effectiveFile.isImage) {
         // For images: format as [IMAGE:mime_type]\nbase64_data in message content
         // Extract base64 data from data URL (format: data:image/jpeg;base64,<data>)
-        const base64Data = effectiveFile.content.split(',')[1];  // Get part after comma
-        const mimeType = effectiveFile.content.split(';')[0].split(':')[1];  // Extract mime type
+        
+        // Validate data URL format
+        const dataUrlPattern = /^data:(image\/[a-z]+);base64,(.+)$/;
+        const match = effectiveFile.content.match(dataUrlPattern);
+        
+        if (!match) {
+          chatActions.addErrorMessage('Invalid image format. Expected data URL with base64 encoding.');
+          if (hasAttachment) {
+            clearAttachment();
+            fileActions.clear();
+          }
+          return;
+        }
+        
+        const mimeType = match[1];  // e.g., 'image/jpeg'
+        const base64Data = match[2];  // Base64 encoded data
         
         // Format for vision models: [IMAGE:mime_type]\nbase64_data
         const imageContent = `[IMAGE:${mimeType}]\n${base64Data}`;
