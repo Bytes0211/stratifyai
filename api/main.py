@@ -2,6 +2,7 @@
 
 import json
 import logging
+import tomllib
 from typing import Optional, List, Dict
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -19,26 +21,68 @@ load_dotenv()
 from stratifyai import LLMClient, ChatRequest, Message, ProviderType
 from stratifyai.cost_tracker import CostTracker
 from stratifyai.config import MODEL_CATALOG
+from stratifyai.utils.reasoning_detector import is_reasoning_model, get_temperature_for_model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Read version from pyproject.toml (single source of truth)
+def _get_version() -> str:
+    """Read version from pyproject.toml."""
+    try:
+        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        if pyproject_path.exists():
+            with open(pyproject_path, "rb") as f:
+                data = tomllib.load(f)
+                return data.get("project", {}).get("version", "0.1.0")
+    except Exception:
+        pass
+    return "0.1.0"
+
+API_VERSION = _get_version()
+
+# Shared ThreadPoolExecutor for async validation tasks (BUG-008)
+_executor = ThreadPoolExecutor(max_workers=4)
+
+# Client cache for connection pooling (BUG-003)
+_client_cache: Dict[str, LLMClient] = {}
+
+def get_client(provider: str) -> LLMClient:
+    """Get or create a cached LLMClient for connection pooling."""
+    if provider not in _client_cache:
+        _client_cache[provider] = LLMClient(provider=provider)
+    return _client_cache[provider]
+
 # Initialize FastAPI app
 app = FastAPI(
     title="StratifyAI API",
     description="Unified API for multiple LLM providers",
-    version="0.1.0",
+    version=API_VERSION,
 )
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Configure CORS (BUG-004: Wildcard + credentials is invalid per CORS spec)
+# Read allowed origins from env var or use permissive defaults for development
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+if _cors_origins == "*":
+    # Wildcard mode: don't allow credentials (spec compliant)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Specific origins: credentials allowed
+    _allowed_origins = [origin.strip() for origin in _cors_origins.split(",")]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Global cost tracker
 cost_tracker = CostTracker()
@@ -97,7 +141,7 @@ async def root():
         return FileResponse(index_path)
     return {
         "name": "StratifyAI API",
-        "version": "0.1.0",
+        "version": API_VERSION,
         "message": "Frontend not found. API endpoints available at /docs"
     }
 
@@ -152,14 +196,13 @@ async def list_models(provider: str):
     if provider not in MODEL_CATALOG:
         raise HTTPException(status_code=404, detail=f"Provider '{provider}' not found")
     
-    # Run validation in background thread to avoid blocking
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as pool:
-        validation_data = await loop.run_in_executor(
-            pool, 
-            get_validated_interactive_models, 
-            provider
-        )
+    # Run validation in background thread to avoid blocking (BUG-007: use get_running_loop)
+    loop = asyncio.get_running_loop()
+    validation_data = await loop.run_in_executor(
+        _executor, 
+        get_validated_interactive_models, 
+        provider
+    )
     
     validated_models = validation_data["models"]
     validation_result = validation_data["validation_result"]
@@ -293,14 +336,14 @@ async def chat_completion(request: ChatCompletionRequest):
                         "google": "gemini-2.5-flash",
                         "deepseek": "deepseek-chat",
                         "groq": "llama-3.1-8b-instant",
-                        "grok": "grok-beta",
+                        "grok": "grok-4-1-fast-non-reasoning",  # BUG-006: Updated from deprecated grok-beta
                         "openrouter": "google/gemini-2.5-flash",
                         "ollama": "llama3.2",
                         "bedrock": "anthropic.claude-3-5-haiku-20241022-v1:0",
                     }
                     summarization_model = summarization_models.get(request.provider, "gpt-4o-mini")
                     
-                    client = LLMClient(provider=request.provider)
+                    client = get_client(request.provider)  # BUG-003: Use cached client
                     
                     # Get context from last user message if available
                     context = None
@@ -402,32 +445,15 @@ async def chat_completion(request: ChatCompletionRequest):
                     }
                 )
         
-        # Determine temperature for reasoning models
-        model_info = MODEL_CATALOG.get(request.provider, {}).get(request.model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
+        # Determine temperature using shared reasoning model detector (BUG-002)
+        reasoning = is_reasoning_model(request.provider, request.model, MODEL_CATALOG)
+        temperature = get_temperature_for_model(
+            request.provider, request.model, request.temperature, MODEL_CATALOG
+        )
         
-        # Also check model name patterns for OpenAI and DeepSeek
-        if not is_reasoning_model and request.provider in ["openai", "deepseek"]:
-            model_lower = request.model.lower()
-            is_reasoning_model = (
-                model_lower.startswith("o1") or
-                model_lower.startswith("o3") or
-                model_lower.startswith("gpt-5") or
-                "reasoner" in model_lower or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
-            )
-        
-        # Set temperature based on model type and user input
-        if is_reasoning_model:
-            temperature = 1.0
-            if request.temperature is not None and request.temperature != 1.0:
-                logger.warning(f"Overriding temperature={request.temperature} to 1.0 for reasoning model {request.provider}/{request.model}")
-            else:
-                logger.info(f"Using temperature=1.0 for reasoning model {request.provider}/{request.model}")
+        if reasoning and request.temperature is not None and request.temperature != 1.0:
+            logger.warning(f"Overriding temperature={request.temperature} to 1.0 for reasoning model {request.provider}/{request.model}")
         else:
-            # Use provided temperature or default to 0.7
-            temperature = request.temperature if request.temperature is not None else 0.7
             logger.info(f"Using temperature={temperature} for model {request.provider}/{request.model}")
         
         # Create chat request
@@ -438,8 +464,8 @@ async def chat_completion(request: ChatCompletionRequest):
             max_tokens=request.max_tokens,
         )
         
-        # Initialize client and make request (now using native async)
-        client = LLMClient(provider=request.provider)
+        # Initialize client and make request (BUG-003: use cached client)
+        client = get_client(request.provider)
         response = await client.chat_completion(chat_request)
         
         # Track cost
@@ -566,31 +592,15 @@ async def chat_stream(websocket: WebSocket):
             for msg in messages_data
         ]
         
-        # Determine temperature for reasoning models
-        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
+        # Determine temperature using shared reasoning model detector (BUG-002)
+        reasoning = is_reasoning_model(provider, model, MODEL_CATALOG)
+        temperature = get_temperature_for_model(
+            provider, model, requested_temperature, MODEL_CATALOG
+        )
         
-        # Also check model name patterns for OpenAI and DeepSeek
-        if not is_reasoning_model and provider in ["openai", "deepseek"]:
-            model_lower = model.lower()
-            is_reasoning_model = (
-                model_lower.startswith("o1") or
-                model_lower.startswith("o3") or
-                "reasoner" in model_lower or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
-            )
-        
-        # Set temperature based on model type and user input
-        if is_reasoning_model:
-            temperature = 1.0
-            if requested_temperature is not None and requested_temperature != 1.0:
-                logger.warning(f"Overriding temperature={requested_temperature} to 1.0 for reasoning model {provider}/{model}")
-            else:
-                logger.info(f"Using temperature=1.0 for reasoning model {provider}/{model}")
+        if reasoning and requested_temperature is not None and requested_temperature != 1.0:
+            logger.warning(f"Overriding temperature={requested_temperature} to 1.0 for reasoning model {provider}/{model}")
         else:
-            # Use provided temperature or default to 0.7
-            temperature = requested_temperature if requested_temperature is not None else 0.7
             logger.info(f"Using temperature={temperature} for model {provider}/{model}")
         
         # Create request
@@ -601,35 +611,80 @@ async def chat_stream(websocket: WebSocket):
             max_tokens=max_tokens,
         )
         
-        # Initialize client and stream (now using native async)
-        client = LLMClient(provider=provider)
+        # Initialize client (BUG-003: use cached client for connection pooling)
+        client = get_client(provider)
         
         full_content = ""
+        prompt_tokens = 0
+        completion_tokens = 0
         stream = client.chat_completion_stream(chat_request)
         async for chunk in stream:
             full_content += chunk.content
+            # Accumulate token usage from chunks if available
+            if hasattr(chunk, 'usage') and chunk.usage:
+                if chunk.usage.prompt_tokens:
+                    prompt_tokens = chunk.usage.prompt_tokens
+                completion_tokens += chunk.usage.completion_tokens or 0
             await websocket.send_json({
                 "content": chunk.content,
                 "done": False,
             })
         
-        # Send final message
+        # Estimate tokens if not available from stream (BUG-001: WebSocket cost tracking)
+        if prompt_tokens == 0:
+            from stratifyai.utils.token_counter import estimate_tokens
+            prompt_text = "\n".join(msg.content for msg in messages)
+            prompt_tokens = estimate_tokens(prompt_text, provider, model)
+        if completion_tokens == 0:
+            completion_tokens = estimate_tokens(full_content, provider, model)
+        total_tokens = prompt_tokens + completion_tokens
+        
+        # Calculate cost and track (BUG-001)
+        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        cost_input = model_info.get("cost_input", 0.0)
+        cost_output = model_info.get("cost_output", 0.0)
+        cost_usd = (prompt_tokens / 1_000_000 * cost_input) + (completion_tokens / 1_000_000 * cost_output)
+        
+        cost_tracker.add_entry(
+            provider=provider,
+            model=model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost_usd=cost_usd,
+            request_id=f"ws-{id(websocket)}-{int(asyncio.get_running_loop().time())}",
+        )
+        
+        # Send final message with usage info
         await websocket.send_json({
             "content": "",
             "done": True,
             "full_content": full_content,
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "cost_usd": cost_usd,
+            },
         })
         
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
     except Exception as e:
         logger.error(f"WebSocket error: {str(e)}")
-        await websocket.send_json({
-            "error": str(e),
-            "done": True,
-        })
+        try:
+            await websocket.send_json({
+                "error": str(e),
+                "done": True,
+            })
+        except Exception:
+            pass  # Connection may already be closed
     finally:
-        await websocket.close()
+        # BUG-005: Avoid double-close RuntimeError
+        try:
+            await websocket.close()
+        except RuntimeError:
+            pass  # Already closed
 
 
 @app.get("/api/cost")
@@ -682,58 +737,57 @@ async def get_all_validated_models():
     total_models = 0
     active_providers = 0
     
-    # Run validation for each provider in parallel
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as pool:
-        validation_tasks = []
-        for provider in providers_list:
-            model_ids = list(MODEL_CATALOG.get(provider, {}).keys())
-            task = loop.run_in_executor(
-                pool,
-                validate_provider_models,
-                provider,
-                model_ids
-            )
-            validation_tasks.append((provider, task))
+    # Run validation for each provider in parallel (BUG-007, BUG-008: use shared executor)
+    loop = asyncio.get_running_loop()
+    validation_tasks = []
+    for provider in providers_list:
+        model_ids = list(MODEL_CATALOG.get(provider, {}).keys())
+        task = loop.run_in_executor(
+            _executor,
+            validate_provider_models,
+            provider,
+            model_ids
+        )
+        validation_tasks.append((provider, task))
+    
+    # Gather results
+    for provider, task in validation_tasks:
+        validation_result = await task
         
-        # Gather results
-        for provider, task in validation_tasks:
-            validation_result = await task
+        # Check if provider is active (has API key configured)
+        is_active = api_key_status.get(provider, False)
+        if is_active:
+            active_providers += 1
+        
+        models_list = []
+        catalog = MODEL_CATALOG.get(provider, {})
+        
+        # Use valid models if available, otherwise use catalog
+        model_ids = validation_result["valid_models"] if not validation_result["error"] else list(catalog.keys())
+        
+        for model_id in model_ids:
+            model_info = catalog.get(model_id, {})
             
-            # Check if provider is active (has API key configured)
-            is_active = api_key_status.get(provider, False)
-            if is_active:
-                active_providers += 1
-            
-            models_list = []
-            catalog = MODEL_CATALOG.get(provider, {})
-            
-            # Use valid models if available, otherwise use catalog
-            model_ids = validation_result["valid_models"] if not validation_result["error"] else list(catalog.keys())
-            
-            for model_id in model_ids:
-                model_info = catalog.get(model_id, {})
-                
-                models_list.append({
-                    "id": model_id,
-                    "provider": provider,
-                    "context_window": model_info.get("context", 0),
-                    "cost_input": model_info.get("cost_input", 0),
-                    "cost_output": model_info.get("cost_output", 0),
-                    "supports_vision": model_info.get("supports_vision", False),
-                    "supports_tools": model_info.get("supports_tools", False),
-                    "supports_caching": model_info.get("supports_caching", False),
-                    "reasoning_model": model_info.get("reasoning_model", False),
-                    "validated": model_id in validation_result["valid_models"],
-                })
-            
-            result[provider] = ProviderModelsInfo(
-                models=models_list,
-                active=is_active,
-                validation_error=validation_result.get("error"),
-                validation_time_ms=validation_result.get("validation_time_ms", 0),
-            )
-            total_models += len(models_list)
+            models_list.append({
+                "id": model_id,
+                "provider": provider,
+                "context_window": model_info.get("context", 0),
+                "cost_input": model_info.get("cost_input", 0),
+                "cost_output": model_info.get("cost_output", 0),
+                "supports_vision": model_info.get("supports_vision", False),
+                "supports_tools": model_info.get("supports_tools", False),
+                "supports_caching": model_info.get("supports_caching", False),
+                "reasoning_model": model_info.get("reasoning_model", False),
+                "validated": model_id in validation_result["valid_models"],
+            })
+        
+        result[provider] = ProviderModelsInfo(
+            models=models_list,
+            active=is_active,
+            validation_error=validation_result.get("error"),
+            validation_time_ms=validation_result.get("validation_time_ms", 0),
+        )
+        total_models += len(models_list)
     
     return AllModelsResponse(
         providers=result,
@@ -748,16 +802,18 @@ async def get_all_validated_models():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "version": "0.1.0"}
+    return {"status": "healthy", "version": API_VERSION}
 
 
 if __name__ == "__main__":
     import uvicorn
+    # BUG-014: Port configurable via env var, default to 8080 (matches docs)
+    port = int(os.getenv("STRATIFYAI_PORT", "8080"))
     # Increase body size limit to 100MB for large file uploads
     uvicorn.run(
         app, 
         host="0.0.0.0", 
-        port=8000,
+        port=port,
         limit_concurrency=1000,
         timeout_keep_alive=5
     )
