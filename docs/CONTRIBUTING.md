@@ -518,7 +518,7 @@ Create `tests/test_yourprovider.py` with unit and integration tests.
 ### 5. Update Documentation
 
 - Add provider to README.md
-- Update WARP.md with setup instructions
+- Update AGENTS.md with setup instructions
 - Add example to `examples/`
 
 ---
@@ -529,7 +529,7 @@ Create `tests/test_yourprovider.py` with unit and integration tests.
 
 - **Docstrings**: Google style for all public APIs
 - **README**: Keep examples up-to-date
-- **WARP.md**: Update for new features and setup changes
+- **AGENTS.md**: Update for new features and setup changes
 - **Type Hints**: Required on all functions
 
 ### Example Docstring

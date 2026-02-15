@@ -620,7 +620,7 @@ After successful installation:
 - **Project README**: `/home/scotton/dev/projects/stratifyai/README.md`
 - **Technical Approach**: `docs/stratifyai-technical-approach.md`
 - **Project Status**: `docs/project-status.md`
-- **Development Guide**: `WARP.md`
+- **Development Guide**: `AGENTS.md`
 - **CLI Documentation**: Available via `stratifyai --help` for each command
 
 ---

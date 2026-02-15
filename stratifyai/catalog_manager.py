@@ -6,13 +6,15 @@ a dictionary interface compatible with the existing config.py structure.
 
 import json
 import os
+import threading
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Global catalog cache
+# Global catalog cache with thread safety
+_catalog_lock = threading.Lock()
 _CATALOG_CACHE: Optional[Dict[str, Any]] = None
 _CATALOG_PATH: Optional[Path] = None
 
@@ -48,36 +50,42 @@ def load_catalog(force_reload: bool = False) -> Dict[str, Any]:
     """
     global _CATALOG_CACHE
     
+    # Double-checked locking for thread safety
     if _CATALOG_CACHE is not None and not force_reload:
         return _CATALOG_CACHE
     
-    catalog_path = get_catalog_path()
-    
-    if not catalog_path.exists():
-        logger.error(f"Catalog file not found: {catalog_path}")
-        raise FileNotFoundError(f"Model catalog not found at {catalog_path}")
-    
-    try:
-        with open(catalog_path, 'r', encoding='utf-8') as f:
-            catalog = json.load(f)
+    with _catalog_lock:
+        # Re-check after acquiring lock
+        if _CATALOG_CACHE is not None and not force_reload:
+            return _CATALOG_CACHE
         
-        # Validate basic structure
-        if not isinstance(catalog, dict):
-            raise ValueError("Catalog must be a JSON object")
+        catalog_path = get_catalog_path()
         
-        if "providers" not in catalog:
-            raise ValueError("Catalog missing 'providers' key")
+        if not catalog_path.exists():
+            logger.error(f"Catalog file not found: {catalog_path}")
+            raise FileNotFoundError(f"Model catalog not found at {catalog_path}")
         
-        _CATALOG_CACHE = catalog
-        logger.info(f"Loaded catalog version {catalog.get('version', 'unknown')}")
-        return catalog
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in catalog: {e}")
-        raise ValueError(f"Failed to parse catalog JSON: {e}")
-    except Exception as e:
-        logger.error(f"Error loading catalog: {e}")
-        raise
+        try:
+            with open(catalog_path, 'r', encoding='utf-8') as f:
+                catalog = json.load(f)
+            
+            # Validate basic structure
+            if not isinstance(catalog, dict):
+                raise ValueError("Catalog must be a JSON object")
+            
+            if "providers" not in catalog:
+                raise ValueError("Catalog missing 'providers' key")
+            
+            _CATALOG_CACHE = catalog
+            logger.info(f"Loaded catalog version {catalog.get('version', 'unknown')}")
+            return catalog
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in catalog: {e}")
+            raise ValueError(f"Failed to parse catalog JSON: {e}")
+        except Exception as e:
+            logger.error(f"Error loading catalog: {e}")
+            raise
 
 
 def get_provider_models(provider: str) -> Dict[str, Dict[str, Any]]:

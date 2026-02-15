@@ -445,7 +445,7 @@ Before marking as complete, verify:
 ## Notes for Implementation
 
 1. **Test All Code:** Every Python code block should be tested before publishing
-2. **Check Against WARP.md:** Ensure consistency with project status in WARP.md
+2. **Check Against AGENTS.md:** Ensure consistency with project status in AGENTS.md
 3. **Verify Model Names:** Cross-reference all model names with config.py
 4. **Update Examples Directory:** Consider creating corresponding example files for new sections
 5. **Consider Splitting:** Document might be too long - consider splitting into multiple guides

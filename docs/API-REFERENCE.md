@@ -1160,6 +1160,6 @@ tracker.record_call(final_chunk.model, final_chunk.provider, final_chunk.usage)
 
 For issues, questions, or feature requests, please contact the project maintainer.
 
-**Documentation:** See [README.md](../README.md), [WARP.md](../WARP.md)  
+**Documentation:** See [README.md](../README.md), [AGENTS.md](../AGENTS.md)  
 **Examples:** See [examples/](../examples/)  
 **Tests:** Run `pytest` in project root

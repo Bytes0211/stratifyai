@@ -454,7 +454,7 @@ pip install -r requirements.txt
 - See `docs/adr-cli-interface.md` for architecture decisions
 - Check `examples/router_example.py` for router usage
 - Read `README.md` for Python library usage
-- Review `WARP.md` for development setup
+- Review `AGENTS.md` for development setup
 
 ---
 

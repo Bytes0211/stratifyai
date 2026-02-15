@@ -1,5 +1,19 @@
 # Developer Journal
 
+## February 15, 2026 - Thread Safety for Catalog Manager
+
+### Change Made
+Added thread-safe locking to `catalog_manager.py` to prevent race conditions during concurrent catalog access.
+
+**Implementation:**
+```python
+_catalog_lock = threading.Lock()
+```
+
+This lock ensures that catalog loading and caching operations are thread-safe when multiple threads attempt to access the catalog simultaneously.
+
+---
+
 ## February 6, 2026 - Model Catalog Modernization
 
 ### Problem Solved

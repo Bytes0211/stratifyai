@@ -37,7 +37,7 @@ Externalized model catalog to community-editable JSON with automated validation:
 1. stratifyai/config.py - Loads ANTHROPIC_MODELS from JSON catalog
 2. stratifyai/utils/provider_validator.py - Uses Anthropic API for validation
 3. api/main.py - Fixed smart chunking model (claude-3-5-sonnet-20241022 -> claude-3-haiku-20240307)
-4. WARP.md - Updated Phase 7.10 status, project structure, documentation section
+4. AGENTS.md - Updated Phase 7.10 status, project structure, documentation section
 5. README.md - Added Model Catalog section with contribution guidelines
 
 ## Technical Details
@@ -63,7 +63,7 @@ Externalized model catalog to community-editable JSON with automated validation:
 - Enforces dated model IDs
 
 **Documentation:**
-- WARP.md updated with Phase 7.10 complete status
+- AGENTS.md updated with Phase 7.10 complete status
 - README.md includes Model Catalog section
 - docs/developer-journal.md tracks implementation journey
 - docs/CATALOG_MANAGEMENT.md provides community contribution guide

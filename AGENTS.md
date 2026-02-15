@@ -1,6 +1,6 @@
-# WARP.md
+# AGENTS.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This file provides guidance to AI agents (Warp, Cursor, Windsurf, etc.) when working with code in this repository.
 
 ## Project Overview
 
@@ -86,7 +86,7 @@ Your AWS IAM user/role must have the `bedrock:InvokeModel` permission:
 ```txt
 stratifyai/                             # Project root: /home/scotton/dev/projects/stratifyai
 ├── README.md
-├── WARP.md                             # This file (development guidance)
+├── AGENTS.md                           # This file (AI agent guidance)
 ├── pyproject.toml                      # Package configuration and dependencies
 ├── requirements.txt                    # Python dependencies
 ├── .venv/                              # Virtual environment
@@ -372,7 +372,7 @@ pip freeze > requirements.txt
 - ✅ Enhanced provider validator with API integration
 - ✅ Fixed Anthropic chunking bug (404 error)
 - ✅ Deprecation tracking system ready
-- ✅ Documentation complete (WARP.md, README.md, developer-journal.md, CATALOG_MANAGEMENT.md)
+- ✅ Documentation complete (AGENTS.md, README.md, developer-journal.md, CATALOG_MANAGEMENT.md)
 - ⏳ UI deprecation warnings (optional enhancement)
 - ⏳ Weekly auto-sync workflow (optional enhancement)
 
@@ -405,7 +405,7 @@ pip freeze > requirements.txt
 - **docs/StratifyAI-Router-Logic.md** - Router strategies, fallback chains, and complexity analysis
 - **docs/CATALOG_MANAGEMENT.md** - Community catalog contribution guide (459 lines)
 - **docs/developer-journal.md** - Implementation log and lessons learned
-- **WARP.md** - This file (development environment guidance for Warp AI)
+- **AGENTS.md** - This file (AI agent guidance for development)
 
 ### Key Documentation Sections
 - **Technical Approach**: Complete architecture, component design, provider implementations

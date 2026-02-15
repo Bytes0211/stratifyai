@@ -46,7 +46,7 @@
 
 ## 📝 Documentation Updates ✅
 
-- ✅ **WARP.md** - Updated Phase 7.10 status, project structure, documentation section
+- ✅ **AGENTS.md** - Updated Phase 7.10 status, project structure, documentation section
 - ✅ **README.md** - Added Model Catalog section with contribution guidelines
 - ✅ **docs/developer-journal.md** - Created 176-line implementation journal
 - ✅ **docs/CATALOG_MANAGEMENT.md** - Created 459-line community contribution guide
@@ -202,7 +202,7 @@ API endpoints & CLI
 ## 📞 Support
 
 - 📖 Plan: See `plan_*.md` for detailed implementation plan
-- 🐛 Issues: Check `WARP.md` for project guidelines  
+- 🐛 Issues: Check `AGENTS.md` for project guidelines  
 - 💬 Questions: Open GitHub discussion
 
 ---
