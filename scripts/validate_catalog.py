@@ -94,7 +94,7 @@ def validate_providers(providers: Dict[str, Dict[str, Any]]) -> List[str]:
                 if "deprecated_date" not in model_data:
                     errors.append(f"{provider_name}/{model_id}: Deprecated models must have deprecated_date")
                 if "replacement_model" not in model_data:
-                    errors.append(f"{provider_name}/{model_id}: Deprecated models should have replacement_model (warning)")
+                    errors.append(f"{provider_name}/{model_id}: Deprecated models must have replacement_model")
     
     return errors
 
