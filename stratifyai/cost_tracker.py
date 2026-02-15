@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from collections import defaultdict
 
 
@@ -162,7 +162,7 @@ class CostTracker:
             tokens[entry.provider] += entry.total_tokens
         return dict(tokens)
     
-    def get_cache_stats(self) -> Dict[str, any]:
+    def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache usage statistics."""
         total_cache_reads = sum(e.cache_read_tokens for e in self._entries)
         total_cache_creates = sum(e.cache_creation_tokens for e in self._entries)
@@ -189,7 +189,7 @@ class CostTracker:
         self._budget_limit = limit
         self._alert_threshold = alert_threshold or (limit * 0.8)
     
-    def get_budget_status(self) -> Dict[str, any]:
+    def get_budget_status(self) -> Dict[str, Any]:
         """
         Get current budget status.
         
@@ -238,7 +238,7 @@ class CostTracker:
         # Override this method for custom alert behavior (email, webhook, etc.)
         print(f"⚠️  Budget Alert: Current cost ${current_cost:.4f} exceeds threshold ${threshold:.4f}")
     
-    def get_summary(self) -> Dict[str, any]:
+    def get_summary(self) -> Dict[str, Any]:
         """
         Get comprehensive summary of tracked costs.
         

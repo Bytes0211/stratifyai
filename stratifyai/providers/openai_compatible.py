@@ -121,24 +121,16 @@ class OpenAICompatibleProvider(BaseProvider):
             "messages": messages,
         }
         
-        # Check if model is a reasoning model
-        model_info = self.model_catalog.get(request.model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
-        
-        # Also check model name patterns for reasoning models
-        if not is_reasoning_model and request.model:
-            model_lower = request.model.lower()
-            is_reasoning_model = (
-                model_lower.startswith("o1") or 
-                model_lower.startswith("o3") or
-                model_lower.startswith("gpt-5") or
-                "reasoner" in model_lower or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
-            )
+        # Check if model is a reasoning model using shared detector
+        from ..utils.reasoning_detector import is_reasoning_model as check_reasoning
+        reasoning_model = check_reasoning(
+            self.provider_name, 
+            request.model, 
+            {self.provider_name: self.model_catalog}
+        )
         
         # Only add temperature and sampling params for non-reasoning models
-        if not is_reasoning_model:
+        if not reasoning_model:
             openai_params["temperature"] = request.temperature
             openai_params["top_p"] = request.top_p
             if request.frequency_penalty:
@@ -252,24 +244,16 @@ class OpenAICompatibleProvider(BaseProvider):
             "stream": True,
         }
         
-        # Check if model is a reasoning model
-        model_info = self.model_catalog.get(request.model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
-        
-        # Also check model name patterns for reasoning models
-        if not is_reasoning_model and request.model:
-            model_lower = request.model.lower()
-            is_reasoning_model = (
-                model_lower.startswith("o1") or 
-                model_lower.startswith("o3") or
-                model_lower.startswith("gpt-5") or
-                "reasoner" in model_lower or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
-            )
+        # Check if model is a reasoning model using shared detector
+        from ..utils.reasoning_detector import is_reasoning_model as check_reasoning
+        reasoning_model = check_reasoning(
+            self.provider_name, 
+            request.model, 
+            {self.provider_name: self.model_catalog}
+        )
         
         # Only add temperature for non-reasoning models
-        if not is_reasoning_model:
+        if not reasoning_model:
             openai_params["temperature"] = request.temperature
         
         if request.max_tokens:

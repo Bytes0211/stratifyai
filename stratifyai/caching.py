@@ -218,7 +218,8 @@ def cache_response(
             return await self.provider.chat_completion(request)
     """
     cache = cache_instance or _global_cache
-    cache.ttl = ttl
+    # Store TTL for this decorator instance (don't mutate global cache.ttl)
+    decorator_ttl = ttl
     
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -236,10 +237,24 @@ def cache_response(
             else:
                 cache_key = generate_cache_key(**kwargs)
             
-            # Check cache
-            cached_response = cache.get(cache_key)
-            if cached_response is not None:
-                return cached_response
+            # Check cache (use decorator's TTL for expiration check)
+            with cache._lock:
+                if cache_key in cache._cache:
+                    entry = cache._cache[cache_key]
+                    # Check expiration using decorator's TTL
+                    if time.time() - entry.timestamp <= decorator_ttl:
+                        entry.hits += 1
+                        if hasattr(entry.response, 'usage') and hasattr(entry.response.usage, 'cost_usd'):
+                            cost = entry.response.usage.cost_usd
+                            entry.cost_saved += cost
+                            cache._total_cost_saved += cost
+                        return entry.response
+                    else:
+                        # Expired, remove entry
+                        del cache._cache[cache_key]
+                        cache._total_misses += 1
+                else:
+                    cache._total_misses += 1
             
             # Execute async function
             response = await func(*args, **kwargs)
