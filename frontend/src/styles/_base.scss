@@ -1,0 +1,206 @@
+// ============================================
+// BASE STYLES - Global element defaults
+// ============================================
+
+@use 'tokens' as *;
+@use 'mixins' as *;
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: $font-sans;
+  font-size: $text-base;
+  line-height: $leading-normal;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  @include custom-scrollbar;
+}
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+
+h1 {
+  font-size: $text-2xl;
+  font-weight: $font-bold;
+  line-height: $leading-tight;
+}
+
+h2 {
+  font-size: $text-xl;
+  font-weight: $font-semibold;
+  line-height: $leading-tight;
+}
+
+h3 {
+  font-size: $text-lg;
+  font-weight: $font-semibold;
+  line-height: $leading-tight;
+}
+
+h4,
+h5,
+h6 {
+  font-size: $text-base;
+  font-weight: $font-medium;
+  line-height: $leading-normal;
+}
+
+p {
+  margin-bottom: $space-4;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+a {
+  color: var(--accent);
+  transition: color $transition-fast;
+  
+  &:hover {
+    color: var(--accent-hover);
+  }
+}
+
+strong,
+b {
+  font-weight: $font-semibold;
+}
+
+small {
+  font-size: $text-sm;
+}
+
+// ============================================
+// CODE
+// ============================================
+
+code {
+  font-family: $font-mono;
+  font-size: 0.9em;
+  padding: $space-1 $space-2;
+  background: var(--bg-elevated);
+  border-radius: $radius-md;
+}
+
+pre {
+  font-family: $font-mono;
+  font-size: $text-sm;
+  padding: $space-4;
+  background: var(--bg-elevated);
+  border-radius: $radius-lg;
+  overflow-x: auto;
+  @include custom-scrollbar;
+
+  code {
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+}
+
+// ============================================
+// LISTS
+// ============================================
+
+ul,
+ol {
+  padding-left: $space-6;
+  margin-bottom: $space-4;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ol {
+  list-style-type: decimal;
+}
+
+li {
+  margin-bottom: $space-2;
+}
+
+// ============================================
+// SELECTION
+// ============================================
+
+::selection {
+  background: var(--accent);
+  color: $bg-base;
+}
+
+// ============================================
+// FORM ELEMENTS
+// ============================================
+
+input,
+textarea,
+select {
+  @include input-base;
+}
+
+label {
+  display: block;
+  font-size: $text-sm;
+  font-weight: $font-medium;
+  color: var(--text-secondary);
+  margin-bottom: $space-2;
+}
+
+// ============================================
+// HR
+// ============================================
+
+hr {
+  border: none;
+  border-top: 1px solid var(--bg-elevated);
+  margin: $space-6 0;
+}
+
+// ============================================
+// BLOCKQUOTE
+// ============================================
+
+blockquote {
+  padding-left: $space-4;
+  border-left: 3px solid var(--accent);
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: $space-4 0;
+}
+
+// ============================================
+// TABLE
+// ============================================
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: $space-4 0;
+}
+
+th,
+td {
+  padding: $space-3;
+  text-align: left;
+  border-bottom: 1px solid var(--bg-elevated);
+}
+
+th {
+  font-weight: $font-semibold;
+  color: var(--text-secondary);
+  font-size: $text-sm;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}

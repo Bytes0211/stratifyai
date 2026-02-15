@@ -1,0 +1,44 @@
+// ============================================
+// MAIN SCSS - Entry point for global styles
+// ============================================
+
+// Import order matters: tokens first, then reset, themes, base
+@use 'reset';
+@use 'themes';
+@use 'base';
+
+// ============================================
+// FONTS - Google Fonts loaded via <link> in app.html
+// Inter: Primary sans-serif
+// JetBrains Mono: Code/monospace
+// ============================================
+
+// ============================================
+// GLOBAL UTILITIES
+// ============================================
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.visually-hidden {
+  @extend .sr-only;
+}
+
+// ============================================
+// APP CONTAINER
+// ============================================
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
