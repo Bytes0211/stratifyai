@@ -1,0 +1,21 @@
+# Development & testing dependencies
+-r requirements.txt
+
+# Testing
+pytest>=9.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.0.0
+pytest-mock>=3.0.0
+
+# Code quality
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.0.0
+
+# Optional runtime (RAG, extraction)
+chromadb>=0.5.0
+pandas>=2.0.0
+
+# Publishing
+twine>=5.0.0
+build>=1.0.0

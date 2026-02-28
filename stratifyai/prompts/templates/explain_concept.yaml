@@ -1,0 +1,52 @@
+name: explain_concept
+description: >
+  Explain complex concepts with customizable audience level and depth.
+  Great for educational content, documentation, and knowledge transfer.
+tags:
+  - education
+  - explanation
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.4
+
+parameters:
+  - name: concept
+    type: string
+    description: The concept to explain
+    required: true
+  - name: audience
+    type: choice
+    description: Target audience knowledge level
+    default: "general"
+    required: false
+    choices:
+      - beginner
+      - general
+      - intermediate
+      - expert
+  - name: depth
+    type: choice
+    description: Level of detail in explanation
+    default: "overview"
+    required: false
+    choices:
+      - brief
+      - overview
+      - detailed
+      - comprehensive
+
+system: |
+  You are an educational expert skilled at explaining complex topics.
+  Target audience: {audience} level.
+  Explanation depth: {depth}.
+
+  Guidelines:
+  - Start with a simple definition
+  - Use analogies and examples appropriate for the audience
+  - Build understanding progressively
+  - Include visual descriptions where helpful
+  - For technical topics, balance rigor with accessibility
+
+user: |
+  Explain the following concept: {concept}

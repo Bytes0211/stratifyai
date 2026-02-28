@@ -1,0 +1,121 @@
+// ============================================
+// THEMES - Dark/Light mode via CSS custom properties
+// ============================================
+
+@use 'tokens' as *;
+
+// ============================================
+// DARK THEME (DEFAULT)
+// ============================================
+
+:root,
+[data-theme="dark"] {
+  // Backgrounds
+  --bg-base: #{$bg-base};
+  --bg-surface: #{$bg-surface};
+  --bg-elevated: #{$bg-elevated};
+  --bg-hover: #{$bg-hover};
+  
+  // Text
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  
+  // Accent
+  --accent: #{$accent-primary};
+  --accent-hover: #{$accent-hover};
+  
+  // Semantic
+  --success: #{$success};
+  --warning: #{$warning};
+  --error: #{$error};
+  --info: #{$info};
+  
+  // Provider colors
+  --provider-openai: #{$provider-openai};
+  --provider-anthropic: #{$provider-anthropic};
+  --provider-google: #{$provider-google};
+  --provider-deepseek: #{$provider-deepseek};
+  --provider-groq: #{$provider-groq};
+  --provider-grok: #{$provider-grok};
+  --provider-openrouter: #{$provider-openrouter};
+  --provider-ollama: #{$provider-ollama};
+  --provider-bedrock: #{$provider-bedrock};
+  
+  // Code highlighting (dark theme)
+  --code-bg: #{$bg-elevated};
+  --code-text: #{$text-primary};
+  --code-comment: #{$text-muted};
+  --code-keyword: #c792ea;
+  --code-string: #c3e88d;
+  --code-number: #f78c6c;
+  --code-function: #82aaff;
+  
+  color-scheme: dark;
+}
+
+// ============================================
+// LIGHT THEME
+// ============================================
+
+[data-theme="light"] {
+  // Backgrounds
+  --bg-base: #{$bg-base-light};
+  --bg-surface: #{$bg-surface-light};
+  --bg-elevated: #{$bg-elevated-light};
+  --bg-hover: #{$bg-hover-light};
+  
+  // Text
+  --text-primary: #{$text-primary-light};
+  --text-secondary: #{$text-secondary-light};
+  --text-muted: #{$text-muted-light};
+  
+  // Accent
+  --accent: #{$accent-primary-light};
+  --accent-hover: #{$accent-hover-light};
+  
+  // Code highlighting (light theme)
+  --code-bg: #f6f8fa;
+  --code-text: #{$text-primary-light};
+  --code-comment: #6a737d;
+  --code-keyword: #d73a49;
+  --code-string: #22863a;
+  --code-number: #005cc5;
+  --code-function: #6f42c1;
+  
+  color-scheme: light;
+}
+
+// ============================================
+// SYSTEM PREFERENCE DETECTION
+// ============================================
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    // Backgrounds
+    --bg-base: #{$bg-base-light};
+    --bg-surface: #{$bg-surface-light};
+    --bg-elevated: #{$bg-elevated-light};
+    --bg-hover: #{$bg-hover-light};
+    
+    // Text
+    --text-primary: #{$text-primary-light};
+    --text-secondary: #{$text-secondary-light};
+    --text-muted: #{$text-muted-light};
+    
+    // Accent
+    --accent: #{$accent-primary-light};
+    --accent-hover: #{$accent-hover-light};
+    
+    // Code highlighting (light theme)
+    --code-bg: #f6f8fa;
+    --code-text: #{$text-primary-light};
+    --code-comment: #6a737d;
+    --code-keyword: #d73a49;
+    --code-string: #22863a;
+    --code-number: #005cc5;
+    --code-function: #6f42c1;
+    
+    color-scheme: light;
+  }
+}

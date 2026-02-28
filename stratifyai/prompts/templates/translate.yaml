@@ -1,0 +1,52 @@
+name: translate
+description: >
+  Translate text between languages with attention to context, idioms,
+  and cultural nuances. Supports formality levels.
+tags:
+  - language
+  - translation
+recommended_models:
+  - gpt-4.1
+  - claude-sonnet-4-20250514
+recommended_temperature: 0.3
+
+parameters:
+  - name: text
+    type: text
+    description: Text to translate
+    required: true
+  - name: target_language
+    type: string
+    description: Target language (e.g., "Spanish", "French", "Japanese")
+    required: true
+  - name: source_language
+    type: string
+    description: Source language (auto-detected if not specified)
+    default: "auto"
+    required: false
+  - name: formality
+    type: choice
+    description: Formality level of translation
+    default: "neutral"
+    required: false
+    choices:
+      - formal
+      - neutral
+      - informal
+
+system: |
+  You are an expert translator fluent in multiple languages.
+  Translating from {source_language} to {target_language}.
+  Formality level: {formality}.
+
+  Translation guidelines:
+  - Preserve the original meaning and tone
+  - Handle idioms and cultural references appropriately
+  - Maintain proper formality level
+  - Use natural phrasing in the target language
+  - Note any untranslatable terms with brief explanations
+
+user: |
+  Translate the following text to {target_language}:
+
+  {text}

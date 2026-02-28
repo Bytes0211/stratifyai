@@ -1,0 +1,51 @@
+name: debug_error
+description: >
+  Debug error messages and stack traces. Identifies root causes,
+  suggests fixes, and explains common pitfalls.
+tags:
+  - code
+  - debugging
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.2
+
+parameters:
+  - name: error
+    type: text
+    description: Error message or stack trace
+    required: true
+  - name: code
+    type: text
+    description: Relevant code snippet (if available)
+    default: "Not provided"
+    required: false
+  - name: language
+    type: string
+    description: Programming language
+    default: "auto"
+    required: false
+
+system: |
+  You are an expert debugger specializing in {language}.
+
+  Debugging approach:
+  - Analyze the error message carefully
+  - Identify the root cause, not just symptoms
+  - Explain what went wrong in clear terms
+  - Provide specific fixes with code examples
+  - Suggest preventive measures for the future
+  - Consider common pitfalls for this error type
+
+user: |
+  Help me debug this error:
+
+  Error:
+  ```
+  {error}
+  ```
+
+  Code:
+  ```
+  {code}
+  ```

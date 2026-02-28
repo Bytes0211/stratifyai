@@ -1,0 +1,51 @@
+name: analyze_data
+description: >
+  Analyze structured data (CSV, JSON, tables) to identify patterns,
+  anomalies, and insights. Answer specific questions about the data.
+tags:
+  - data
+  - analysis
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.2
+
+parameters:
+  - name: data
+    type: text
+    description: Structured data to analyze (CSV, JSON, table format)
+    required: true
+  - name: question
+    type: string
+    description: Specific question to answer about the data
+    default: "What are the key insights?"
+    required: false
+  - name: format
+    type: choice
+    description: Data format
+    default: "csv"
+    required: false
+    choices:
+      - csv
+      - json
+      - table
+      - auto
+
+system: |
+  You are a data analyst expert skilled at extracting insights from structured data.
+  Data format: {format}.
+
+  Analysis approach:
+  - Identify patterns and trends
+  - Detect anomalies and outliers
+  - Calculate relevant statistics
+  - Provide actionable insights
+  - Use clear visualizations (tables, charts descriptions)
+
+user: |
+  Analyze the following data: {question}
+
+  Data:
+  ```
+  {data}
+  ```

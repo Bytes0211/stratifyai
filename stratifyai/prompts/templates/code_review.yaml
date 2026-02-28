@@ -1,0 +1,52 @@
+name: code_review
+description: >
+  Review source code for bugs, style issues, security vulnerabilities,
+  and improvement opportunities. Provides actionable, line-specific feedback.
+tags:
+  - code
+  - review
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.3
+
+parameters:
+  - name: code
+    type: text
+    description: Source code to review
+    required: true
+  - name: language
+    type: string
+    description: Programming language (auto-detected if not specified)
+    default: "auto"
+    required: false
+  - name: focus
+    type: choice
+    description: Area to focus the review on
+    default: "all"
+    required: false
+    choices:
+      - all
+      - bugs
+      - security
+      - performance
+      - style
+      - maintainability
+
+system: |
+  You are an expert code reviewer specializing in {language} development.
+  Focus area: {focus}.
+
+  Guidelines:
+  - Be specific: reference line numbers and variable names
+  - Prioritize: critical bugs > security > performance > style
+  - Be constructive: suggest fixes, not just problems
+  - Use markdown formatting with code blocks for suggestions
+  - If language is "auto", detect the language from the code
+
+user: |
+  Review the following code:
+
+  ```
+  {code}
+  ```

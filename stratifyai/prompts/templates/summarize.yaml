@@ -1,0 +1,50 @@
+name: summarize
+description: >
+  Summarize a document or text passage with configurable length and style.
+  Supports bullet points, narrative, and executive summary formats.
+tags:
+  - writing
+  - summary
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1-mini
+recommended_temperature: 0.3
+
+parameters:
+  - name: text
+    type: text
+    description: Document text to summarize
+    required: true
+  - name: max_length
+    type: number
+    description: Maximum summary length in words
+    default: 200
+    required: false
+  - name: style
+    type: choice
+    description: Summary output style
+    default: "bullet_points"
+    required: false
+    choices:
+      - bullet_points
+      - narrative
+      - executive_summary
+      - one_sentence
+
+system: |
+  You are a professional document summarizer. Your summaries are:
+  - Accurate: preserve key facts and conclusions
+  - Concise: stay within {max_length} words
+  - Complete: cover all major themes
+  - Well-structured: use the "{style}" format
+
+  Style guidelines:
+  - bullet_points: use markdown bullet lists with bold topic labels
+  - narrative: flowing prose paragraphs
+  - executive_summary: opening statement, key findings, recommendations
+  - one_sentence: single comprehensive sentence
+
+user: |
+  Summarize the following text in {style} format (max {max_length} words):
+
+  {text}

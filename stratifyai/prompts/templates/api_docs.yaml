@@ -1,0 +1,54 @@
+name: api_docs
+description: >
+  Generate comprehensive API documentation from code. Includes parameters,
+  return types, examples, and common use cases.
+tags:
+  - code
+  - documentation
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.3
+
+parameters:
+  - name: code
+    type: text
+    description: API code (function, class, or module)
+    required: true
+  - name: language
+    type: string
+    description: Programming language
+    default: "auto"
+    required: false
+  - name: format
+    type: choice
+    description: Documentation format
+    default: "markdown"
+    required: false
+    choices:
+      - markdown
+      - docstring
+      - javadoc
+      - sphinx
+      - jsdoc
+
+system: |
+  You are a technical writer specializing in API documentation.
+  Language: {language}.
+  Documentation format: {format}.
+
+  Documentation guidelines:
+  - Provide a clear summary of purpose
+  - Document all parameters with types
+  - Describe return values
+  - Include usage examples
+  - Note any exceptions or edge cases
+  - Add see-also references for related functions
+  - Use proper formatting for the specified style
+
+user: |
+  Document the following API code:
+
+  ```
+  {code}
+  ```

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StratifyAI - Model Catalog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 img {
+            height: 40px;
+            width: auto;
+        }
+        
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #5568d3;
+        }
+        
+        .summary-bar {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .summary-item .label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .summary-item .value {
+            font-weight: 600;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .filters {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .filter-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .main-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        
+        .provider-section {
+            margin-bottom: 30px;
+        }
+        
+        .provider-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .provider-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .provider-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .provider-status.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .provider-status.inactive {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .provider-meta {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .model-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .cost {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            color: #666;
+        }
+        
+        .context {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+        
+        .capability {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin: 2px;
+        }
+        
+        .capability.vision {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .capability.tools {
+            background: #fce7f3;
+            color: #be185d;
+        }
+        
+        .capability.caching {
+            background: #d1fae5;
+            color: #047857;
+        }
+        
+        .capability.reasoning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .validated-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .validated-badge.yes {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .validated-badge.no {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .no-models {
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <img src="/static/stratifyai_wide_logo.png" alt="StratifyAI Logo">
+                Model Catalog
+            </h1>
+            <a href="/" class="back-btn">← Back to Chat</a>
+        </div>
+        
+        <div class="summary-bar" id="summary-bar">
+            <div class="summary-item">
+                <span class="label">Total Models:</span>
+                <span class="value" id="total-models">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Providers:</span>
+                <span class="value" id="total-providers">-</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Active Providers:</span>
+                <span class="value" id="active-providers">-</span>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label for="provider-filter">Provider:</label>
+                <select id="provider-filter">
+                    <option value="">All Providers</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="capability-filter">Capability:</label>
+                <select id="capability-filter">
+                    <option value="">All Capabilities</option>
+                    <option value="vision">Vision</option>
+                    <option value="tools">Tools</option>
+                    <option value="caching">Caching</option>
+                    <option value="reasoning">Reasoning</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <input type="checkbox" id="active-only">
+                <label for="active-only">Active providers only</label>
+            </div>
+            <div class="filter-group">
+                <input type="checkbox" id="validated-only">
+                <label for="validated-only">Validated models only</label>
+            </div>
+            <div class="filter-group">
+                <button id="reset-filters" style="background: #6b7280; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 500;">🔄 Reset Filters</button>
+            </div>
+        </div>
+        
+        <div class="main-content" id="main-content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading model catalog...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let allData = null;
+        
+        // Format cost for display
+        function formatCost(cost) {
+            if (cost === 0 || cost === null || cost === undefined) return '-';
+            if (cost < 0.01) return `$${cost.toFixed(4)}`;
+            return `$${cost.toFixed(2)}`;
+        }
+        
+        // Format context window for display
+        function formatContext(context) {
+            if (!context) return '-';
+            if (context >= 1000000) return `${(context / 1000000).toFixed(1)}M`;
+            if (context >= 1000) return `${(context / 1000).toFixed(0)}K`;
+            return context.toString();
+        }
+        
+        // Capitalize provider name
+        function capitalizeProvider(provider) {
+            const special = {
+                'openai': 'OpenAI',
+                'anthropic': 'Anthropic',
+                'google': 'Google',
+                'deepseek': 'DeepSeek',
+                'groq': 'Groq',
+                'grok': 'Grok (X.AI)',
+                'ollama': 'Ollama',
+                'openrouter': 'OpenRouter',
+                'bedrock': 'AWS Bedrock'
+            };
+            return special[provider] || provider.charAt(0).toUpperCase() + provider.slice(1);
+        }
+        
+        // Build capabilities badges
+        function buildCapabilities(model) {
+            let badges = [];
+            if (model.supports_vision) badges.push('<span class="capability vision">👁️ Vision</span>');
+            if (model.supports_tools) badges.push('<span class="capability tools">🔧 Tools</span>');
+            if (model.supports_caching) badges.push('<span class="capability caching">💾 Caching</span>');
+            if (model.reasoning_model) badges.push('<span class="capability reasoning">🧠 Reasoning</span>');
+            return badges.length > 0 ? badges.join('') : '<span style="color: #999;">-</span>';
+        }
+        
+        // Render models table
+        function renderModels() {
+            if (!allData) return;
+            
+            const providerFilter = document.getElementById('provider-filter').value;
+            const capabilityFilter = document.getElementById('capability-filter').value;
+            const activeOnly = document.getElementById('active-only').checked;
+            const validatedOnly = document.getElementById('validated-only').checked;
+            
+            const container = document.getElementById('main-content');
+            let html = '';
+            
+            // Get providers in order
+            const providerOrder = ['openai', 'anthropic', 'google', 'deepseek', 'groq', 'grok', 'ollama', 'openrouter', 'bedrock'];
+            const providers = providerFilter ? [providerFilter] : providerOrder;
+            
+            for (const provider of providers) {
+                const providerData = allData.providers[provider];
+                if (!providerData) continue;
+                
+                // Filter by active status
+                if (activeOnly && !providerData.active) continue;
+                
+                // Filter models
+                let models = providerData.models || [];
+                
+                if (capabilityFilter) {
+                    models = models.filter(m => {
+                        switch (capabilityFilter) {
+                            case 'vision': return m.supports_vision;
+                            case 'tools': return m.supports_tools;
+                            case 'caching': return m.supports_caching;
+                            case 'reasoning': return m.reasoning_model;
+                            default: return true;
+                        }
+                    });
+                }
+                
+                if (validatedOnly) {
+                    models = models.filter(m => m.validated);
+                }
+                
+                if (models.length === 0) continue;
+                
+                // Build provider section
+                html += `
+                <div class="provider-section">
+                    <div class="provider-header">
+                        <span class="provider-name">${capitalizeProvider(provider)}</span>
+                        <span class="provider-status ${providerData.active ? 'active' : 'inactive'}">
+                            ${providerData.active ? '✓ Active' : '⚠ No API Key'}
+                        </span>
+                        <span class="provider-meta">${models.length} model${models.length !== 1 ? 's' : ''}</span>
+                        ${providerData.validation_error ? `<span class="provider-meta" style="color: #dc2626;">⚠ ${providerData.validation_error}</span>` : ''}
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Context</th>
+                                <th>Cost (Input)</th>
+                                <th>Cost (Output)</th>
+                                <th>Capabilities</th>
+                                <th>Validated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                for (const model of models) {
+                    html += `
+                        <tr>
+                            <td class="model-name">${model.id}</td>
+                            <td class="context">${formatContext(model.context_window)}</td>
+                            <td class="cost">${formatCost(model.cost_input)}/1M</td>
+                            <td class="cost">${formatCost(model.cost_output)}/1M</td>
+                            <td>${buildCapabilities(model)}</td>
+                            <td>
+                                <span class="validated-badge ${model.validated ? 'yes' : 'no'}">
+                                    ${model.validated ? '✓ Yes' : '✗ No'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                html += `
+                        </tbody>
+                    </table>
+                </div>
+                `;
+            }
+            
+            if (!html) {
+                html = '<div class="no-models">No models match the current filters.</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Load data
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/all-models`);
+                if (!response.ok) throw new Error('Failed to load models');
+                
+                allData = await response.json();
+                
+                // Update summary
+                document.getElementById('total-models').textContent = allData.summary.total_models;
+                document.getElementById('total-providers').textContent = allData.summary.total_providers;
+                document.getElementById('active-providers').textContent = allData.summary.active_providers;
+                
+                // Populate provider filter
+                const providerFilter = document.getElementById('provider-filter');
+                const providerOrder = ['openai', 'anthropic', 'google', 'deepseek', 'groq', 'grok', 'ollama', 'openrouter', 'bedrock'];
+                for (const provider of providerOrder) {
+                    if (allData.providers[provider]) {
+                        const option = document.createElement('option');
+                        option.value = provider;
+                        option.textContent = capitalizeProvider(provider);
+                        providerFilter.appendChild(option);
+                    }
+                }
+                
+                // Render models
+                renderModels();
+                
+            } catch (error) {
+                document.getElementById('main-content').innerHTML = `
+                    <div class="error-message">
+                        ❌ Error loading model catalog: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('provider-filter').value = '';
+            document.getElementById('capability-filter').value = '';
+            document.getElementById('active-only').checked = false;
+            document.getElementById('validated-only').checked = false;
+            renderModels();
+        }
+        
+        // Event listeners for filters
+        document.getElementById('provider-filter').addEventListener('change', renderModels);
+        document.getElementById('capability-filter').addEventListener('change', renderModels);
+        document.getElementById('active-only').addEventListener('change', renderModels);
+        document.getElementById('validated-only').addEventListener('change', renderModels);
+        document.getElementById('reset-filters').addEventListener('click', resetFilters);
+        
+        // Initialize
+        loadData();
+    </script>
+</body>
+</html>

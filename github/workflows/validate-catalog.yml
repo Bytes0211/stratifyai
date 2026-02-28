@@ -1,0 +1,76 @@
+name: Validate Model Catalog
+
+on:
+  pull_request:
+    paths:
+      - 'catalog/models.json'
+      - 'catalog/schema.json'
+      - 'scripts/validate_catalog.py'
+  push:
+    branches:
+      - main
+    paths:
+      - 'catalog/models.json'
+      - 'catalog/schema.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate catalog/models.json
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Run catalog validation
+        run: |
+          python scripts/validate_catalog.py
+      
+      - name: Check for dated model IDs (Anthropic only)
+        run: |
+          # Verify Anthropic models use dated IDs (YYYYMMDD pattern)
+          # Note: Only Anthropic requires dated IDs. Other providers (Google, OpenAI, Groq, etc.)
+          # use stable aliases without dates as their official model IDs.
+          echo "Checking Anthropic models for dated IDs..."
+          python -c "
+import json
+import re
+import sys
+
+with open('catalog/models.json') as f:
+    catalog = json.load(f)
+
+errors = []
+dated_pattern = re.compile(r'\\d{8}')  # YYYYMMDD
+
+# Only check providers that use dated model IDs
+providers_requiring_dates = ['anthropic']
+
+for provider in providers_requiring_dates:
+    if provider not in catalog['providers']:
+        continue
+    for model_id in catalog['providers'][provider].keys():
+        if not dated_pattern.search(model_id):
+            errors.append(f'{provider}/{model_id}: Missing dated ID (should contain YYYYMMDD)')
+
+if errors:
+    print('❌ Found Anthropic models without dated IDs:')
+    for error in errors:
+        print(f'   - {error}')
+    print()
+    print('💡 TIP: Use Anthropic\\'s official dated model IDs (e.g., claude-3-haiku-20240307)')
+    sys.exit(1)
+else:
+    print('✓ All Anthropic models use dated IDs')
+          "
+      
+      - name: Report validation success
+        if: success()
+        run: |
+          echo "✅ Catalog validation passed!"
+          echo "Models can be safely merged."

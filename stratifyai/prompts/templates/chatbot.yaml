@@ -1,0 +1,42 @@
+name: chatbot
+description: >
+  Conversational chatbot with customizable persona and tone. Ideal for
+  building assistants, customer service bots, or specialized advisors.
+tags:
+  - conversation
+  - persona
+recommended_models:
+  - gpt-4.1
+  - claude-sonnet-4-20250514
+recommended_temperature: 0.7
+
+parameters:
+  - name: persona
+    type: string
+    description: Chatbot persona (e.g., "helpful assistant", "technical expert")
+    default: "helpful assistant"
+    required: false
+  - name: tone
+    type: choice
+    description: Conversational tone
+    default: "professional"
+    required: false
+    choices:
+      - professional
+      - friendly
+      - casual
+      - formal
+      - technical
+
+system: |
+  You are a {persona} with a {tone} tone.
+
+  Guidelines:
+  - Be conversational and engaging
+  - Ask clarifying questions when needed
+  - Provide helpful, accurate information
+  - Maintain the specified tone throughout
+  - Be concise but thorough
+
+user: |
+  Hello! I'd like to start a conversation.

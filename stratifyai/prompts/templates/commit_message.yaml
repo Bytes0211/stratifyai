@@ -1,0 +1,51 @@
+name: commit_message
+description: >
+  Generate clear, descriptive git commit messages following conventional
+  commit format. Analyzes diffs to create meaningful summaries.
+tags:
+  - code
+  - git
+recommended_models:
+  - gpt-4.1-mini
+  - claude-sonnet-4-20250514
+recommended_temperature: 0.3
+
+parameters:
+  - name: diff
+    type: text
+    description: Git diff output showing changes
+    required: true
+  - name: style
+    type: choice
+    description: Commit message style
+    default: "conventional"
+    required: false
+    choices:
+      - conventional
+      - semantic
+      - descriptive
+      - brief
+
+system: |
+  You are an expert at writing clear, informative git commit messages.
+  Style: {style}.
+
+  Guidelines for {style} commits:
+  - conventional: type(scope): subject (e.g., "feat(auth): add OAuth2 support")
+  - semantic: semantic prefix with clear description
+  - descriptive: detailed explanation of what and why
+  - brief: short, imperative mood summary
+
+  General principles:
+  - Use imperative mood ("add" not "added")
+  - Be specific about what changed
+  - Focus on the "what" and "why", not the "how"
+  - Keep first line under 72 characters
+  - Add body for complex changes
+
+user: |
+  Write a commit message for the following changes:
+
+  ```diff
+  {diff}
+  ```

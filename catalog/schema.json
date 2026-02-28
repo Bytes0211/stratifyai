@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StratifyAI Model Catalog Schema",
+  "description": "Schema for validating LLM provider model catalogs",
+  "type": "object",
+  "required": ["version", "updated", "providers"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Catalog version (semver)"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    },
+    "providers": {
+      "type": "object",
+      "description": "Provider-specific model catalogs",
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "type": "object",
+          "description": "Models for a specific provider",
+          "patternProperties": {
+            "^[a-zA-Z0-9._-]+$": {
+              "type": "object",
+              "required": ["context", "cost_input", "cost_output"],
+              "properties": {
+                "context": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Context window size in tokens"
+                },
+                "cost_input": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Cost per 1M input tokens in USD"
+                },
+                "cost_output": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Cost per 1M output tokens in USD"
+                },
+                "cost_cache_write": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Cost per 1M tokens for cache writes"
+                },
+                "cost_cache_read": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Cost per 1M tokens for cache reads"
+                },
+                "api_max_input": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "API-enforced maximum input tokens (if different from context)"
+                },
+                "supports_vision": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "supports_tools": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "supports_caching": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "reasoning_model": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "fixed_temperature": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Whether model is deprecated"
+                },
+                "deprecated_date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Date model was deprecated (YYYY-MM-DD)"
+                },
+                "replacement_model": {
+                  "type": "string",
+                  "description": "Recommended replacement model ID"
+                },
+                "display_name": {
+                  "type": "string",
+                  "description": "Human-readable model name for UI"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Short description for UI (max 50 chars)"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category for UI grouping"
+                },
+                "free": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "quality_score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Estimated quality score (0.0-1.0) based on benchmarks"
+                },
+                "avg_latency_ms": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Average response latency in milliseconds"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

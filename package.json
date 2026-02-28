@@ -1,0 +1,15 @@
+{
+  "name": "stratifyai",
+  "version": "0.1.3",
+  "private": true,
+  "description": "Unified multi-provider LLM abstraction module with intelligent routing, cost tracking, and caching",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "preview": "npm run preview --prefix frontend",
+    "check": "npm run check --prefix frontend",
+    "install:frontend": "npm install --prefix frontend"
+  },
+  "author": "Steven Cotton",
+  "license": "MIT"
+}

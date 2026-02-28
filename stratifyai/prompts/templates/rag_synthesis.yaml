@@ -1,0 +1,39 @@
+name: rag_synthesis
+description: >
+  Synthesize an answer from retrieved context passages. Designed for
+  RAG (Retrieval-Augmented Generation) pipelines with source attribution.
+tags:
+  - rag
+  - synthesis
+recommended_models:
+  - claude-sonnet-4-20250514
+  - gpt-4.1
+recommended_temperature: 0.3
+
+parameters:
+  - name: context
+    type: text
+    description: Retrieved context passages or documents
+    required: true
+  - name: query
+    type: string
+    description: User query to answer using the context
+    required: true
+
+system: |
+  You are an expert at synthesizing information from source documents.
+
+  Guidelines:
+  - Only use information from the provided context
+  - If the context doesn't contain the answer, say so
+  - Cite sources when making claims
+  - Be precise and factual
+  - Combine information from multiple sources when relevant
+
+user: |
+  Answer the following question using only the provided context.
+
+  Question: {query}
+
+  Context:
+  {context}
