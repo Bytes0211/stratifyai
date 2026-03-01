@@ -1,125 +1,162 @@
-# Phase 9.0 — Profile Data Model & Registry
+---
+title: "Phase 9.0: Profile System — Data Model"
+labels: ["enhancement", "profiles", "dx", "production"]
+milestone: "Phase 9 - Profiles"
+assignees: []
+---
 
-**Status:** Planned  
-**Owner:** @stratifyai-core  
-**Target Release:** Phase 9 (Profiles)  
-**Last Updated:** 2026-02-28
+## Phase 9.0 — Profile Data Model
+
+**Priority:** 💡 HIGH — Foundation for the entire profile system
+**Estimated effort:** 0.5 days
+**Branch:** `dev`
+**Status:** ✅ COMPLETE (Mar 1, 2026)
+
+### Context
+
+StratifyAI has no reusable configuration bundles. Users manually configure temperature, max_tokens, reasoning depth, and other behavioral parameters per-request via ChatBuilder, CLI flags, or the API. This creates inconsistency across calls and prevents teams from standardizing model behavior.
+
+This step implements the foundational data model for profiles — the `ProfileParameter` schema class, the `Profile` dataclass, structural validation, and the merge utility for inheritance resolution.
+
+### References
+
+- **User Guide:** `docs/PROFILE-SYSTEM.md`
+- **Engineering Plan:** `docs/PROFILE-SYSTEM-PLAN.md`
+- **DEV-SPEC:** `docs/DEV-SPEC-StratifyAI-WORKFLOW.md` — Section 6
+- **PRD:** `docs/PRD-StratifyAI-WORKFLOW-ROADMAP.md` — Step 3
 
 ---
 
-## 1. Summary
+### Task List
 
-Implement the foundational profile data model and registry for StratifyAI. Profiles encapsulate reusable configuration bundles (temperature, max tokens, reasoning depth, cost sensitivity, multimodal flag, JSON enforcement, tool availability, router hints) that can be applied across providers and models. This issue covers the core infrastructure: dataclasses, validation logic, YAML loading with inheritance, and tests. Follow-up issues will handle CLI/API/ChatBuilder integration.
+#### 9.0.1 — ProfileParameter Schema Class
+> **File:** `stratifyai/profiles/models.py`
 
----
+- [x] Create `ProfileParameter` dataclass with validation for 5 types: number, integer, boolean, string, select
+- [x] Support `min_value` / `max_value` range constraints for number and integer types
+- [x] Support `choices` list for select type
+- [x] Support `default` fallback when value is `None`
+- [x] Type coercion: `float()` for number, `int()` for integer
+- [x] Raise clear `ValueError` messages with parameter name and constraint details
 
-## 2. Goals
+**Why:** Profiles need a fixed schema that defines what parameters exist and what values they accept. This is the global schema, not per-profile — there are exactly 8 parameter definitions shared across all profiles.
 
-- Define strongly-typed profile dataclasses (`Profile`, `ProfileParameter`).
-- Implement a lazy-loaded profile registry that supports inheritance (`extends`), user overrides, and validation against model capabilities.
-- Provide built-in profiles (fast, balanced, reasoning, vision, json, cheap) with YAML definitions.
-- Ensure extensibility for future profile additions (router hints, structured outputs).
-
----
-
-## 3. Acceptance Criteria
-
-- [ ] `stratifyai/profiles/models.py` contains dataclasses with full type hints and docstrings.
-- [ ] `stratifyai/profiles/registry.py` loads built-in profiles and user overrides, resolves inheritance, and validates configurations.
-- [ ] Built-in profiles defined in `stratifyai/profiles/profiles.yaml` pass validation.
-- [ ] Validation detects capability mismatches (vision, JSON mode, tool use, etc.) when rendered for a provider/model.
-- [ ] Unit tests cover registry loading, inheritance, validation, and override precedence.
-- [ ] Developer documentation (docstrings + inline comments) explains how to add future profiles.
-
----
-
-## 4. Deliverables
-
-1. **Data Model**
-   - `ProfileParameter` metadata (name, type, description, ranges, choices, defaults).
-   - `Profile` dataclass (name, description, parameters dict, tags, extends, source, notes).
-
-2. **Registry**
-   - Singleton registry with lazy loading.
-   - Load order: built-in YAML → user overrides (`~/.stratifyai/profiles/`).
-   - Methods: `list`, `get`, `render`, `validate`, `register`, `reload` (optional).
-   - Inheritance resolution with cycle detection.
-   - Validation against model catalog capabilities.
-
-3. **Built-in Profiles**
-   - `stratifyai/profiles/profiles.yaml` with six baseline profiles.
-   - Documentation of intended usage and compatibility notes.
-
-4. **Tests**
-   - New test module `tests/test_profiles.py`.
-   - Coverage for happy paths, inheritance, validation failures, user overrides.
+**Validation:**
+```python
+from stratifyai.profiles.models import PARAMETER_DEFINITIONS
+temp = PARAMETER_DEFINITIONS["temperature"]
+assert temp.validate(0.5) == 0.5
+assert temp.validate(None) == 0.7  # default
+# temp.validate(3.0) -> ValueError
+```
 
 ---
 
-## 5. Implementation Plan
+#### 9.0.2 — Parameter Definitions
+> **File:** `stratifyai/profiles/models.py`
 
-1. **Scaffold Module & Dataclasses**
-   - Create `stratifyai/profiles/models.py` with dataclasses and validation helpers.
-   - Add convenience enums/constants for parameter types/choices.
+- [x] Define `PARAMETER_DEFINITIONS: dict[str, ProfileParameter]` with 8 entries:
+  - [x] `temperature` — number, range 0.0–2.0, default 0.7
+  - [x] `max_tokens` — integer, range 1–1,000,000, default 2048
+  - [x] `reasoning_depth` — select, choices: minimal/standard/deep, default standard
+  - [x] `speed_vs_accuracy` — select, choices: speed/balanced/accuracy, default balanced
+  - [x] `cost_sensitivity` — select, choices: low/medium/high, default medium
+  - [x] `multimodal` — boolean, default false
+  - [x] `json_mode` — boolean, default false
+  - [x] `tool_use` — boolean, default false
 
-2. **Registry & Loader**
-   - Implement registry class with internal cache.
-   - YAML parsing via `yaml.safe_load` (handle missing keys, wrong types).
-   - Merge profiles with inheritance; raise descriptive errors on cycles or missing parents.
+**Why:** Fixed schema makes validation deterministic and extensible. Parameter definitions match `PROFILE-SYSTEM-PLAN.md` §5.
 
-3. **Built-in Profiles**
-   - Translate roadmap defaults into YAML.
-   - Add tags for filtering (speed, reasoning, etc.).
-
-4. **Validation Logic**
-   - Integrate model catalog metadata (vision/tools/json flags).
-   - Create helper that accepts provider/model and raises informative errors.
-
-5. **Testing**
-   - Use fixtures/mocks for catalog and capability checks.
-  - Test user override directory via temporary path.
-
-6. **Documentation & Cleanup**
-   - Docstrings, inline comments, and developer journal update.
-   - Prepare follow-up issues for CLI/API/ChatBuilder integration.
+**Validation:**
+```python
+assert len(PARAMETER_DEFINITIONS) == 8
+assert PARAMETER_DEFINITIONS["reasoning_depth"].choices == ["minimal", "standard", "deep"]
+```
 
 ---
 
-## 6. Risks & Mitigations
+#### 9.0.3 — Profile Dataclass
+> **File:** `stratifyai/profiles/models.py`
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Inheritance loops cause infinite recursion | Low | High | Add cycle detection with ancestor tracking. |
-| Capability metadata missing for new models | Medium | Medium | Fallback warnings + regression tests referencing catalog schema. |
-| User YAML errors reduce discoverability | Medium | Low | Provide clear error messages and future docs (`docs/PROFILE-SYSTEM.md`). |
-| Conflicting overrides lead to unexpected behavior | Medium | Medium | Document precedence (explicit > profile > defaults) and enforce in tests. |
+- [x] Create `Profile` dataclass with fields: name, description, parameters, tags, extends, source, notes
+- [x] `parameters` is `dict[str, Any]` — values validated against `PARAMETER_DEFINITIONS`
+- [x] `extends` is `Optional[str]` for inheritance (resolution deferred to registry)
+- [x] `source` is `Literal["builtin", "user"]` for provenance tracking
+- [x] Implement `validate_parameters()` — structural validation only:
+  - [x] Check each key exists in `PARAMETER_DEFINITIONS`
+  - [x] Validate each value via the corresponding `ProfileParameter.validate()`
+  - [x] Warn (not raise) on unknown parameter keys
+  - [x] Collect all errors and raise a single `ValueError` with all failures
+- [x] Implement `to_dict()` for API serialization
+- [x] No imports from `stratifyai.config` or `stratifyai.catalog_manager` — data model stays decoupled from catalog
+
+**Why:** Clean separation: structural validation in the model, capability validation in the registry. Mirrors the `PromptTemplate` pattern where the dataclass is catalog-unaware.
+
+**Validation:**
+```python
+p = Profile(name="test", parameters={"temperature": 0.3, "reasoning_depth": "deep"})
+p.validate_parameters()  # passes
+bad = Profile(name="bad", parameters={"temperature": 5.0})
+bad.validate_parameters()  # raises ValueError
+```
+
+---
+
+#### 9.0.4 — Merge Utility
+> **File:** `stratifyai/profiles/models.py`
+
+- [x] Implement `merge_parameters(parent, child) -> dict` — shallow merge, child overrides parent
+- [x] Returns a new dict (no mutation)
+
+**Why:** Used by the registry (Step 3) to resolve `extends` inheritance chains. Placed in models.py because it operates on raw parameter dicts without needing catalog access.
+
+**Validation:**
+```python
+merged = merge_parameters({"a": 1, "b": 2}, {"b": 3, "c": 4})
+assert merged == {"a": 1, "b": 3, "c": 4}
+```
 
 ---
 
-## 7. Related Work
+### Acceptance Criteria
 
-- `docs/DEV-SPEC-StratifyAI-WORKFLOW.md` — Phase 9 implementation details.
-- `docs/PROFILE-SYSTEM-PLAN.md` — Engineering plan for profiles (this issue covers sections 5–8).
-- `docs/PROFILE-SYSTEM.md` — User guide (to be completed as parts land).
+- [x] All 408 existing tests pass (zero regressions)
+- [x] `from stratifyai.profiles.models import Profile, ProfileParameter, PARAMETER_DEFINITIONS, merge_parameters` imports cleanly
+- [x] `PARAMETER_DEFINITIONS` contains exactly 8 entries
+- [x] `ProfileParameter.validate()` correctly enforces ranges, types, choices, and defaults
+- [x] `Profile.validate_parameters()` catches invalid values with descriptive errors
+- [x] `Profile.validate_parameters()` warns on unknown keys without raising
+- [x] `Profile.to_dict()` returns JSON-serializable dict
+- [x] `merge_parameters()` produces correct shallow merge with child precedence
+- [x] `Profile.extends` field accepts `str | None` for inheritance
+- [x] No imports from `stratifyai.config`, `stratifyai.catalog_manager`, or any provider module
+- [x] Module passes `python -c "from stratifyai.profiles.models import ..."` without errors
 
----
+### Files Changed
 
-## 8. Follow-up Issues
+| Action | File | Lines | Description |
+|--------|------|-------|-------------|
+| Created | `stratifyai/profiles/models.py` | 270 | ProfileParameter, Profile, PARAMETER_DEFINITIONS, merge_parameters |
 
-1. **Phase 9.1** — Profile integration with ChatBuilder/CLI/API.
-2. **Phase 9.2** — Update documentation and developer journal.
-3. **Phase 9.3** — Profile-aware routing enhancements (optional).
-4. **Phase 9.4** — Profile support surfaced in MCP server.
+**Total:** 1 file (1 new), ~270 lines
 
----
+### Design Decisions
 
-## 9. Checklist
+1. **`ProfileParameter` is a schema class, not per-profile.** Unlike `PromptParameter` (which varies per template), `ProfileParameter` defines the global set of 8 valid parameter types. All profiles share this schema.
+2. **Structural validation only in models.** Capability validation (e.g., `multimodal=true` requires `supports_vision`) needs catalog metadata and belongs in the registry (Step 3). This keeps the data model decoupled.
+3. **`extends` is a field, not a resolution mechanism.** The `extends: str | None` field stores the parent name. Actual inheritance resolution (recursive lookup, cycle detection, parameter merging) is handled by the registry after all profiles are loaded.
+4. **Warns on unknown keys, doesn't reject.** Future-proofs against custom parameters while still surfacing likely typos.
 
-- [ ] Dataclasses merged with type hints and docstrings.
-- [ ] Registry loads built-ins and user overrides.
-- [ ] Inheritance and validation scripts implemented.
-- [ ] Built-in profiles validated against catalog.
-- [ ] Tests added and passing locally.
-- [ ] Documentation updated; follow-up issues opened.
+### Technical Debt Incurred
 
----
+- ⏳ No `__init__.py` for the profiles package yet (Step 4)
+- ⏳ No tests yet for the data model (Step 9)
+- ⏳ Capability validation deferred to registry (Step 3)
+- ⏳ YAML loading deferred to registry (Step 3)
+
+### Next Steps
+
+- **Step 2:** Built-in profiles YAML (`stratifyai/profiles/profiles.yaml`)
+- **Step 3:** ProfileRegistry with YAML loading, inheritance resolution, and capability validation
+- **Step 4:** Package exports (`stratifyai/profiles/__init__.py`)
+- **Step 5:** ChatBuilder `with_profile()` integration
