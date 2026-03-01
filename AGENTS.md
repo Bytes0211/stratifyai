@@ -233,7 +233,8 @@ stratifyai/                             # Project root
     │   ├── ollama.py
     │   └── bedrock.py
     ├── profiles/                       # Profile configuration system
-    │   └── models.py                   # Profile, ProfileParameter, PARAMETER_DEFINITIONS
+    │   ├── models.py                   # Profile, ProfileParameter, PARAMETER_DEFINITIONS
+    │   └── profiles.yaml               # 6 built-in profiles (fast, balanced, reasoning, vision, json, cheap)
     ├── prompts/                        # Prompt template system
     │   ├── __init__.py                 # Package exports + singleton registry
     │   ├── models.py                   # PromptTemplate, PromptParameter dataclasses
@@ -267,7 +268,7 @@ stratifyai/                             # Project root
 
 ### Running Tests
 ```bash
-# Run all tests (378 total)
+# Run all tests (408+ total)
 pytest
 
 # Run with verbose output
@@ -368,7 +369,7 @@ stratifyai check-keys
 **Current Phase:** Phase 7.11 - Svelte 5 SPA ✅ COMPLETE
 **Progress:** Phases 1–6 + Phase 7.1–7.11 Complete
 **Latest Updates:** Phase 7.11 complete — Svelte 5 SPA (48 files, ~8,500 lines) (Feb 16, 2026)
-**Test Suite:** 378 tests
+**Test Suite:** 408+ tests
 
 ### Completed Phases
 - ✅ Phase 1: Core Implementation (100%)
