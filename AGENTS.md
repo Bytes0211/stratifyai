@@ -232,6 +232,8 @@ stratifyai/                             # Project root
     │   ├── openrouter.py
     │   ├── ollama.py
     │   └── bedrock.py
+    ├── profiles/                       # Profile configuration system
+    │   └── models.py                   # Profile, ProfileParameter, PARAMETER_DEFINITIONS
     ├── prompts/                        # Prompt template system
     │   ├── __init__.py                 # Package exports + singleton registry
     │   ├── models.py                   # PromptTemplate, PromptParameter dataclasses
@@ -538,13 +540,21 @@ stratifyai check-keys
 
 **Status:** Production Ready — All core features complete (Feb 2026)
 
+- 🔧 Phase 9.0: Profile Data Model (In Progress) - Mar 1, 2026
+  - ProfileParameter schema class with 5-type validation (number, integer, boolean, string, select)
+  - PARAMETER_DEFINITIONS: 8 profile parameters (temperature, max_tokens, reasoning_depth, etc.)
+  - Profile dataclass with structural validation, to_dict(), extends field
+  - merge_parameters() utility for inheritance resolution
+  - Data model decoupled from catalog (no config/catalog imports)
+
 ### Future Enhancements
+- ⏳ Phase 9.0: Profile registry, YAML loading, ChatBuilder/CLI/API integration (Steps 2–10)
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
 - 📝 Phase 8: PyPI package publishing
-- 📝 Phase 9.2: MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
-- 📝 Phase 9.3: MCP Server Extended (RAG tools, prompt exposure, subscriptions)
-- 📝 Phase 9.4: MCP Client (deferred — tool orchestration loop)
+- 📝 Phase 10.1: MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
+- 📝 Phase 10.2: MCP Server Extended (RAG tools, prompt exposure, subscriptions)
+- 📝 Phase 10.3: MCP Client (deferred — tool orchestration loop)
 - 📝 Production deployment preparation
 
 ## Documentation
@@ -556,6 +566,8 @@ stratifyai check-keys
 - **docs/API-REFERENCE.md** — Full API reference
 - **docs/cli-usage.md** — CLI command reference (all 8 commands)
 - **docs/PROMPT-TEMPLATES.md** — Prompt template system guide
+- **docs/PROFILE-SYSTEM.md** — Profile system user guide
+- **docs/PROFILE-SYSTEM-PLAN.md** — Profile system engineering plan
 - **docs/StratifyAI-Router-Logic.md** — Router strategies, fallback chains, complexity analysis
 - **docs/CATALOG_MANAGEMENT.md** — Community catalog contribution guide
 - **docs/UI-OVERVIEW.md** — Svelte 5 SPA features and architecture

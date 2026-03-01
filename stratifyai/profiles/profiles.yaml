@@ -1,0 +1,96 @@
+# StratifyAI Built-in Profiles
+#
+# Each profile is a reusable configuration bundle that standardizes model
+# behavior across providers. Parameters are validated against the schema
+# defined in PARAMETER_DEFINITIONS (stratifyai/profiles/models.py).
+#
+# See docs/PROFILE-SYSTEM.md for the full user guide.
+
+profiles:
+  - name: fast
+    description: >
+      Low latency, low cost, minimal reasoning. Optimized for real-time
+      responses where speed matters more than depth.
+    parameters:
+      temperature: 0.2
+      max_tokens: 1024
+      reasoning_depth: minimal
+      speed_vs_accuracy: speed
+      cost_sensitivity: medium
+      multimodal: false
+      json_mode: false
+      tool_use: false
+    tags: [speed, realtime]
+
+  - name: balanced
+    description: >
+      General-purpose profile with stable outputs. Good default for most
+      tasks that need a balance of quality, speed, and cost.
+    parameters:
+      temperature: 0.7
+      max_tokens: 2048
+      reasoning_depth: standard
+      speed_vs_accuracy: balanced
+      cost_sensitivity: medium
+      multimodal: false
+      json_mode: false
+      tool_use: true
+    tags: [general-purpose]
+
+  - name: reasoning
+    description: >
+      Deep chain-of-thought reasoning for complex analysis, math, and
+      multi-step problem solving. Higher cost and latency.
+    extends: balanced
+    parameters:
+      temperature: 0.2
+      max_tokens: 4000
+      reasoning_depth: deep
+      speed_vs_accuracy: accuracy
+      cost_sensitivity: high
+    tags: [reasoning, analysis]
+
+  - name: vision
+    description: >
+      Multimodal profile for image analysis tasks. Requires models with
+      vision capability (e.g., GPT-4o, Claude 3, Gemini).
+    parameters:
+      temperature: 0.3
+      max_tokens: 2048
+      reasoning_depth: standard
+      speed_vs_accuracy: balanced
+      cost_sensitivity: medium
+      multimodal: true
+      json_mode: false
+      tool_use: false
+    tags: [multimodal, vision]
+
+  - name: json
+    description: >
+      Strict JSON schema enforcement for structured data extraction and
+      API response generation. Low temperature for deterministic output.
+    parameters:
+      temperature: 0.1
+      max_tokens: 2000
+      reasoning_depth: standard
+      speed_vs_accuracy: accuracy
+      cost_sensitivity: medium
+      multimodal: false
+      json_mode: true
+      tool_use: false
+    tags: [structured, json]
+
+  - name: cheap
+    description: >
+      Cost-optimized for high-volume batch workloads where budget matters
+      more than output quality. Minimal reasoning, fast execution.
+    parameters:
+      temperature: 0.4
+      max_tokens: 1024
+      reasoning_depth: minimal
+      speed_vs_accuracy: speed
+      cost_sensitivity: high
+      multimodal: false
+      json_mode: false
+      tool_use: false
+    tags: [cost, batch]
