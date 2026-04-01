@@ -548,15 +548,26 @@ stratifyai check-keys
   - merge_parameters() utility for inheritance resolution
   - Data model decoupled from catalog (no config/catalog imports)
 
+### In Progress
+
+- 🔧 Phase 9.0: Profile registry, YAML loading, ChatBuilder/CLI/API integration (Steps 2–10)
+
 ### Future Enhancements
-- ⏳ Phase 9.0: Profile registry, YAML loading, ChatBuilder/CLI/API integration (Steps 2–10)
+
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
 - 📝 Phase 8: PyPI package publishing
-- 📝 Phase 10.1: MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
-- 📝 Phase 10.2: MCP Server Extended (RAG tools, prompt exposure, subscriptions)
-- 📝 Phase 10.3: MCP Client (deferred — tool orchestration loop)
-- 📝 Production deployment preparation
+- 📝 Phase 10: CI/CD & Testing Infrastructure (HIGH PRIORITY)
+- 📝 Phase 11: Error Handling & Validation Hardening (HIGH PRIORITY)
+- 📝 Phase 12: Observability & Streaming (MEDIUM PRIORITY)
+- 📝 Phase 13: Performance & Scalability (MEDIUM PRIORITY)
+- 📝 Phase 14: Developer Experience (LOW PRIORITY)
+- 📝 Phase 15: Security Audit (LOW PRIORITY)
+- 📝 MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
+- 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
+- 📝 MCP Client (deferred — tool orchestration loop)
+
+See **developer/TODO.md** for detailed task breakdowns per phase.
 
 ## Documentation
 
@@ -578,6 +589,7 @@ stratifyai check-keys
 - **docs/developer-journal.md** — Implementation log and lessons learned
 - **docs/CHANGELOG.md** — Version history
 - **docs/CONTRIBUTING.md** — Contribution guidelines
+- **developer/TODO.md** — Prioritized roadmap (Phases 10–15)
 - **AGENTS.md** — This file (AI agent guidance)
 
 ## Troubleshooting
