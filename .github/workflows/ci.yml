@@ -32,15 +32,48 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev --group dev
 
-      - name: Black format check
+      - name: Detect changed Python files (PR only)
+        if: github.event_name == 'pull_request'
+        id: changed_py
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **/*.py
+
+      - name: Black format check (PR strict, changed files)
+        if: github.event_name == 'pull_request' && steps.changed_py.outputs.any_changed == 'true'
+        run: uv run black --check ${{ steps.changed_py.outputs.all_changed_files }}
+
+      - name: Ruff lint (PR strict, changed files)
+        if: github.event_name == 'pull_request' && steps.changed_py.outputs.any_changed == 'true'
+        run: uv run ruff check ${{ steps.changed_py.outputs.all_changed_files }}
+
+      - name: Mypy type check (PR strict, changed project files)
+        if: github.event_name == 'pull_request' && steps.changed_py.outputs.any_changed == 'true'
+        run: |
+          TARGETS="$(echo "${{ steps.changed_py.outputs.all_changed_files }}" | tr ' ' '\n' | grep -E '^(stratifyai|cli|api)/.*\.py$' || true)"
+          if [ -z "$TARGETS" ]; then
+            echo "No changed Python files under stratifyai/ cli/ or api/ for mypy."
+            exit 0
+          fi
+          uv run mypy $TARGETS
+
+      - name: No Python file changes in PR
+        if: github.event_name == 'pull_request' && steps.changed_py.outputs.any_changed != 'true'
+        run: echo "No Python files changed; strict Black/Ruff/Mypy checks skipped for PR."
+
+      - name: Black format check (push/manual advisory)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         run: uv run black --check .
 
-      - name: Ruff lint
+      - name: Ruff lint (push/manual advisory)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         run: uv run ruff check .
 
-      - name: Mypy type check
+      - name: Mypy type check (push/manual advisory)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         run: uv run mypy stratifyai cli api
 
