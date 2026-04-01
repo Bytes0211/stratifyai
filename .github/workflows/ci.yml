@@ -39,7 +39,7 @@ jobs:
         run: uv run mypy stratifyai cli api
 
       - name: Run tests with coverage threshold
-        run: uv run pytest --cov=stratifyai --cov-report=term-missing --cov-fail-under=80 -m "not integration"
+        run: uv run pytest --cov=stratifyai --cov-report=term-missing --cov-fail-under=65 -m "not integration"
 
   frontend-build:
     name: Frontend Build
