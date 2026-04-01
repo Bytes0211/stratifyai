@@ -5,11 +5,17 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality-and-tests:
     name: Quality And Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -44,6 +50,7 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -64,6 +71,7 @@ jobs:
     name: Integration Tests (Real Providers)
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
