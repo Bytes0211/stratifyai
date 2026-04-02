@@ -25,7 +25,11 @@ class OpenAICompatibleProvider(BaseProvider):
     """
 
     def __init__(
-        self, api_key: str, base_url: str, model_catalog: dict, config: dict | None = None
+        self,
+        api_key: str,
+        base_url: str,
+        model_catalog: dict,
+        config: dict | None = None,
     ):
         """
         Initialize OpenAI-compatible provider.
