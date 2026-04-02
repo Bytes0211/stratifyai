@@ -542,7 +542,7 @@ def _chat_impl(
                     file_content = f"[IMAGE:{mime_type}]\n{image_data}"
                 else:
                     # Read text file
-                    with open(file, encoding="utf-8") as f:
+                    with open(file, "r", encoding="utf-8") as f:
                         file_content = f.read()
 
                     # Get file size for display
