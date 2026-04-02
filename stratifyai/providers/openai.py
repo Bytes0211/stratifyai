@@ -15,27 +15,24 @@ from .base import BaseProvider
 
 class OpenAIProvider(BaseProvider):
     """OpenAI provider implementation with cost tracking."""
-    
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        config: dict = None
-    ):
+
+    def __init__(self, api_key: Optional[str] = None, config: dict = None):
         """
         Initialize OpenAI provider.
-        
+
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
             config: Optional provider-specific configuration
-            
+
         Raises:
             ValueError: If API key not provided (with helpful setup instructions)
         """
         from ..api_key_helper import get_api_key_or_error
+
         api_key = get_api_key_or_error("openai", api_key)
         super().__init__(api_key, config)
         self._initialize_client()
-    
+
     def _initialize_client(self) -> None:
         """Initialize OpenAI async client."""
         try:
@@ -45,49 +42,48 @@ class OpenAIProvider(BaseProvider):
             )
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize OpenAI client: {str(e)}",
-                "openai"
+                f"Failed to initialize OpenAI client: {str(e)}", "openai"
             )
-    
+
     @property
     def provider_name(self) -> str:
         """Return provider name."""
         return "openai"
-    
+
     def get_supported_models(self) -> List[str]:
         """Return list of supported OpenAI models."""
         return list(OPENAI_MODELS.keys())
-    
+
     def supports_caching(self, model: str) -> bool:
         """Check if model supports prompt caching."""
         model_info = OPENAI_MODELS.get(model, {})
         return model_info.get("supports_caching", False)
-    
+
     async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """
         Execute chat completion request.
-        
+
         Args:
             request: Unified chat request
-            
+
         Returns:
             Unified chat response with cost tracking
-            
+
         Raises:
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
-        
+
         # Validate temperature constraints for OpenAI (0.0 to 2.0)
         constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
         self.validate_temperature(
             request.temperature,
             constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 2.0)
+            constraints.get("max_temperature", 2.0),
         )
-        
+
         # Build OpenAI-specific request parameters
         messages = []
         for msg in request.messages:
@@ -95,53 +91,56 @@ class OpenAIProvider(BaseProvider):
             if msg.has_image():
                 # Parse vision content
                 text_content, image_data = msg.parse_vision_content()
-                
+
                 # Build vision message content array
                 content_parts = []
                 if text_content:
                     content_parts.append({"type": "text", "text": text_content})
-                
+
                 if image_data:
                     mime_type, base64_data = image_data
                     # OpenAI expects data URL format
                     image_url = f"data:{mime_type};base64,{base64_data}"
-                    content_parts.append({
-                        "type": "image_url",
-                        "image_url": {"url": image_url}
-                    })
-                
+                    content_parts.append(
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    )
+
                 message_dict = {"role": msg.role, "content": content_parts}
             else:
                 # Regular text message
                 message_dict = {"role": msg.role, "content": msg.content}
-            
+
             # Add cache_control if present and model supports caching
             if msg.cache_control and self.supports_caching(request.model):
                 message_dict["cache_control"] = msg.cache_control
             messages.append(message_dict)
-        
+
         openai_params = {
             "model": request.model,
             "messages": messages,
         }
-        
+
         # Check if model is a reasoning model (o-series)
         model_info = OPENAI_MODELS.get(request.model, {})
         is_reasoning_model = model_info.get("reasoning_model", False)
-        
+
         # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
         # This catches variants like o1-preview, o1-2024-12-17, o3-mini, gpt-5, etc.
         if not is_reasoning_model and request.model:
             model_lower = request.model.lower()
             # Match: o1*, o3*, gpt-5*, "reasoning", or o followed by digit
             is_reasoning_model = (
-                model_lower.startswith("o1") or 
-                model_lower.startswith("o3") or
-                model_lower.startswith("gpt-5") or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+                model_lower.startswith("o1")
+                or model_lower.startswith("o3")
+                or model_lower.startswith("gpt-5")
+                or "reasoning" in model_lower
+                or (
+                    model_lower.startswith("o")
+                    and len(model_lower) > 1
+                    and model_lower[1].isdigit()
+                )
             )
-        
+
         # Only add these parameters for non-reasoning models
         # Reasoning models like o1, o1-mini, o3-mini don't support temperature/top_p/penalties
         if not is_reasoning_model:
@@ -149,21 +148,21 @@ class OpenAIProvider(BaseProvider):
             openai_params["top_p"] = request.top_p
             openai_params["frequency_penalty"] = request.frequency_penalty
             openai_params["presence_penalty"] = request.presence_penalty
-        
+
         # Add optional parameters
         if request.max_tokens:
             openai_params["max_tokens"] = request.max_tokens
         if request.stop:
             openai_params["stop"] = request.stop
-        
+
         # Add reasoning_effort for o-series models
         if request.reasoning_effort and "o" in request.model:
             openai_params["reasoning_effort"] = request.reasoning_effort
-        
+
         # Add any extra params
         if request.extra_params:
             openai_params.update(request.extra_params)
-        
+
         try:
             # Make API request
             raw_response = await self._client.chat.completions.create(**openai_params)
@@ -172,36 +171,38 @@ class OpenAIProvider(BaseProvider):
         except Exception as e:
             error_str = sanitize_error(str(e), self.api_key)
             # Check for vision-related errors
-            if "image_url is only supported by certain models" in error_str or "Invalid content type" in error_str:
+            if (
+                "image_url is only supported by certain models" in error_str
+                or "Invalid content type" in error_str
+            ):
                 raise ProviderAPIError(
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
-                    self.provider_name
+                    self.provider_name,
                 )
             raise ProviderAPIError(
-                f"Chat completion failed: {error_str}",
-                self.provider_name
+                f"Chat completion failed: {error_str}", self.provider_name
             )
-    
+
     async def chat_completion_stream(
         self, request: ChatRequest
     ) -> AsyncIterator[ChatResponse]:
         """
         Execute streaming chat completion request.
-        
+
         Args:
             request: Unified chat request
-            
+
         Yields:
             Unified chat response chunks
-            
+
         Raises:
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
         if not self.validate_model(request.model):
             raise InvalidModelError(request.model, self.provider_name)
-        
+
         # Build request parameters with vision support
         messages = []
         for msg in request.messages:
@@ -214,45 +215,48 @@ class OpenAIProvider(BaseProvider):
                 if image_data:
                     mime_type, base64_data = image_data
                     image_url = f"data:{mime_type};base64,{base64_data}"
-                    content_parts.append({
-                        "type": "image_url",
-                        "image_url": {"url": image_url}
-                    })
+                    content_parts.append(
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    )
                 messages.append({"role": msg.role, "content": content_parts})
             else:
                 messages.append({"role": msg.role, "content": msg.content})
-        
+
         openai_params = {
             "model": request.model,
             "messages": messages,
             "stream": True,
         }
-        
+
         # Check if model is a reasoning model
         model_info = OPENAI_MODELS.get(request.model, {})
         is_reasoning_model = model_info.get("reasoning_model", False)
-        
+
         # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
         if not is_reasoning_model and request.model:
             model_lower = request.model.lower()
             is_reasoning_model = (
-                model_lower.startswith("o1") or 
-                model_lower.startswith("o3") or
-                model_lower.startswith("gpt-5") or
-                "reasoning" in model_lower or
-                (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+                model_lower.startswith("o1")
+                or model_lower.startswith("o3")
+                or model_lower.startswith("gpt-5")
+                or "reasoning" in model_lower
+                or (
+                    model_lower.startswith("o")
+                    and len(model_lower) > 1
+                    and model_lower[1].isdigit()
+                )
             )
-        
+
         # Only add temperature for non-reasoning models
         if not is_reasoning_model:
             openai_params["temperature"] = request.temperature
-        
+
         if request.max_tokens:
             openai_params["max_tokens"] = request.max_tokens
-        
+
         try:
             stream = await self._client.chat.completions.create(**openai_params)
-            
+
             async for chunk in stream:
                 chunk_dict = chunk.model_dump()
                 if chunk.choices and chunk.choices[0].delta.content:
@@ -260,30 +264,32 @@ class OpenAIProvider(BaseProvider):
         except Exception as e:
             error_str = sanitize_error(str(e), self.api_key)
             # Check for vision-related errors
-            if "image_url is only supported by certain models" in error_str or "Invalid content type" in error_str:
+            if (
+                "image_url is only supported by certain models" in error_str
+                or "Invalid content type" in error_str
+            ):
                 raise ProviderAPIError(
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
-                    self.provider_name
+                    self.provider_name,
                 )
             raise ProviderAPIError(
-                f"Streaming chat completion failed: {error_str}",
-                self.provider_name
+                f"Streaming chat completion failed: {error_str}", self.provider_name
             )
-    
+
     def _normalize_response(self, raw_response: dict) -> ChatResponse:
         """
         Convert OpenAI response to unified format.
-        
+
         Args:
             raw_response: Raw OpenAI API response
-            
+
         Returns:
             Normalized ChatResponse with cost
         """
         choice = raw_response["choices"][0]
         usage_dict = raw_response.get("usage", {})
-        
+
         # Extract token usage
         prompt_details = usage_dict.get("prompt_tokens_details", {})
         usage = Usage(
@@ -297,16 +303,14 @@ class OpenAIProvider(BaseProvider):
                 "reasoning_tokens", 0
             ),
         )
-        
+
         # Calculate cost including cache costs
         base_cost = self._calculate_cost(usage, raw_response["model"])
         cache_cost = self._calculate_cache_cost(
-            usage.cache_creation_tokens,
-            usage.cache_read_tokens,
-            raw_response["model"]
+            usage.cache_creation_tokens, usage.cache_read_tokens, raw_response["model"]
         )
         usage.cost_usd = base_cost + cache_cost
-        
+
         # Add cost breakdown
         if usage.cache_creation_tokens > 0 or usage.cache_read_tokens > 0:
             usage.cost_breakdown = {
@@ -314,7 +318,7 @@ class OpenAIProvider(BaseProvider):
                 "cache_cost": cache_cost,
                 "total_cost": usage.cost_usd,
             }
-        
+
         return ChatResponse(
             id=raw_response["id"],
             model=raw_response["model"],
@@ -325,79 +329,72 @@ class OpenAIProvider(BaseProvider):
             created_at=datetime.fromtimestamp(raw_response["created"]),
             raw_response=raw_response,
         )
-    
+
     def _normalize_stream_chunk(self, chunk_dict: dict) -> ChatResponse:
         """Normalize streaming chunk to ChatResponse format."""
         choice = chunk_dict["choices"][0]
         content = choice["delta"].get("content", "")
-        
+
         return ChatResponse(
             id=chunk_dict["id"],
             model=chunk_dict["model"],
             content=content,
             finish_reason=choice.get("finish_reason", ""),
-            usage=Usage(
-                prompt_tokens=0,
-                completion_tokens=0,
-                total_tokens=0
-            ),
+            usage=Usage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
             provider=self.provider_name,
             created_at=datetime.fromtimestamp(chunk_dict["created"]),
             raw_response=chunk_dict,
         )
-    
+
     def _calculate_cost(self, usage: Usage, model: str) -> float:
         """
         Calculate cost in USD based on token usage (excluding cache costs).
-        
+
         Args:
             usage: Token usage information
             model: Model name used
-            
+
         Returns:
             Cost in USD
         """
         model_info = OPENAI_MODELS.get(model, {})
         cost_input = model_info.get("cost_input", 0.0)
         cost_output = model_info.get("cost_output", 0.0)
-        
+
         # Calculate non-cached prompt tokens
         non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
-        
+
         # Costs are per 1M tokens
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input
         output_cost = (usage.completion_tokens / 1_000_000) * cost_output
-        
+
         return input_cost + output_cost
-    
+
     def _calculate_cache_cost(
-        self,
-        cache_creation_tokens: int,
-        cache_read_tokens: int,
-        model: str
+        self, cache_creation_tokens: int, cache_read_tokens: int, model: str
     ) -> float:
         """
         Calculate cost for cached tokens.
-        
+
         Args:
             cache_creation_tokens: Number of tokens written to cache
             cache_read_tokens: Number of tokens read from cache
             model: Model name used
-            
+
         Returns:
             Cost in USD for cache operations
         """
         model_info = OPENAI_MODELS.get(model, {})
-        
+
         # Check if model supports caching
         if not model_info.get("supports_caching", False):
             return 0.0
-        
+
         cost_cache_write = model_info.get("cost_cache_write", 0.0)
         cost_cache_read = model_info.get("cost_cache_read", 0.0)
-        
+
         # Costs are per 1M tokens
         write_cost = (cache_creation_tokens / 1_000_000) * cost_cache_write
         read_cost = (cache_read_tokens / 1_000_000) * cost_cache_read
-        
+
         return write_cost + read_cost

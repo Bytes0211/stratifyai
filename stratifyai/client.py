@@ -35,6 +35,7 @@ from .api_key_helper import APIKeyHelper
 
 class ProviderType(str, Enum):
     """Supported provider types."""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
@@ -71,7 +72,7 @@ def close_all_providers() -> None:
 
 class LLMClient:
     """Unified client for all LLM providers."""
-    
+
     # Provider registry maps provider names to provider classes
     _provider_registry: Dict[str, Type[BaseProvider]] = {
         "openai": OpenAIProvider,
@@ -84,22 +85,22 @@ class LLMClient:
         "ollama": OllamaProvider,
         "bedrock": BedrockProvider,
     }
-    
+
     def __init__(
         self,
         provider: Optional[str] = None,
         api_key: Optional[str] = None,
-        config: dict = None
+        config: dict = None,
     ):
         """
         Initialize unified LLM client.
-        
+
         Args:
             provider: Provider name (openai, anthropic, etc.)
                      If None, provider will be auto-detected from model name
             api_key: API key for the provider (defaults to env var)
             config: Optional provider-specific configuration
-            
+
         Raises:
             InvalidProviderError: If provider is not supported
         """
@@ -113,7 +114,7 @@ class LLMClient:
         # Fail-fast API key validation when provider is explicit.
         if provider:
             self._validate_provider_auth(provider)
-        
+
         # Initialize provider if specified
         if provider:
             self._initialize_provider(provider)
@@ -171,7 +172,7 @@ class LLMClient:
             if model:
                 logger.info("Request cancelled before completion for model=%s", model)
             raise asyncio.CancelledError()
-    
+
     def _initialize_provider(self, provider: str) -> None:
         """
         Initialize a specific provider.
@@ -179,10 +180,10 @@ class LLMClient:
         Checks the module-level ``_provider_pool`` first so that multiple
         ``LLMClient`` instances targeting the same provider share one SDK
         client (and therefore one connection pool).
-        
+
         Args:
             provider: Provider name
-            
+
         Raises:
             InvalidProviderError: If provider not supported
         """
@@ -191,7 +192,7 @@ class LLMClient:
                 f"Provider '{provider}' not supported. "
                 f"Available providers: {list(self._provider_registry.keys())}"
             )
-        
+
         key = _pool_key(provider, self.api_key)
         if key in _provider_pool:
             provider_instance = _provider_pool[key]
@@ -225,29 +226,26 @@ class LLMClient:
         self._provider_instance = provider
         self.provider_name = detected_provider
         return provider
-    
+
     def _detect_provider(self, model: str) -> str:
         """
         Auto-detect provider from model name.
-        
+
         Args:
             model: Model name
-            
+
         Returns:
             Provider name
-            
+
         Raises:
             InvalidModelError: If model not found in any provider
         """
         for provider_name, models in MODEL_CATALOG.items():
             if model in models:
                 return provider_name
-        
-        raise InvalidModelError(
-            model,
-            "any provider"
-        )
-    
+
+        raise InvalidModelError(model, "any provider")
+
     async def chat(
         self,
         model: str,
@@ -256,11 +254,11 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         stream: bool = False,
         cancel_event: Optional[asyncio.Event] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
         """
         Execute a chat completion request.
-        
+
         Args:
             model: Model name (e.g., "gpt-4.1-mini", "claude-3-5-sonnet")
             messages: List of conversation messages
@@ -268,10 +266,10 @@ class LLMClient:
             max_tokens: Maximum tokens to generate
             stream: Whether to stream the response
             **kwargs: Additional provider-specific parameters
-            
+
         Returns:
             Chat completion response, or AsyncIterator if streaming
-            
+
         Raises:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
@@ -280,7 +278,7 @@ class LLMClient:
         self._validate_reasoning_temperature(model, temperature)
 
         provider = self._get_provider_for_model(model)
-        
+
         # Build request
         request = ChatRequest(
             model=model,
@@ -288,13 +286,14 @@ class LLMClient:
             temperature=temperature,
             max_tokens=max_tokens,
             stream=stream,
-            **kwargs
+            **kwargs,
         )
-        
+
         # Execute request
         if stream:
             return self._stream_with_retry(provider, request, cancel_event=cancel_event)
         else:
+
             @with_retry(config=self._retry_config)
             async def _chat_call() -> ChatResponse:
                 await self._check_cancellation(cancel_event, model=model)
@@ -304,7 +303,7 @@ class LLMClient:
             response = await _chat_call()
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             return response
-    
+
     async def chat_completion(
         self,
         request: ChatRequest,
@@ -312,13 +311,13 @@ class LLMClient:
     ) -> ChatResponse:
         """
         Execute a chat completion request using ChatRequest object.
-        
+
         Args:
             request: Unified chat request
-            
+
         Returns:
             Chat completion response
-            
+
         Raises:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
@@ -331,16 +330,16 @@ class LLMClient:
         async def _completion_call() -> ChatResponse:
             await self._check_cancellation(cancel_event, model=request.model)
             return await provider.chat_completion(request)
-        
+
         # Capture timing
         start_time = time.perf_counter()
         response = await _completion_call()
         latency_ms = (time.perf_counter() - start_time) * 1000
-        
+
         # Add latency to response
         response.latency_ms = latency_ms
         return response
-    
+
     async def chat_completion_stream(
         self,
         request: ChatRequest,
@@ -348,13 +347,13 @@ class LLMClient:
     ) -> AsyncIterator[ChatResponse]:
         """
         Execute a streaming chat completion request.
-        
+
         Args:
             request: Unified chat request
-            
+
         Yields:
             Chat completion response chunks
-            
+
         Raises:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
@@ -375,21 +374,27 @@ class LLMClient:
         request: ChatRequest,
         cancel_event: Optional[asyncio.Event] = None,
     ) -> AsyncIterator[ChatResponse]:
-        """Execute streaming requests with retry and cancellation support."""
+        """Execute streaming requests with retry and cancellation support.
+
+        Only retries on setup failures before any chunks are yielded.
+        Once streaming has begun, exceptions are raised to prevent duplicate chunks.
+        """
         cfg = self._retry_config
+        chunks_yielded = 0
 
         for attempt in range(cfg.max_retries + 1):
             try:
                 await self._check_cancellation(cancel_event, model=request.model)
                 async for chunk in provider.chat_completion_stream(request):
                     await self._check_cancellation(cancel_event, model=request.model)
+                    chunks_yielded += 1
                     yield chunk
                 return
             except asyncio.CancelledError:
                 raise
             except cfg.retry_on_exceptions as exc:
-                if attempt == cfg.max_retries:
-                    raise MaxRetriesExceededError(cfg.max_retries, exc)
+                if chunks_yielded > 0 or attempt == cfg.max_retries:
+                    raise MaxRetriesExceededError(cfg.max_retries, exc) from exc
 
                 delay = exponential_backoff(
                     attempt,
@@ -407,49 +412,51 @@ class LLMClient:
                     str(exc),
                 )
                 await asyncio.sleep(delay)
-    
+
     def chat_sync(
         self,
         model: str,
         messages: list[Message],
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> ChatResponse:
         """
         Synchronous wrapper for chat().
-        
+
         Args:
             model: Model name
             messages: List of conversation messages
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
             **kwargs: Additional provider-specific parameters
-            
+
         Returns:
             Chat completion response
         """
-        return run_sync(self.chat(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            **kwargs
-        ))
-    
+        return run_sync(
+            self.chat(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                **kwargs,
+            )
+        )
+
     def chat_completion_sync(self, request: ChatRequest) -> ChatResponse:
         """
         Synchronous wrapper for chat_completion().
-        
+
         Args:
             request: Unified chat request
-            
+
         Returns:
             Chat completion response
         """
         return run_sync(self.chat_completion(request))
-    
+
     def close(self) -> None:
         """Release this client's provider from the shared pool."""
         for prov_name, prov_inst in list(self._providers.items()):
@@ -468,26 +475,26 @@ class LLMClient:
     def get_supported_providers(cls) -> list[str]:
         """
         Get list of supported providers.
-        
+
         Returns:
             List of provider names
         """
         return list(cls._provider_registry.keys())
-    
+
     @classmethod
     def get_supported_models(cls, provider: Optional[str] = None) -> list[str]:
         """
         Get list of supported models.
-        
+
         Args:
             provider: Optional provider name to filter models
-            
+
         Returns:
             List of model names
         """
         if provider:
             return list(MODEL_CATALOG.get(provider, {}).keys())
-        
+
         # Return all models from all providers
         all_models = []
         for models in MODEL_CATALOG.values():
