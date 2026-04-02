@@ -100,8 +100,6 @@ desktop.ini
 *.ipynb
 
 # Documentation builds
-docs/
-developer/
 docs/_build/
 docs/.doctrees/
 site/

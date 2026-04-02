@@ -1,0 +1,913 @@
+# Developer Journal
+## March 1, 2026 - Phase 9.0 Profile Data Model
+
+Implemented the foundational data model for the StratifyAI profile system (Phase 9 — Profiles).
+
+### Changes
+- **9.0.1** — Created `ProfileParameter` schema dataclass in `stratifyai/profiles/models.py` with validation for 5 types (number, integer, boolean, string, select), range enforcement, choice validation, type coercion, and default fallback.
+- **9.0.2** — Defined `PARAMETER_DEFINITIONS` constant with 8 profile parameters: temperature (0.0–2.0), max_tokens (1–1M), reasoning_depth (minimal/standard/deep), speed_vs_accuracy (speed/balanced/accuracy), cost_sensitivity (low/medium/high), multimodal, json_mode, tool_use.
+- **9.0.3** — Created `Profile` dataclass with `validate_parameters()` for structural validation (unknown keys warn, invalid values raise), `to_dict()` for API serialization, and `extends` field for inheritance.
+- **9.0.4** — Implemented `merge_parameters()` utility for shallow parent/child merge used by registry inheritance resolution.
+
+### Files Created
+- `stratifyai/profiles/models.py` — ProfileParameter, Profile, PARAMETER_DEFINITIONS, merge_parameters (270 lines)
+- `github/ISSUES/phase-9.0-profile-data-model.md` — GitHub issue tracking
+
+### Design Decisions
+- Data model is intentionally decoupled from catalog — no imports from `stratifyai.config` or `stratifyai.catalog_manager`. Capability validation (e.g., multimodal requires supports_vision) deferred to registry.
+- `ProfileParameter` is a schema class (8 global definitions), unlike `PromptParameter` which is per-template.
+- `extends` stores the parent name only; resolution (recursive lookup, cycle detection) belongs in the registry.
+- Unknown parameter keys warn rather than reject, future-proofing for custom parameters.
+
+### Test Results
+408 passed, 4 skipped, 0 failures — no regressions.
+
+### Technical Debt Incurred
+- ⏳ No `__init__.py` for profiles package yet (Step 4)
+- ⏳ No unit tests yet for data model (Step 9)
+- ⏳ Capability validation deferred to registry (Step 3)
+
+---
+
+## February 27, 2026 - Phase 9.1 Prompt Template System
+
+Implemented complete prompt template infrastructure with 10 built-in templates, full API/CLI/ChatBuilder integration, and comprehensive testing.
+
+### Changes
+- **9.1.1** — Created `PromptParameter` and `PromptTemplate` dataclasses in `stratifyai/prompts/models.py` with parameter validation (string, text, number, choice types) and safe `str.format_map()` rendering that prevents code execution.
+- **9.1.2** — Built 10 YAML templates (code_review, summarize, chatbot, explain_concept, analyze_data, rag_synthesis, translate, debug_error, commit_message, api_docs) in `stratifyai/prompts/templates/` with sensible defaults and clear parameter definitions.
+- **9.1.3** — Implemented `PromptRegistry` singleton in `stratifyai/prompts/registry.py` with lazy loading, YAML discovery from built-in and `~/.stratifyai/prompts/` directories, search/filter capabilities.
+- **9.1.4** — Added `ChatBuilder.with_template()` method that loads, renders, and applies templates with automatic `recommended_temperature` configuration.
+- **9.1.5** — Added `templates` CLI command with `--tag` and `--verbose` flags, plus `--template` and `--params` options to `chat` command for template-based conversations.
+- **9.1.6** — Created 3 REST API endpoints: `GET /api/templates`, `GET /api/templates/{name}`, `POST /api/templates/{name}/render` with proper error handling.
+- **9.1.8** — Enabled user-defined templates via `~/.stratifyai/prompts/` with automatic discovery and override capability.
+- **9.1.9** — Wrote 30 comprehensive tests covering parameter validation, template rendering, registry operations, YAML loading, and integration with ChatBuilder and ChatRequest.
+- **9.1.10** — Created full documentation in `docs/PROMPT-TEMPLATES.md` with usage examples, template schema reference, security notes, and troubleshooting guide.
+
+### Files Created
+- `stratifyai/prompts/__init__.py` — Package exports + singleton registry
+- `stratifyai/prompts/models.py` — PromptParameter, PromptTemplate dataclasses (169 lines)
+- `stratifyai/prompts/registry.py` — PromptRegistry with YAML loading (228 lines)
+- `stratifyai/prompts/templates/code_review.yaml` — Code review template
+- `stratifyai/prompts/templates/summarize.yaml` — Document summarization template
+- `stratifyai/prompts/templates/chatbot.yaml` — Conversational chatbot template
+- `stratifyai/prompts/templates/explain_concept.yaml` — Concept explanation template
+- `stratifyai/prompts/templates/analyze_data.yaml` — Data analysis template
+- `stratifyai/prompts/templates/rag_synthesis.yaml` — RAG answer synthesis template
+- `stratifyai/prompts/templates/translate.yaml` — Language translation template
+- `stratifyai/prompts/templates/debug_error.yaml` — Error debugging template
+- `stratifyai/prompts/templates/commit_message.yaml` — Git commit message template
+- `stratifyai/prompts/templates/api_docs.yaml` — API documentation template
+- `tests/test_prompts.py` — 30 comprehensive tests (100% passing)
+- `docs/PROMPT-TEMPLATES.md` — Complete user guide and reference
+
+### Files Modified
+- `stratifyai/__init__.py` — Added PromptTemplate, PromptParameter, PromptRegistry, registry exports
+- `stratifyai/chat/builder.py` — Added with_template() method, _template_user field, updated _build_messages()
+- `cli/stratifyai_cli.py` — Added templates command, --template and --params flags to chat command
+- `api/main.py` — Added 3 template endpoints with validation and error handling
+- `AGENTS.md` — Updated project structure, test count (408+), phase status, documentation list
+
+### Test Results
+408+ passed (30 new prompt template tests), 0 failures — no regressions.
+
+### Key Features
+- ✅ Zero new dependencies (PyYAML already transitive)
+- ✅ Secure template rendering (str.format_map only, no eval/exec)
+- ✅ User extensibility (~/.stratifyai/prompts/ override directory)
+- ✅ Type-safe with comprehensive parameter validation
+- ✅ Full integration (ChatBuilder, CLI, API)
+- ✅ MCP-ready (templates structured for Phase 9.2 MCP prompt exposure)
+
+### Technical Debt Resolved
+- ✅ Prompt patterns duplicated across example scripts
+- ✅ No reusable prompt library for common tasks
+- ✅ Hardcoded prompts scattered throughout codebase
+
+### Technical Debt Incurred
+- ⏳ MCP prompt exposure deferred to Phase 9.2
+- ⏳ Frontend template browser not yet implemented
+- ⏳ Template versioning/changelog system not included
+
+---
+
+## February 27, 2026 - Phase 8.3 Architecture & Production Readiness
+
+Implemented all 8 subtasks from Phase 8.3, focused on architecture cleanup and production readiness.
+
+### Changes
+- **8.3.1** — Moved router quality/latency scores into `catalog/models.json`. Added `quality_score` (0.0–1.0) and `avg_latency_ms` fields to `catalog/schema.json`, populated all 117 models, updated `Router._load_model_metadata()` to read from catalog with fallback defaults, removed hardcoded `quality_scores` and `latency_estimates` dicts from `router.py`. Added `check_routing_fields()` warning to `scripts/validate_catalog.py`.
+- **8.3.2** — Replaced runtime `print()` calls with structured logging. Created `stratifyai/logging_config.py` with `JSONFormatter`, `HumanFormatter`, and `configure_logging()`. Replaced `print()` in `cost_tracker.py` and `rag.py` with `logger.warning()`.
+- **8.3.3** — Exposed key utilities in top-level exports: `count_tokens`, `estimate_tokens`, `ModelSelector`, `is_reasoning_model`, `get_catalog_version`, `load_catalog`, `configure_logging`, `close_all_providers`, `PersistentResponseCache` added to `stratifyai/__init__.py` and `__all__`.
+- **8.3.4** — Replaced 157-line pip-freeze `requirements.txt` with ~15 direct runtime dependencies. Created `requirements-dev.txt` for dev/test tools. Updated `AGENTS.md` and `docs/GETTING-STARTED.md`.
+- **8.3.5** — Created `stratifyai/middleware.py` with `TrackedLLMClient` class wrapping `LLMClient` with pre-request logging, budget enforcement, latency timing, and post-response cost tracking. Updated `api/main.py` REST handler and WebSocket handler to use `get_tracked_client()`.
+- **8.3.6** — Added `PersistentResponseCache` class to `stratifyai/caching.py` with SQLite backend, same interface as `ResponseCache` (get/set/clear/get_stats/get_entries), `ChatResponse` serialization/deserialization, TTL expiration, max-size eviction. Added `cache_backend` parameter to `cache_response()` decorator.
+- **8.3.7** — Added module-level `_provider_pool` dict to `stratifyai/client.py` for connection pooling across `LLMClient` instances. `_initialize_provider()` checks pool before creating new SDK clients. Added `close()`, `__aenter__`/`__aexit__`, and `close_all_providers()` module-level function.
+- **8.3.8** — Added `ChatResponse.to_dict(include_raw=False)` method to `stratifyai/models.py` for safe serialization that excludes `raw_response` by default and converts `datetime` to ISO format.
+
+### Files Created
+- `stratifyai/logging_config.py` — Structured logging configuration
+- `stratifyai/middleware.py` — TrackedLLMClient middleware
+- `requirements-dev.txt` — Dev/test dependencies
+- `tests/conftest.py` — Shared fixtures (provider pool cleanup)
+- `tests/test_middleware.py` — 4 middleware tests
+- `tests/test_persistent_cache.py` — 7 SQLite cache tests
+- `tests/test_phase83_new.py` — 9 tests (5 pooling + 4 to_dict)
+
+### Files Modified
+- `catalog/schema.json` — Added quality_score, avg_latency_ms fields
+- `catalog/models.json` — Populated routing fields for all 117 models
+- `stratifyai/router.py` — Reads quality/latency from catalog
+- `stratifyai/cost_tracker.py` — print() → logger.warning()
+- `stratifyai/rag.py` — print() → logger.warning()
+- `stratifyai/__init__.py` — New exports
+- `stratifyai/client.py` — Provider connection pooling
+- `stratifyai/caching.py` — PersistentResponseCache + cache_backend param
+- `stratifyai/models.py` — ChatResponse.to_dict()
+- `requirements.txt` — Cleaned to direct deps only
+- `api/main.py` — Uses TrackedLLMClient for REST and WebSocket
+- `scripts/validate_catalog.py` — check_routing_fields() warning
+- `AGENTS.md` — Updated structure, test count
+- `docs/GETTING-STARTED.md` — Updated install instructions
+- `tests/test_router_extraction.py` — Updated assertions for catalog-driven routing
+
+### Test Results
+378 passed, 4 skipped, 0 failures — no regressions.
+
+### Technical Debt Resolved
+- ✅ Hardcoded router quality/latency scores
+- ✅ Runtime print() calls in library code
+- ✅ Key utilities not importable from top-level
+- ✅ Bloated requirements.txt with pinned dev deps
+- ✅ Ad-hoc observability in API handlers
+- ✅ Cache lost on restart (SQLite option now available)
+- ✅ Duplicate SDK clients across LLMClient instances
+- ✅ raw_response included in default serialization
+
+### Technical Debt Incurred
+- ⏳ Catalog lazy loading (`_CatalogProxy`) not yet implemented — `import stratifyai` still triggers catalog read (Phase 8.2.5 scope)
+- ⏳ Persistent cache is SQLite-only (Redis support deferred)
+- ⏳ WebSocket post-stream cost estimation remains inline (not in middleware) due to streaming architecture
+
+---
+
+## February 27, 2026 - Phase 8.1 Consistency & Correctness Implementation
+
+Implemented Phase 8.1 consistency fixes across client, providers, and metadata.
+All 5 tasks from the issue completed, plus one additional bug discovered during review.
+
+### Changes
+- **8.1.1** — Added `time.perf_counter()` timing around the provider call in `LLMClient.chat()` non-streaming path, setting `response.latency_ms` for parity with `chat_completion()`.
+- **8.1.2** — Extracted `_build_sampling_params()` helper in `AnthropicProvider` to enforce temperature/top_p mutual exclusivity. Both `chat_completion()` and `chat_completion_stream()` now call this method, eliminating the streaming path that unconditionally sent temperature.
+- **8.1.3** — Updated `get_api_key_or_error()` in `api_key_helper.py` to raise `AuthenticationError` instead of `ValueError`. All 9 providers now use `get_api_key_or_error()` instead of manual `os.getenv()` + raise patterns, giving every provider rich error messages with signup URLs and alternative suggestions.
+- **8.1.4** — Replaced single `_provider_instance` with `_providers: Dict[str, BaseProvider]` cache in `LLMClient`. New `_get_provider_for_model()` method detects provider from model name, caches instances by provider name, and re-uses cached instances on subsequent calls. This fixes the bug where switching models across providers sent requests to the wrong provider.
+- **8.1.5** — Replaced hardcoded `__version__ = "0.1.0"` with `importlib.metadata.version("stratifyai")` and a `"0.1.3"` fallback for editable/development installs.
+- **Review fix** — Updated `chat_completion_stream()` to use `_get_provider_for_model()` (same as `chat()` and `chat_completion()`), fixing an unbound `provider` variable and stale-provider bug that would cause `NameError` at runtime.
+- **Review fix** — Tightened `TestOpenRouterProvider.test_initialization_without_api_key` to assert only `AuthenticationError` instead of `(AuthenticationError, ValueError)`.
+- Added Grok legacy env var fallback (`GROK_API_KEY`) while keeping `XAI_API_KEY` primary.
+- Improved Bedrock missing-credential handling by logging warning before falling back to AWS default credential chain.
+
+### Files Modified
+- `stratifyai/client.py` — Latency tracking in `chat()`, multi-provider `_providers` dict cache, `_get_provider_for_model()` helper, `chat_completion_stream()` updated to use same helper
+- `stratifyai/providers/anthropic.py` — Extracted `_build_sampling_params()`, used in both streaming and non-streaming paths
+- `stratifyai/api_key_helper.py` — `get_api_key_or_error()` raises `AuthenticationError` instead of `ValueError`
+- `stratifyai/providers/google.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/deepseek.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/groq.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/grok.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/ollama.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/openrouter.py` — Switched to `get_api_key_or_error()`
+- `stratifyai/providers/bedrock.py` — Improved credential error handling with logged warning fallback
+- `stratifyai/__init__.py` — Dynamic version via `importlib.metadata`
+
+### Tests Added/Updated
+- `tests/test_client.py::test_chat_non_streaming_populates_latency` — Asserts `latency_ms is not None` and `latency_ms > 0` from `chat()` non-streaming path
+- `tests/test_client.py::test_chat_auto_detection_switches_between_providers` — Verifies OpenAI→Anthropic switching with provider cache, asserts both providers in `_providers` dict
+- `tests/test_providers_phase2.py::test_streaming_uses_top_p_without_temperature_when_top_p_set` — Mocks streaming request with `top_p=0.9`, verifies `temperature` is NOT in API call params
+- `tests/test_providers_phase2.py::TestOpenRouterProvider::test_initialization_without_api_key` — Tightened to assert only `AuthenticationError`
+
+### Test Results
+348 passed, 9 failed (pre-existing in `test_cli_file_loading.py`), 4 skipped — no regressions from Phase 8.1 changes.
+
+### Technical Debt Resolved
+- ✅ Inconsistent `latency_ms` population across `LLMClient` entry points
+- ✅ Anthropic streaming/non-streaming sampling parameter divergence
+- ✅ Mixed exception types (`ValueError` vs `AuthenticationError`) for missing API keys across providers
+- ✅ Stale provider instance when auto-detecting across provider boundaries
+- ✅ Hardcoded `__version__` drifting from `pyproject.toml`
+- ✅ Unbound variable in `chat_completion_stream()` when provider already initialized
+
+---
+
+## February 26, 2026 - Comprehensive Code Review & Remediation Plan
+
+### Context
+A full code review was performed covering all core modules, providers, API handlers,
+CLI, caching, routing, RAG pipeline, and chat package. The review identified **7 bugs**,
+**6 security concerns**, **7 performance/efficiency issues**, and **7 architecture improvements**.
+
+This remediation plan is organized into 4 phases, ordered by severity and dependency.
+Each phase is designed to be completable independently with its own test/validation step.
+
+---
+
+### Phase 8.0: Critical Bugs & Security Hardening
+**Priority:** 🔴 CRITICAL — Must complete before PyPI publish  
+**Estimated effort:** 2–3 days  
+**Branch:** `fix/phase-8.0-critical`
+
+#### 8.0.1 — Fix `VectorDBClient` sync/async mismatch (BUG-1)
+
+**File:** `stratifyai/vectordb.py`  
+**Problem:** `add_documents()`, `query()`, and `update_documents()` call
+`generate_embeddings()` and `generate_embedding()` on the `EmbeddingProvider`, but those
+methods are `async`. In a synchronous context this returns a coroutine object instead of
+actual embeddings — silently producing garbage or crashing at runtime. The RAG module
+masks this for `add_documents` via `asyncio.to_thread()`, but `query()` and
+`retrieve_only()` are called directly and will fail.
+
+**Fix:**
+- Convert all `VectorDBClient` public methods to `async`
+- Update `add_documents` to `await self.embedding_provider.generate_embeddings(documents)`
+- Update `query` to `await self.embedding_provider.generate_embedding(query_text)`
+- Update `update_documents` similarly
+- Add sync wrappers (`add_documents_sync`, `query_sync`) using `asyncio.run()`
+- Update `rag.py` to remove `asyncio.to_thread()` wrappers (now natively async)
+- Add unit tests for both async and sync paths
+
+**Validation:** `pytest tests/test_phase71.py tests/test_phase74_caching.py -v` + new vectordb tests
+
+#### 8.0.2 — Fix `MaxRetriesExceededError` constructor mismatch (BUG-4)
+
+**File:** `stratifyai/retry.py`, `stratifyai/exceptions.py`  
+**Problem:** The exception class expects `(attempts: int, last_error: Exception)` but
+`retry.py` calls it with a single string argument in two places (L80 and L146). This will
+crash with `TypeError` when retries are exhausted — meaning the core reliability feature
+is broken.
+
+**Fix:**
+- Update calls at L80 and L146 in `retry.py` to:
+  `raise MaxRetriesExceededError(config.max_retries, e)`
+  and `raise MaxRetriesExceededError(0, original_error)` respectively
+- Add a unit test that triggers max retries and verifies the exception is raised correctly
+
+**Validation:** `pytest tests/test_client.py -v -k retry`
+
+#### 8.0.3 — Fix `OpenAICompatibleProvider` vision destructuring crash (BUG-2)
+
+**File:** `stratifyai/providers/openai_compatible.py`  
+**Problem:** Line 95-96 does `text_content, (mime_type, base64_data) = msg.parse_vision_content()`
+which destructures `None` when no image is present, causing `TypeError`. The `OpenAIProvider`
+and `AnthropicProvider` handle this correctly but the shared base class does not.
+
+**Fix:**
+- Change to the guard pattern used in `openai.py`:
+  ```python
+  text_content, image_data = msg.parse_vision_content()
+  if image_data:
+      mime_type, base64_data = image_data
+  ```
+- Apply the same fix in `chat_completion_stream()` which has the same pattern
+- Add a unit test sending a text-only message through an OpenAI-compatible provider
+
+**Validation:** `pytest tests/test_providers_phase2.py -v`
+
+#### 8.0.4 — Fix `asyncio.run()` in sync wrappers (BUG-3)
+
+**Files:** `stratifyai/client.py`, `stratifyai/providers/base.py`, `stratifyai/embeddings.py`,
+`stratifyai/chat/builder.py`, all 9 `stratifyai/chat/stratifyai_*.py` modules  
+**Problem:** 14 call sites use `asyncio.run()` which crashes with `RuntimeError` if called
+from within an already-running event loop (Jupyter, FastAPI background tasks, nested sync calls).
+
+**Fix:**
+- Create `stratifyai/utils/sync_helpers.py` with a `run_sync(coro)` function that:
+  1. Tries `asyncio.get_running_loop()` — if no loop, uses `asyncio.run()`
+  2. If loop exists, runs the coro in a new thread via `concurrent.futures.ThreadPoolExecutor`
+- Replace all 14 `asyncio.run()` call sites with `run_sync()`
+- Add a test that calls `chat_sync()` from within an async test (simulating nested loop)
+
+**Validation:** `pytest tests/test_async_operations.py tests/test_chat_builder.py -v`
+
+#### 8.0.5 — Add API authentication middleware (SEC-1)
+
+**File:** `api/main.py`  
+**Problem:** Zero authentication on all endpoints. Anyone who can reach the server can make
+LLM calls billed to the operator's account, read cost data, and reset tracking.
+
+**Fix:**
+- Add `STRATIFYAI_API_KEY` environment variable support
+- Create a FastAPI `Depends()` dependency that checks `Authorization: Bearer <key>` header
+- Apply the dependency to all `/api/*` routes except `/api/health`
+- If `STRATIFYAI_API_KEY` is not set, skip auth (development mode) with a startup warning
+- Document the env var in `AGENTS.md` and `docs/GETTING-STARTED.md`
+
+**Validation:** Manual test with `curl` — verify 401 without header, 200 with correct header
+
+#### 8.0.6 — Validate WebSocket input with Pydantic (SEC-3)
+
+**File:** `api/main.py`  
+**Problem:** WebSocket `chat_stream` accepts raw JSON without Pydantic validation. Malformed
+input could trigger unexpected behavior.
+
+**Fix:**
+- Parse WebSocket JSON through `ChatCompletionRequest` Pydantic model
+- Send structured error JSON back on validation failure instead of crashing
+- Add `try/except ValidationError` block around the parse
+
+**Validation:** Send malformed JSON via WebSocket client, verify clean error response
+
+#### 8.0.7 — Sanitize `file_name` in API handlers (SEC-4)
+
+**Files:** `api/main.py` (both REST and WebSocket handlers)  
+**Problem:** `request.file_name` from the client is used unsanitized in LLM message content.
+A crafted filename could contain prompt injection content.
+
+**Fix:**
+- Sanitize to basename only: `file_name = Path(file_name).name` at the top of both handlers
+- Add a max length check (e.g., 255 chars)
+- Add a test with a malicious filename
+
+**Validation:** Unit test with `file_name="../../etc/passwd; ignore previous instructions"`
+
+#### 8.0.8 — Scrub API keys from error messages (SEC-2)
+
+**Files:** `stratifyai/providers/openai.py`, `stratifyai/providers/openai_compatible.py`,
+`stratifyai/providers/anthropic.py`, `stratifyai/providers/bedrock.py`  
+**Problem:** Generic `ProviderAPIError` wraps `str(e)` from SDK exceptions which may contain
+the API key or partial key in the error body.
+
+**Fix:**
+- Create `stratifyai/utils/sanitizer.py` with `sanitize_error(message, api_key)` that
+  replaces any occurrence of the key (or key prefixes/suffixes) with `***REDACTED***`
+- Apply in all `except Exception as e:` blocks before raising `ProviderAPIError`
+- Add unit test verifying a fake key is scrubbed from error output
+
+**Validation:** `pytest -v -k sanitize`
+
+#### 8.0.9 — Add rate limiting to cost-incurring endpoints (SEC-5)
+
+**File:** `api/main.py`, `requirements.txt`  
+**Problem:** No rate limiting — a single client can fire unlimited requests and drain API credits.
+
+**Fix:**
+- Add `slowapi` dependency
+- Configure rate limiter: 30 requests/minute per IP on `/api/chat` and `/ws/chat`
+- Integrate `CostTracker.is_over_budget()` as a pre-request guard that returns 402
+- Document rate limits in API docs
+
+**Validation:** Manual test sending rapid requests, verify 429 after limit
+
+---
+
+### Phase 8.1: Consistency & Correctness Fixes
+**Priority:** 🟡 HIGH — Behavioral correctness  
+**Estimated effort:** 1–2 days  
+**Branch:** `fix/phase-8.1-consistency`
+
+#### 8.1.1 — Fix `LLMClient.chat()` missing latency tracking (BUG-5)
+
+**File:** `stratifyai/client.py`  
+**Problem:** `client.chat()` non-streaming path doesn't track latency, but `client.chat_completion()`
+does. Inconsistent behavior depending on which method you call.
+
+**Fix:**
+- Add `time.perf_counter()` timing to `chat()` non-streaming path
+- Set `response.latency_ms` before returning
+- Add test verifying `latency_ms` is populated from both methods
+
+**Validation:** `pytest tests/test_client.py -v`
+
+#### 8.1.2 — Fix Anthropic streaming temperature inconsistency (BUG-7)
+
+**File:** `stratifyai/providers/anthropic.py`  
+**Problem:** Non-streaming path has careful logic to avoid sending both `temperature` and
+`top_p` to Anthropic (which rejects it). Streaming path unconditionally sends temperature.
+
+**Fix:**
+- Extract the temperature/top_p logic into a `_build_sampling_params()` method
+- Call it from both streaming and non-streaming paths
+- Add test for streaming with non-default `top_p`
+
+**Validation:** `pytest tests/test_providers_phase2.py -v -k anthropic`
+
+#### 8.1.3 — Standardize missing-API-key exception type (ARCH-2)
+
+**Files:** All 9 provider `__init__` methods  
+**Problem:** OpenAI raises `ValueError` (via `get_api_key_or_error`), Anthropic raises
+`AuthenticationError`, others vary. Callers can't catch a single type.
+
+**Fix:**
+- Update `get_api_key_or_error()` to raise `AuthenticationError` instead of `ValueError`
+- Update Anthropic, Google, and other providers to use `get_api_key_or_error()` for
+  consistent error messages with signup URLs and alternative provider suggestions
+- Update tests that assert `ValueError`
+
+**Validation:** `pytest tests/test_cli_auth_error.py tests/test_client.py -v`
+
+#### 8.1.4 — Fix `LLMClient` provider auto-detection caching bug (PERF-5)
+
+**File:** `stratifyai/client.py`  
+**Problem:** If `LLMClient()` (no provider) auto-detects provider A for model A, then the
+user calls `chat()` with model B from provider B, it won't re-detect because
+`_provider_instance` is already set. This sends model B to provider A, causing errors.
+
+**Fix:**
+- In `chat()` and `chat_completion()`, compare the detected provider against the currently
+  initialized provider. Re-initialize if they differ.
+- Alternatively, cache multiple provider instances in a `dict[str, BaseProvider]`
+- Add test: create `LLMClient()`, call with OpenAI model, then Anthropic model
+
+**Validation:** `pytest tests/test_client.py -v`
+
+#### 8.1.5 — Sync version number across `__init__.py` and `pyproject.toml` (PERF-7)
+
+**Files:** `stratifyai/__init__.py`, `pyproject.toml`  
+**Problem:** `__version__ = "0.1.0"` vs `version = "0.1.3"` — anyone importing
+`stratifyai.__version__` gets the stale value.
+
+**Fix:**
+- Replace hardcoded `__version__` with dynamic resolution:
+  ```python
+  from importlib.metadata import version, PackageNotFoundError
+  try:
+      __version__ = version("stratifyai")
+  except PackageNotFoundError:
+      __version__ = "0.1.3"  # fallback for development
+  ```
+
+**Validation:** `python -c "import stratifyai; print(stratifyai.__version__)"` → `0.1.3`
+
+---
+
+### Phase 8.2: Performance & Efficiency
+**Priority:** 🟠 MEDIUM — Maintainability, performance, DRY  
+**Estimated effort:** 2–3 days  
+**Branch:** `feat/phase-8.2-performance`
+
+#### 8.2.1 — Deduplicate REST and WebSocket handlers (PERF-2)
+
+**File:** `api/main.py`  
+**Problem:** ~290-line REST handler and ~216-line WebSocket handler have massive copy-paste:
+file processing, base64 decoding, chunking, temp file handling, temperature detection,
+cost tracking.
+
+**Fix:**
+- Extract into helper functions:
+  - `_process_file_attachment(file_content, file_name, provider, model, messages, chunked, chunk_size) -> messages`
+  - `_validate_token_count(messages, provider, model, chunked) -> None` (raises HTTPException)
+  - `_resolve_temperature(provider, model, requested_temp) -> float`
+  - `_track_cost(cost_tracker, response, provider, model, request_id) -> None`
+- Call these from both handlers
+- Target: reduce combined handler code by ~50%
+
+**Validation:** Full API integration test — REST and WebSocket both work identically
+
+#### 8.2.2 — Collapse 9 chat modules into generated wrappers (PERF-1)
+
+**Files:** All `stratifyai/chat/stratifyai_*.py` (9 files)  
+**Problem:** ~1,800 lines of nearly identical code. Each module differs only in provider
+name and env var name.
+
+**Fix:**
+- Create a `_make_chat_module(provider)` factory in `stratifyai/chat/builder.py` that returns
+  `(chat, chat_stream, chat_sync)` functions
+- Replace each 200-line module with ~10 lines:
+  ```python
+  """OpenAI chat module."""
+  from .builder import create_module_builder
+  _builder = create_module_builder("openai")
+  chat = _builder.chat
+  chat_stream = _builder.chat_stream
+  chat_sync = _builder.chat_sync
+  # Re-export builder for chaining
+  with_model = _builder.with_model
+  with_system = _builder.with_system
+  with_temperature = _builder.with_temperature
+  with_max_tokens = _builder.with_max_tokens
+  with_developer = _builder.with_developer
+  with_options = _builder.with_options
+  ```
+- Preserve the same public API — no breaking changes
+
+**Validation:** `pytest tests/test_chat_builder.py -v` + verify `from stratifyai.chat import openai; openai.chat` still works
+
+#### 8.2.3 — Parallelize async chunk summarization (PERF-3)
+
+**File:** `stratifyai/summarization.py`  
+**Problem:** `summarize_chunks_progressive_async()` processes chunks sequentially. For a
+10-chunk file, this is 10x slower than necessary.
+
+**Fix:**
+- Replace the sequential `for` loop with `asyncio.gather()`:
+  ```python
+  tasks = [
+      summarize_chunk_async(chunk, client, model,
+          context=f"{context} (Part {i}/{len(chunks)})" if context else f"Part {i}/{len(chunks)}")
+      for i, chunk in enumerate(chunks, 1)
+  ]
+  results = await asyncio.gather(*tasks)
+  summaries = [f"**Part {i}/{len(chunks)}:**\n{r}" for i, r in enumerate(results, 1)]
+  ```
+- Add optional `max_concurrency` parameter (default 5) using `asyncio.Semaphore`
+  to avoid overwhelming the provider with parallel requests
+
+**Validation:** `pytest tests/test_phase71.py -v` + manual timing comparison
+
+#### 8.2.4 — Pre-compile router regex patterns (PERF-6)
+
+**File:** `stratifyai/router.py`  
+**Problem:** `_analyze_complexity()` compiles ~25 regex patterns on every `route()` call.
+
+**Fix:**
+- Move `reasoning_keywords`, `code_indicators`, and `math_indicators` to class-level
+  constants as pre-compiled `re.compile()` patterns
+- Use `pattern.search(text)` instead of `re.search(pattern, text)`
+
+**Validation:** `pytest tests/test_router.py -v`
+
+#### 8.2.5 — Lazy-load provider catalogs (ARCH-1)
+
+**File:** `stratifyai/config.py`, `stratifyai/catalog_manager.py`  
+**Problem:** All 9 provider catalogs are loaded at module import time, even if only one
+provider is needed. This reads and parses `catalog/models.json` on first
+`import stratifyai`.
+
+**Fix:**
+- Replace module-level `OPENAI_MODELS = get_openai_models()` assignments with
+  a `_CatalogProxy` class that loads on first attribute access:
+  ```python
+  class _CatalogProxy:
+      def __init__(self, loader):
+          self._loader = loader
+          self._data = None
+      def _ensure_loaded(self):
+          if self._data is None:
+              self._data = self._loader()
+      def __getitem__(self, key): ...
+      def __contains__(self, key): ...
+      def keys(self): ...
+      # etc.
+  ```
+- Or simpler: use `functools.lru_cache` on each `get_*_models()` function (already cached
+  at catalog level, but the per-provider extraction still runs eagerly)
+
+**Validation:** `python -c "import stratifyai"` should not read `catalog/models.json`
+until a provider is actually used
+
+---
+
+### Phase 8.3: Architecture & Production Readiness
+**Priority:** 💡 MEDIUM-LOW — Long-term maintainability  
+**Estimated effort:** 2–3 days  
+**Branch:** `feat/phase-8.3-architecture`
+
+#### 8.3.1 — Move router quality/latency scores into catalog (BUG-6)
+
+**Files:** `stratifyai/router.py`, `catalog/models.json`, `catalog/schema.json`  
+**Problem:** Hardcoded quality scores and latency estimates cover only a small subset of
+models. Newer models (grok-4, claude-sonnet-4, gemini-3) default to 0.75/2000ms,
+producing poor routing recommendations.
+
+**Fix:**
+- Add `quality_score` (float, 0.0-1.0) and `avg_latency_ms` (int) fields to
+  `catalog/schema.json`
+- Populate values in `catalog/models.json` for all models
+- Update `Router._load_model_metadata()` to read from catalog instead of hardcoded dicts
+- Keep hardcoded values as fallback defaults for models missing catalog scores
+- Update `scripts/validate_catalog.py` to warn on missing quality/latency fields
+
+**Validation:** `python scripts/validate_catalog.py` + `pytest tests/test_router.py -v`
+
+#### 8.3.2 — Replace `print()` with structured logging (ARCH-3)
+
+**Files:** `stratifyai/cost_tracker.py`, `stratifyai/rag.py`, `stratifyai/summarization.py`  
+**Problem:** Mix of `print()` and `logging.getLogger()`. Production systems need
+consistent structured logging.
+
+**Fix:**
+- Replace `print(f"⚠️  Budget Alert...")` in `cost_tracker.py` with `logger.warning()`
+- Replace `print(f"Warning: Failed to index...")` in `rag.py` with `logger.warning()`
+- Add `logger = logging.getLogger(__name__)` to all modules that use `print()`
+- Add a `stratifyai/logging_config.py` with JSON formatter for production use
+
+**Validation:** Grep for remaining `print(` calls in `stratifyai/` — should be zero
+
+#### 8.3.3 — Expose key utilities in top-level exports (ARCH-4)
+
+**File:** `stratifyai/__init__.py`  
+**Problem:** Utilities like `token_counter`, `model_selector`, `reasoning_detector` are
+not importable from the top-level package.
+
+**Fix:**
+- Add to `__init__.py`:
+  ```python
+  from .utils.token_counter import count_tokens, estimate_tokens
+  from .utils.model_selector import ModelSelector
+  from .utils.reasoning_detector import is_reasoning_model
+  ```
+- Add to `__all__` list
+
+**Validation:** `python -c "from stratifyai import count_tokens, ModelSelector, is_reasoning_model"`
+
+#### 8.3.4 — Clean up `requirements.txt` (ARCH-5)
+
+**File:** `requirements.txt`  
+**Problem:** 153 pinned packages including dev tools (black, mypy, ruff, pytest, twine).
+Fragile and confusing for users.
+
+**Fix:**
+- Create `requirements.txt` with only direct runtime dependencies (~15 packages)
+- Create `requirements-dev.txt` with dev/test dependencies
+- Keep `pyproject.toml` `[project.optional-dependencies]` as the canonical source
+- Update `AGENTS.md` setup instructions to reference both files
+
+**Validation:** Fresh venv install with `pip install -r requirements.txt` succeeds
+
+#### 8.3.5 — Add centralized request/response middleware (ARCH-7)
+
+**File:** New `stratifyai/middleware.py`  
+**Problem:** Logging, latency tracking, cost tracking, and budget enforcement are done
+ad-hoc in API handlers. No centralized observability.
+
+**Fix:**
+- Create a `TrackedLLMClient` wrapper (or decorator) around `LLMClient` that:
+  1. Logs request metadata (provider, model, token estimate) before every call
+  2. Times every request and sets `latency_ms`
+  3. Calls `CostTracker.add_entry()` after every response
+  4. Checks `CostTracker.is_over_budget()` before every request (raises `BudgetExceededError`)
+- Use this in `api/main.py` instead of manual tracking code
+- This also simplifies the handler deduplication from 8.2.1
+
+**Validation:** `pytest tests/test_client.py -v` + verify API still tracks costs
+
+#### 8.3.6 — Add persistent cache option (PERF-4)
+
+**File:** `stratifyai/caching.py`  
+**Problem:** In-memory cache is lost on every restart, limiting production value.
+
+**Fix:**
+- Add optional `PersistentResponseCache` subclass backed by SQLite:
+  - `__init__(self, db_path="~/.stratifyai/cache.db", ttl=3600, max_size=1000)`
+  - Same `get()`/`set()`/`clear()`/`get_stats()` interface
+  - Serialize `ChatResponse` to JSON for storage
+- Keep in-memory `ResponseCache` as default for backward compatibility
+- Add `cache_backend` parameter to `cache_response()` decorator
+
+**Validation:** New test: set value, restart process, verify value persists
+
+#### 8.3.7 — Provider instance connection pooling (ARCH-6)
+
+**File:** `stratifyai/client.py`  
+**Problem:** Each `LLMClient` creates a fresh SDK client. Library users who create multiple
+`LLMClient` instances waste connection pool resources.
+
+**Fix:**
+- Add a module-level `_provider_pool: Dict[str, BaseProvider]` in `client.py`
+- When `_initialize_provider()` is called, check pool first
+- Add `LLMClient.close()` and `LLMClient.__aenter__`/`__aexit__` for proper lifecycle
+- Add `stratifyai.close_all()` to shut down all pooled connections
+
+**Validation:** `pytest tests/test_client.py -v` + verify only one SDK client per provider
+
+#### 8.3.8 — Exclude `raw_response` from serialization by default (SEC-6)
+
+**File:** `stratifyai/models.py`  
+**Problem:** `ChatResponse.raw_response` may contain sensitive provider metadata and is
+included in every response object.
+
+**Fix:**
+- Add a `to_dict(include_raw=False)` method on `ChatResponse`
+- Update API handlers to use `to_dict()` when serializing responses
+- Keep `raw_response` available on the object for debugging but exclude from default serialization
+- Document that `raw_response` should not be logged in production
+
+**Validation:** Verify API responses don't include `raw_response` field
+
+---
+
+### Phase Summary
+
+| Phase | Focus | Items | Est. Effort | Depends On |
+|-------|-------|-------|-------------|------------|
+| **8.0** | Critical bugs + security | 9 items | 2–3 days | None |
+| **8.1** | Consistency + correctness | 5 items | 1–2 days | 8.0 |
+| **8.2** | Performance + DRY | 5 items | 2–3 days | 8.1 |
+| **8.3** | Architecture + production | 8 items | 2–3 days | 8.1 |
+
+**Total: 27 items across 4 phases, ~8–11 days estimated**
+
+Phases 8.2 and 8.3 can be worked in parallel after 8.1 completes.
+
+### Acceptance Criteria (per phase)
+- [ ] All existing 303 tests still pass
+- [ ] New tests added for each fix (target: +30-40 tests total)
+- [ ] No new `ruff` or `mypy` errors introduced
+- [ ] `AGENTS.md` updated to reflect any new env vars, files, or workflows
+- [ ] Developer journal entry added documenting what was done
+
+### Technical Debt Resolved by This Plan
+- ✅ Sync/async correctness across vectordb and sync wrappers
+- ✅ Exception type consistency across all providers
+- ✅ API authentication and rate limiting
+- ✅ Input validation on all endpoints
+- ✅ ~1,800 lines of duplicated chat module code
+- ✅ ~500 lines of duplicated API handler code
+- ✅ Stale hardcoded router metadata
+- ✅ Error message key leakage risk
+- ✅ Bloated requirements.txt
+
+### Technical Debt Incurred
+- ⏳ Persistent cache is SQLite-only (Redis support deferred)
+- ⏳ Rate limiting is IP-based only (no user/token-based throttling)
+- ⏳ Quality scores in catalog are still manually estimated (real benchmarks deferred)
+
+---
+
+## February 15, 2026 - Thread Safety for Catalog Manager
+
+### Change Made
+Added thread-safe locking to `catalog_manager.py` to prevent race conditions during concurrent catalog access.
+
+**Implementation:**
+```python
+_catalog_lock = threading.Lock()
+```
+
+This lock ensures that catalog loading and caching operations are thread-safe when multiple threads attempt to access the catalog simultaneously.
+
+---
+
+## February 6, 2026 - Model Catalog Modernization
+
+### Problem Solved
+- **Original Issue**: Anthropic smart chunking failed with 404 error for `claude-3-5-sonnet-20241022`
+- **Root Cause**: Hardcoded model catalog difficult to maintain, no deprecation detection
+- **Impact**: Users couldn't use smart chunking with Anthropic models
+
+### Solution Implemented
+Externalized model catalog to community-editable JSON with automated validation:
+
+**Architecture:**
+- `catalog/models.json` - JSON source of truth
+- `catalog_manager.py` - Loads and caches catalog
+- Enhanced validator - Fetches models from Anthropic API
+- CI/CD workflow - Validates all PR changes
+- Deprecation tracking - Built-in lifecycle management
+
+**Key Changes:**
+1. Created JSON catalog with dated model IDs only
+2. Updated `config.py` to load from JSON
+3. Enhanced Anthropic validator to use `models.list()` API
+4. Added validation script and GitHub Actions workflow
+5. Fixed smart chunking bug (changed to `claude-3-haiku-20240307`)
+
+**Files Created (7):**
+- `catalog/models.json`, `schema.json`, `README.md`
+- `stratifyai/catalog_manager.py`
+- `scripts/validate_catalog.py`
+- `.github/workflows/validate-catalog.yml`
+- `docs/CATALOG_MANAGEMENT.md`
+
+**Files Modified (3):**
+- `stratifyai/config.py` - Loads ANTHROPIC_MODELS from JSON
+- `stratifyai/utils/provider_validator.py` - Uses Anthropic API
+- `api/main.py` - Fixed smart chunking model
+
+### Benefits
+✅ Community can submit catalog updates via PRs  
+✅ CI automatically validates changes  
+✅ Deprecation detection built-in  
+✅ Original bug fixed  
+✅ Scalable for all providers
+
+### Next Steps
+- Add UI deprecation warnings
+- Migrate remaining providers to JSON
+- Implement weekly auto-sync workflow
+
+### Lessons Learned
+1. **Externalization wins**: Moving config to JSON enables community collaboration
+2. **Validation is crucial**: CI catches errors before merge
+3. **Dated IDs matter**: Prevents surprises and enables deprecation tracking
+4. **Provider APIs help**: Fetching fresh model lists detects changes early
+
+### Time Investment
+- Planning: 30 minutes
+- Implementation: 3 hours
+- Testing/Documentation: 1 hour
+- **Total: 4.5 hours**
+
+### Technical Debt Resolved
+- ✅ Hardcoded model catalog
+- ✅ No deprecation tracking
+- ✅ Hypothetical model IDs
+- ✅ Manual updates required
+
+### Technical Debt Incurred
+- ⏳ UI deprecation warnings pending
+- ⏳ Only Anthropic migrated to JSON
+- ⏳ Weekly auto-sync not yet implemented
+
+---
+
+## January 2026 - Phase 7 Feature Development
+
+### Phase 7.9: Web UI Enhancements (Complete)
+- Vision support with pre-upload validation
+- Smart chunking toggle with configurable size
+- Markdown rendering for assistant responses
+- Syntax highlighting for code blocks
+- Model labels and category grouping
+
+### Phase 7.8: Builder Pattern & Required Model (Complete)
+- ChatBuilder class for fluent configuration
+- Model parameter now required (explicit over implicit)
+- All 9 chat modules updated
+
+### Phase 7.7: Async-First Conversion (Complete)
+- All providers converted to async using native SDKs
+- AsyncOpenAI, AsyncAnthropic, aioboto3
+- Sync wrappers for convenience
+
+### Phase 7.6: Chat Package (Complete)
+- Provider-specific chat modules (9 modules)
+- Simplified API: `chat(prompt)` and `chat_stream(prompt)`
+- Lazy client initialization
+
+### Phase 7.5: RAG/Vector DB Integration (Complete)
+- Embeddings module with OpenAI provider
+- Vector database module with ChromaDB
+- RAG pipeline with semantic search
+- Citation tracking
+
+### Phase 7.4: Enhanced Caching UI (Complete)
+- cache-stats command with detailed analytics
+- cache-clear command with confirmation
+- Visual hit rate indicators
+- Cost savings analysis
+
+### Phase 7.3: Model Auto-Selection (Complete)
+- ModelSelector class for file-based selection
+- Router.route_for_extraction() method
+- Auto-selection in analyze command
+
+### Phase 7.2: Intelligent Extraction (Complete)
+- CSV/JSON/Log/Code extractors
+- 26-95% token reduction
+- pandas dependency
+
+### Phase 7.1: Large File Handling (Complete)
+- Token counting utility
+- File type analyzer
+- Smart chunking at natural boundaries
+- Progressive summarization
+
+---
+
+## Development Guidelines
+
+### Code Quality
+- Type hints on all functions
+- Docstrings (Google style)
+- Test coverage > 80%
+- Black formatting (line 88)
+
+### Commit Convention
+Format: `type(scope): brief description`
+- Types: feat, fix, docs, refactor, test, chore
+- Always include: `Co-Authored-By: Warp <agent@warp.dev>`
+
+### Testing
+```bash
+# Run all tests
+pytest
+
+# Run with verbose
+pytest -v
+
+# Specific test
+pytest tests/test_file.py::test_function
+```
+
+### Common Commands
+```bash
+# Activate venv
+source .venv/bin/activate
+
+# Install deps
+pip install -r requirements.txt
+
+# Validate catalog
+python scripts/validate_catalog.py
+
+# Run API
+python api/main.py
+
+# Run CLI
+python -m cli.stratifyai_cli
+```
+
+---
+
+**Maintainer:** StratifyAI Team  
+**Last Updated:** February 27, 2026
