@@ -37,7 +37,7 @@ class BedrockProvider(BaseProvider):
         aws_secret_access_key: str | None = None,
         aws_session_token: str | None = None,
         region_name: str | None = None,
-        config: dict = None,
+        config: dict | None = None,
     ):
         """
         Initialize AWS Bedrock provider.
@@ -513,7 +513,9 @@ class BedrockProvider(BaseProvider):
             body["system"] = [{"text": system_message}]
 
         if request.stop:
-            body["inferenceConfig"]["stopSequences"] = request.stop
+            inference_config = body["inferenceConfig"]
+            if isinstance(inference_config, dict):
+                inference_config["stopSequences"] = request.stop
 
         return body
 
@@ -763,11 +765,11 @@ class BedrockProvider(BaseProvider):
         model_info = BEDROCK_MODELS.get(model, {})
 
         # Get cost per million tokens
-        input_cost_per_mtok = model_info.get("cost_input", 0.0)
-        output_cost_per_mtok = model_info.get("cost_output", 0.0)
+        input_cost_per_mtok = float(model_info.get("cost_input", 0.0))
+        output_cost_per_mtok = float(model_info.get("cost_output", 0.0))
 
         # Calculate cost
         input_cost = (usage.prompt_tokens / 1_000_000) * input_cost_per_mtok
         output_cost = (usage.completion_tokens / 1_000_000) * output_cost_per_mtok
 
-        return input_cost + output_cost
+        return float(input_cost + output_cost)

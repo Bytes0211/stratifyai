@@ -25,7 +25,7 @@ class OpenAICompatibleProvider(BaseProvider):
     """
 
     def __init__(
-        self, api_key: str, base_url: str, model_catalog: dict, config: dict = None
+        self, api_key: str, base_url: str, model_catalog: dict, config: dict | None = None
     ):
         """
         Initialize OpenAI-compatible provider.
@@ -62,7 +62,7 @@ class OpenAICompatibleProvider(BaseProvider):
     def supports_caching(self, model: str) -> bool:
         """Check if model supports prompt caching."""
         model_info = self.model_catalog.get(model, {})
-        return model_info.get("supports_caching", False)
+        return bool(model_info.get("supports_caching", False))
 
     async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """
@@ -415,8 +415,8 @@ class OpenAICompatibleProvider(BaseProvider):
             Cost in USD
         """
         model_info = self.model_catalog.get(model, {})
-        cost_input = model_info.get("cost_input", 0.0)
-        cost_output = model_info.get("cost_output", 0.0)
+        cost_input = float(model_info.get("cost_input", 0.0))
+        cost_output = float(model_info.get("cost_output", 0.0))
 
         # Calculate non-cached prompt tokens
         non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
@@ -425,7 +425,7 @@ class OpenAICompatibleProvider(BaseProvider):
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input
         output_cost = (usage.completion_tokens / 1_000_000) * cost_output
 
-        return input_cost + output_cost
+        return float(input_cost + output_cost)
 
     def _calculate_cache_cost(
         self, cache_creation_tokens: int, cache_read_tokens: int, model: str
@@ -447,11 +447,11 @@ class OpenAICompatibleProvider(BaseProvider):
         if not model_info.get("supports_caching", False):
             return 0.0
 
-        cost_cache_write = model_info.get("cost_cache_write", 0.0)
-        cost_cache_read = model_info.get("cost_cache_read", 0.0)
+        cost_cache_write = float(model_info.get("cost_cache_write", 0.0))
+        cost_cache_read = float(model_info.get("cost_cache_read", 0.0))
 
         # Costs are per 1M tokens
         write_cost = (cache_creation_tokens / 1_000_000) * cost_cache_write
         read_cost = (cache_read_tokens / 1_000_000) * cost_cache_read
 
-        return write_cost + read_cost
+        return float(write_cost + read_cost)
