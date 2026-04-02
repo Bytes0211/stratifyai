@@ -169,9 +169,9 @@ class TestVerifyApiKeyHmac:
         from api.main import verify_api_key
 
         source = inspect.getsource(verify_api_key)
-        assert "hmac.compare_digest" in source, (
-            "verify_api_key must use hmac.compare_digest for timing-safe comparison"
-        )
+        assert (
+            "hmac.compare_digest" in source
+        ), "verify_api_key must use hmac.compare_digest for timing-safe comparison"
 
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "test-secret-key"})
     def test_valid_key_passes(self):
@@ -468,6 +468,67 @@ class TestApiIntegration:
         assert resp.status_code == 200
         assert resp.json()["status"] == "healthy"
 
+    def test_health_endpoint_returns_correlation_header(self):
+        from fastapi.testclient import TestClient
+
+        from api.main import app
+
+        client = TestClient(app)
+        resp = client.get("/api/health", headers={"X-Correlation-ID": "trace-123"})
+        assert resp.status_code == 200
+        assert resp.headers["X-Correlation-ID"] == "trace-123"
+
+    @patch("api.main.LLMClient")
+    def test_provider_health_endpoint_returns_summary(self, mock_client_class):
+        from fastapi.testclient import TestClient
+
+        from api.main import app
+
+        def provider_side_effect(*args, **kwargs):
+            provider = kwargs.get("provider")
+            if provider == "openai":
+                raise RuntimeError("provider init failed")
+            return MagicMock(close=MagicMock())
+
+        mock_client_class.side_effect = provider_side_effect
+
+        client = TestClient(app)
+        resp = client.get("/health/providers")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "summary" in body
+        assert body["providers"]["openai"]["status"] == "degraded"
+        assert body["providers"]["ollama"]["client_initialized"] is True
+
+    @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "my-secret"})
+    @patch("api.main.get_cache_stats")
+    @patch("api.main.cost_tracker")
+    def test_metrics_endpoint_returns_structured_json(
+        self, mock_cost_tracker, mock_get_cache_stats
+    ):
+        from fastapi.testclient import TestClient
+
+        from api.main import app, metrics_registry
+
+        metrics_registry.reset()
+        metrics_registry.record_http_request("GET", "/api/health")
+        metrics_registry.record_http_response("GET", "/api/health", 200, 12.0)
+        metrics_registry.record_stream_request("openai", "gpt-4o")
+        metrics_registry.record_stream_completion(25.0, 80.0)
+
+        mock_get_cache_stats.return_value = {"size": 1, "total_hits": 2}
+        mock_cost_tracker.get_summary.return_value = {"total_cost": 0.123}
+
+        client = TestClient(app)
+        resp = client.get("/api/metrics", headers={"Authorization": "Bearer my-secret"})
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["http"]["requests_total"] >= 1
+        assert body["streaming"]["avg_first_token_latency_ms"] == 25.0
+        assert body["cache"]["size"] == 1
+        assert body["cost"]["total_cost"] == 0.123
+
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "my-secret"})
     def test_providers_without_auth_returns_401(self):
         from fastapi.testclient import TestClient
@@ -512,6 +573,49 @@ class TestApiIntegration:
 
 class TestWebSocketStructuredErrors:
     """Verify WebSocket sends structured JSON errors for auth/validation."""
+
+    @patch.dict("os.environ", {}, clear=False)
+    @patch("api.main.get_tracked_client")
+    def test_ws_stream_includes_latency_and_correlation_id(
+        self, mock_get_tracked_client
+    ):
+        import os
+
+        from fastapi.testclient import TestClient
+
+        from api.main import app
+
+        os.environ.pop("STRATIFYAI_API_KEY", None)
+
+        tracked = MagicMock()
+
+        async def stream():
+            yield MagicMock(
+                content="Hello",
+                usage=MagicMock(prompt_tokens=10, completion_tokens=3),
+            )
+
+        tracked.chat_completion_stream.return_value = stream()
+        tracked.get_last_stream_metrics.return_value = {
+            "first_token_latency_ms": 12.5,
+            "total_latency_ms": 45.0,
+            "chunk_count": 1,
+        }
+        mock_get_tracked_client.return_value = tracked
+
+        client = TestClient(app)
+        with client.websocket_connect(
+            "/api/chat/stream", headers={"x-correlation-id": "ws-trace-1"}
+        ) as ws:
+            ws.send_text(
+                '{"provider":"openai","model":"gpt-4o","messages":[{"role":"user","content":"hi"}]}'
+            )
+            chunk = ws.receive_json()
+            assert chunk["correlation_id"] == "ws-trace-1"
+            final = ws.receive_json()
+            assert final["correlation_id"] == "ws-trace-1"
+            assert final["usage"]["first_token_latency_ms"] == 12.5
+            assert final["usage"]["latency_ms"] == 45.0
 
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "ws-secret"})
     def test_ws_auth_failure_returns_structured_error(self):

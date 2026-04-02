@@ -35,11 +35,11 @@
 
 > Gaps in latency tracking and logging for streamed responses.
 
-- [ ] Track full end-to-end latency for streaming responses (first token + total)
-- [ ] Add detailed logging for cache hits/misses (model, key, TTL remaining)
-- [ ] Add request/response tracing with correlation IDs
-- [ ] Add provider health check endpoint to API (`/health/providers`)
-- [ ] Add metrics export (Prometheus-compatible or structured JSON)
+- [x] Track full end-to-end latency for streaming responses (first token + total)
+- [x] Add detailed logging for cache hits/misses (model, key, TTL remaining)
+- [x] Add request/response tracing with correlation IDs
+- [x] Add provider health check endpoint to API (`/health/providers`)
+- [x] Add metrics export (Prometheus-compatible or structured JSON)
 
 ---
 

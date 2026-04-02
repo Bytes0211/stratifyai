@@ -1,4 +1,51 @@
 # Developer Journal
+## April 2, 2026 - Phase 12 Observability & Streaming
+
+Implemented the full Phase 12 observability scope and documented the new operational endpoints.
+
+### Changes
+- Added `stratifyai/observability.py` with correlation ID context management and an in-process metrics registry.
+- Added HTTP tracing middleware in `api/main.py` that binds/propagates `X-Correlation-ID`, records request/response latency, and logs structured request lifecycle events.
+- Extended WebSocket streaming in `api/main.py` to include `correlation_id`, first-token latency, and total latency in final usage payloads.
+- Added provider health endpoints: `/health/providers` and `/api/health/providers`.
+- Added structured metrics export endpoint: `/api/metrics`.
+- Added detailed cache hit/miss/expired logging in `stratifyai/caching.py` with model, cache key prefix, TTL remaining, and backend type.
+- Extended `TrackedLLMClient` in `stratifyai/middleware.py` to capture streaming telemetry and expose the most recent stream metrics.
+- Updated `stratifyai/logging_config.py` so JSON logs include correlation IDs when available.
+- Added lightweight docs coverage in `docs/API-REFERENCE.md` and surfaced the new endpoints in `README.md`.
+
+### Files Created
+- `stratifyai/observability.py` — correlation IDs and in-process metrics registry
+
+### Files Modified
+- `api/main.py` — tracing middleware, provider health, metrics export, WebSocket telemetry
+- `stratifyai/caching.py` — detailed cache observability logging
+- `stratifyai/middleware.py` — stream latency tracking
+- `stratifyai/logging_config.py` — correlation ID field in structured logs
+- `tests/test_middleware.py` — stream telemetry coverage
+- `tests/test_caching.py` — cache hit/miss logging coverage
+- `tests/test_phase80_hardening.py` — provider health, metrics, tracing, WebSocket telemetry coverage
+- `docs/API-REFERENCE.md` — new observability endpoint documentation
+- `README.md` — high-level operations and observability guidance
+
+### Test Results
+Targeted validation passed:
+- `ruff check api/main.py stratifyai/caching.py stratifyai/middleware.py stratifyai/logging_config.py stratifyai/observability.py tests/test_middleware.py tests/test_caching.py tests/test_phase80_hardening.py`
+- `pytest tests/test_middleware.py tests/test_caching.py tests/test_phase80_hardening.py -q`
+
+### Technical Debt Resolved
+- ✅ No correlation IDs across API request/response flow
+- ✅ No provider health snapshot endpoint
+- ✅ No structured metrics export for lightweight monitoring
+- ✅ No first-token streaming latency surfaced to API consumers
+- ✅ Cache activity lacked operational logging detail
+
+### Technical Debt Incurred
+- ⏳ Metrics export is structured JSON only; Prometheus text format is still optional future work
+- ⏳ Provider health is a lightweight readiness snapshot, not a live downstream probe
+
+---
+
 ## April 2, 2026 - Documentation Alignment and Roadmap Refresh
 
 Aligned project documentation to reflect the current delivery state and active roadmap focus.

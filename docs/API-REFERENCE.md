@@ -2,22 +2,23 @@
 
 Complete API documentation for StratifyAI multi-provider LLM abstraction module.
 
-**Version:** 1.0.0  
-**Last Updated:** February 1, 2026
+**Version:** 0.1.3  
+**Last Updated:** April 2, 2026
 
 ---
 
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [LLMClient](#llmclient)
-3. [Data Models](#data-models)
-4. [Providers](#providers)
-5. [Router](#router)
-6. [Cost Tracking](#cost-tracking)
-7. [Caching](#caching)
-8. [Error Handling](#error-handling)
-9. [CLI Reference](#cli-reference)
+2. [Web API Observability](#web-api-observability)
+3. [LLMClient](#llmclient)
+4. [Data Models](#data-models)
+5. [Providers](#providers)
+6. [Router](#router)
+7. [Cost Tracking](#cost-tracking)
+8. [Caching](#caching)
+9. [Error Handling](#error-handling)
+10. [CLI Reference](#cli-reference)
 
 ---
 
@@ -40,6 +41,8 @@ pip install -r requirements.txt
 - Set `STRATIFYAI_API_KEY` on the server to require `Authorization: Bearer <key>` for `/api/*` endpoints (except `/api/health`).
 - Default rate limit: `POST /api/chat` is limited to 30 requests/minute per IP.
 - Streaming endpoint `/api/chat/stream` enforces 30 connections/minute per IP.
+- HTTP responses include `X-Correlation-ID`. You can supply your own `X-Correlation-ID` header to trace a request across logs.
+- WebSocket clients can send `x-correlation-id` during connect; streamed payloads echo it back as `correlation_id`.
 
 ### Basic Usage
 
@@ -82,6 +85,142 @@ response: ChatResponse = client.chat_completion_sync(request)
 
 print(response.content)
 print(f"Cost: ${response.usage.cost_usd:.6f}")
+```
+
+---
+
+## Web API Observability
+
+The FastAPI server exposes lightweight health and telemetry endpoints for operations and debugging.
+
+### Correlation IDs
+
+- Send `X-Correlation-ID: your-trace-id` on HTTP requests to preserve a client-generated trace ID.
+- If omitted, the server generates one automatically.
+- HTTP responses echo the active correlation ID in the `X-Correlation-ID` header.
+- WebSocket responses include `correlation_id` in both streamed chunks and terminal error/final payloads.
+
+### GET `/api/health`
+
+Basic API health endpoint.
+
+**Authentication:** Not required
+
+**Response:**
+
+```json
+{
+    "status": "healthy",
+    "version": "0.1.3"
+}
+```
+
+### GET `/health/providers`
+
+Lightweight provider readiness snapshot.
+
+Also available at `/api/health/providers` for API consumers.
+
+**Authentication:** Not required
+
+**Response fields:**
+- `status`: Overall health summary (`healthy` or `degraded`)
+- `providers`: Per-provider readiness data
+- `summary`: Counts of total, ready, and degraded providers
+
+**Example:**
+
+```json
+{
+    "status": "degraded",
+    "providers": {
+        "openai": {
+            "status": "ready",
+            "configured": true,
+            "client_initialized": true,
+            "models_known": 12,
+            "error": null
+        }
+    },
+    "summary": {
+        "total": 9,
+        "ready": 8,
+        "degraded": 1
+    }
+}
+```
+
+### GET `/api/metrics`
+
+Structured JSON metrics export for lightweight monitoring.
+
+**Authentication:** Required when `STRATIFYAI_API_KEY` is configured
+
+**Includes:**
+- HTTP request counts, status counts, and average latency
+- Streaming request counts plus average first-token and total latency
+- Cache statistics from the global response cache
+- Cost summary from the in-process cost tracker
+- Process uptime in seconds
+
+**Example:**
+
+```json
+{
+    "uptime_seconds": 1234,
+    "version": "0.1.3",
+    "http": {
+        "requests_total": 42,
+        "errors_total": 1,
+        "avg_latency_ms": 18.2,
+        "status_counts": {"200": 41, "500": 1},
+        "path_counts": {"GET /api/health": 10}
+    },
+    "streaming": {
+        "requests_total": 7,
+        "errors_total": 0,
+        "avg_first_token_latency_ms": 95.4,
+        "avg_total_latency_ms": 640.1,
+        "provider_counts": {"openai": 5},
+        "model_counts": {"openai/gpt-4o": 5}
+    },
+    "cache": {
+        "size": 4,
+        "total_hits": 12
+    },
+    "cost": {
+        "total_cost": 0.0241,
+        "total_calls": 9
+    }
+}
+```
+
+### WebSocket Streaming Telemetry
+
+Endpoint: `/api/chat/stream`
+
+The final WebSocket message now includes:
+- `correlation_id`
+- `usage.first_token_latency_ms`
+- `usage.latency_ms`
+
+**Example terminal payload:**
+
+```json
+{
+    "content": "",
+    "done": true,
+    "correlation_id": "abc123trace",
+    "full_content": "Hello world",
+    "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 3,
+        "total_tokens": 13,
+        "cost_usd": 0.00002,
+        "first_token_latency_ms": 87.4,
+        "latency_ms": 420.8
+    }
+}
 ```
 
 ---

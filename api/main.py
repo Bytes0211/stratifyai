@@ -30,10 +30,19 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from stratifyai import ChatRequest, LLMClient, Message
+from stratifyai.api_key_helper import APIKeyHelper
+from stratifyai.caching import get_cache_stats
 from stratifyai.catalog_manager import load_catalog
 from stratifyai.config import MODEL_CATALOG
 from stratifyai.cost_tracker import CostTracker
+from stratifyai.exceptions import AuthenticationError
 from stratifyai.middleware import TrackedLLMClient
+from stratifyai.observability import (
+    bind_correlation_id,
+    build_log_extra,
+    metrics_registry,
+    reset_correlation_id,
+)
 from stratifyai.utils.reasoning_detector import (
     get_temperature_for_model,
     is_reasoning_model,
@@ -62,6 +71,7 @@ def _get_version() -> str:
 
 
 API_VERSION = _get_version()
+APP_START_TIME = time.time()
 
 # Shared ThreadPoolExecutor for async validation tasks (BUG-008)
 _executor = ThreadPoolExecutor(max_workers=4)
@@ -91,6 +101,66 @@ app = FastAPI(
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.middleware("http")
+async def tracing_middleware(request: Request, call_next):
+    """Attach correlation IDs and record basic HTTP observability."""
+    correlation_id, token = bind_correlation_id(request.headers.get("X-Correlation-ID"))
+    request.state.correlation_id = correlation_id
+
+    start = time.perf_counter()
+    metrics_registry.record_http_request(request.method, request.url.path)
+    logger.info(
+        "HTTP request started: %s %s",
+        request.method,
+        request.url.path,
+        extra=build_log_extra(method=request.method, path=request.url.path),
+    )
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - start) * 1000
+        metrics_registry.record_http_response(
+            request.method, request.url.path, 500, duration_ms
+        )
+        logger.exception(
+            "HTTP request failed: %s %s latency=%.0fms",
+            request.method,
+            request.url.path,
+            duration_ms,
+            extra=build_log_extra(
+                method=request.method,
+                path=request.url.path,
+                latency_ms=duration_ms,
+                status_code=500,
+            ),
+        )
+        reset_correlation_id(token)
+        raise
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    metrics_registry.record_http_response(
+        request.method, request.url.path, response.status_code, duration_ms
+    )
+    response.headers["X-Correlation-ID"] = correlation_id
+    logger.info(
+        "HTTP request completed: %s %s status=%d latency=%.0fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        extra=build_log_extra(
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            latency_ms=duration_ms,
+        ),
+    )
+    reset_correlation_id(token)
+    return response
+
 
 # Configure CORS (BUG-004: Wildcard + credentials is invalid per CORS spec)
 # Read allowed origins from env var or use permissive defaults for development
@@ -447,6 +517,16 @@ async def chat_completion(
         Chat completion response with cost tracking
     """
     try:
+        logger.info(
+            "Chat completion requested: provider=%s model=%s",
+            payload.provider,
+            payload.model,
+            extra=build_log_extra(
+                provider=payload.provider,
+                model=payload.model,
+                route="/api/chat",
+            ),
+        )
         # Convert messages to Message objects
         messages = [
             Message(role=msg["role"], content=msg["content"])
@@ -549,9 +629,9 @@ async def chat_completion(
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
                 # Combine with existing user message
-                messages[
-                    -1
-                ].content = f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
+                messages[-1].content = (
+                    f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
+                )
             else:
                 # Create new user message with file content
                 messages.append(
@@ -754,6 +834,9 @@ async def chat_stream(websocket: WebSocket):
         Server streams JSON chunks: {"content": "...", "done": false}
         Final message: {"content": "", "done": true, "usage": {...}}
     """
+    correlation_id, token = bind_correlation_id(
+        websocket.headers.get("x-correlation-id")
+    )
     await websocket.accept()
 
     try:
@@ -769,6 +852,7 @@ async def chat_stream(websocket: WebSocket):
                 {
                     "error": "authentication_failed",
                     "detail": auth_exc.detail,
+                    "correlation_id": correlation_id,
                     "done": True,
                 }
             )
@@ -787,6 +871,7 @@ async def chat_stream(websocket: WebSocket):
                 {
                     "error": "rate_limit_exceeded",
                     "retry_after": _WS_RATE_LIMIT_WINDOW_SECS,
+                    "correlation_id": correlation_id,
                     "done": True,
                 }
             )
@@ -798,6 +883,7 @@ async def chat_stream(websocket: WebSocket):
 
         provider = request_obj.provider
         model = request_obj.model
+        metrics_registry.record_stream_request(provider, model)
         messages_data = request_obj.messages
         requested_temperature = request_obj.temperature
         max_tokens = request_obj.max_tokens
@@ -929,9 +1015,9 @@ async def chat_stream(websocket: WebSocket):
 
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
-                messages[
-                    -1
-                ].content = f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
+                messages[-1].content = (
+                    f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
+                )
             else:
                 messages.append(
                     Message(
@@ -970,12 +1056,15 @@ async def chat_stream(websocket: WebSocket):
 
         # Track latency
         start_time = time.perf_counter()
+        first_token_latency_ms: float | None = None
 
         full_content = ""
         prompt_tokens = 0
         completion_tokens = 0
         stream = tracked.chat_completion_stream(chat_request)
         async for chunk in stream:
+            if first_token_latency_ms is None:
+                first_token_latency_ms = (time.perf_counter() - start_time) * 1000
             full_content += chunk.content
             # Accumulate token usage from chunks if available
             if hasattr(chunk, "usage") and chunk.usage:
@@ -985,6 +1074,7 @@ async def chat_stream(websocket: WebSocket):
             await websocket.send_json(
                 {
                     "content": chunk.content,
+                    "correlation_id": correlation_id,
                     "done": False,
                 }
             )
@@ -1014,23 +1104,55 @@ async def chat_stream(websocket: WebSocket):
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
             cost_usd=cost_usd,
-            request_id=f"ws-{id(websocket)}-{int(asyncio.get_running_loop().time())}",
+            request_id=correlation_id,
         )
 
         # Calculate latency
         latency_ms = (time.perf_counter() - start_time) * 1000
+        tracked_metrics = tracked.get_last_stream_metrics()
+        tracked_first_token = tracked_metrics.get("first_token_latency_ms")
+        if isinstance(tracked_first_token, (int, float)):
+            first_token_latency_ms = float(tracked_first_token)
+        total_latency_value = tracked_metrics.get("total_latency_ms")
+        if isinstance(total_latency_value, (int, float)):
+            latency_ms = float(total_latency_value)
+        metrics_registry.record_stream_completion(first_token_latency_ms, latency_ms)
+
+        logger.info(
+            "WebSocket stream completed: provider=%s model=%s latency=%.0fms first_token=%s",
+            provider,
+            model,
+            latency_ms,
+            (
+                f"{first_token_latency_ms:.0f}ms"
+                if first_token_latency_ms is not None
+                else "n/a"
+            ),
+            extra=build_log_extra(
+                provider=provider,
+                model=model,
+                total_latency_ms=latency_ms,
+                first_token_latency_ms=first_token_latency_ms,
+            ),
+        )
 
         # Send final message with usage info
         await websocket.send_json(
             {
                 "content": "",
                 "done": True,
+                "correlation_id": correlation_id,
                 "full_content": full_content,
                 "usage": {
                     "prompt_tokens": prompt_tokens,
                     "completion_tokens": completion_tokens,
                     "total_tokens": total_tokens,
                     "cost_usd": cost_usd,
+                    "first_token_latency_ms": (
+                        round(first_token_latency_ms, 2)
+                        if first_token_latency_ms is not None
+                        else None
+                    ),
                     "latency_ms": round(latency_ms, 2),
                 },
             }
@@ -1039,11 +1161,19 @@ async def chat_stream(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
     except ValidationError as e:
+        metrics_registry.record_stream_error()
         try:
-            await websocket.send_json({"error": str(e), "done": True})
+            await websocket.send_json(
+                {
+                    "error": str(e),
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
         except Exception:
             pass
     except HTTPException as http_exc:
+        metrics_registry.record_stream_error()
         # Catch any remaining HTTPException raised inside the handler
         # (e.g. from _sanitize_file_name) and surface as clean JSON.
         logger.warning(
@@ -1055,23 +1185,27 @@ async def chat_stream(websocket: WebSocket):
                     "error": "request_error",
                     "detail": str(http_exc.detail),
                     "status_code": http_exc.status_code,
+                    "correlation_id": correlation_id,
                     "done": True,
                 }
             )
         except Exception:
             pass
     except Exception as e:
+        metrics_registry.record_stream_error()
         logger.error(f"WebSocket error: {str(e)}")
         try:
             await websocket.send_json(
                 {
                     "error": str(e),
+                    "correlation_id": correlation_id,
                     "done": True,
                 }
             )
         except Exception:
             pass  # Connection may already be closed
     finally:
+        reset_correlation_id(token)
         # BUG-005: Avoid double-close RuntimeError
         try:
             await websocket.close()
@@ -1326,6 +1460,99 @@ async def render_template(
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": API_VERSION}
+
+
+def _provider_health_snapshot() -> dict[str, Any]:
+    """Collect lightweight provider health information."""
+    providers = [
+        "openai",
+        "anthropic",
+        "google",
+        "deepseek",
+        "groq",
+        "grok",
+        "ollama",
+        "openrouter",
+        "bedrock",
+    ]
+    availability = APIKeyHelper.check_available_providers()
+
+    results: dict[str, Any] = {}
+    ready_count = 0
+    degraded_count = 0
+    for provider in providers:
+        configured = availability.get(provider, False)
+        if provider not in {"ollama", "bedrock"} and not configured:
+            results[provider] = {
+                "status": "missing_credentials",
+                "configured": False,
+                "client_initialized": False,
+                "models_known": len(MODEL_CATALOG.get(provider, {})),
+                "error": "API key not configured",
+            }
+            degraded_count += 1
+            continue
+
+        try:
+            client = LLMClient(provider=provider)
+            client.close()
+            results[provider] = {
+                "status": "ready",
+                "configured": configured,
+                "client_initialized": True,
+                "models_known": len(MODEL_CATALOG.get(provider, {})),
+                "error": None,
+            }
+            ready_count += 1
+        except AuthenticationError as exc:
+            results[provider] = {
+                "status": "missing_credentials",
+                "configured": configured,
+                "client_initialized": False,
+                "models_known": len(MODEL_CATALOG.get(provider, {})),
+                "error": str(exc),
+            }
+            degraded_count += 1
+        except Exception as exc:
+            results[provider] = {
+                "status": "degraded",
+                "configured": configured,
+                "client_initialized": False,
+                "models_known": len(MODEL_CATALOG.get(provider, {})),
+                "error": str(exc),
+            }
+            degraded_count += 1
+
+    overall_status = "healthy" if degraded_count == 0 else "degraded"
+    return {
+        "status": overall_status,
+        "providers": results,
+        "summary": {
+            "total": len(providers),
+            "ready": ready_count,
+            "degraded": degraded_count,
+        },
+    }
+
+
+@app.get("/health/providers")
+@app.get("/api/health/providers")
+async def provider_health_check():
+    """Return lightweight provider health information."""
+    return _provider_health_snapshot()
+
+
+@app.get("/api/metrics")
+async def get_metrics(_: None = Depends(verify_api_key)):
+    """Export structured application metrics."""
+    return {
+        "uptime_seconds": int(time.time() - APP_START_TIME),
+        **metrics_registry.export(
+            api_version=API_VERSION,
+            cache_stats=get_cache_stats(),
+            cost_summary=cost_tracker.get_summary(),
+        ),
+    }
 
 
 @app.on_event("startup")

@@ -5,9 +5,9 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-408%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Production Ready (Phase 10 Complete, Phase 11 In Progress)  
+**Status:** Production Ready (Phase 12 Complete, Phase 13 Next)  
 **Providers:** 9 Operational  
-**Features:** Routing • RAG • Caching • Streaming • CLI • Svelte 5 SPA • Vision • Smart Chunking • **Prompt Templates**
+**Features:** Routing • RAG • Caching • Streaming • Observability • CLI • Svelte 5 SPA • Vision • Smart Chunking • **Prompt Templates**
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
@@ -25,6 +25,8 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - Retry logic with fallback models
 - Streaming support for all providers
 - Response caching + provider prompt caching
+- Correlation IDs for HTTP/WebSocket tracing
+- Provider health and structured metrics endpoints
 - Intelligent routing (cost, quality, latency, hybrid)
 - Capability filtering (vision, tools, reasoning)
 - Model metadata and context window awareness
@@ -43,6 +45,14 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - Rich/Typer CLI with interactive mode
 - **Svelte 5 SPA** with tabbed interface, real-time streaming, and file attachments
 - **Web UI Features**: Markdown rendering, syntax highlighting, cost tracking, model catalog browser
+
+### Operations & Observability
+
+- `GET /api/health` for basic API liveness
+- `GET /health/providers` and `GET /api/health/providers` for provider readiness snapshots
+- `GET /api/metrics` for structured JSON metrics export
+- `X-Correlation-ID` support for HTTP tracing and `correlation_id` in WebSocket payloads
+- Streaming telemetry including first-token and total latency in final WebSocket usage payloads
 
 ---
 
@@ -217,6 +227,25 @@ uvicorn api.main:app --reload --port 8080
 # Terminal 2: Start frontend dev server
 cd frontend
 npm run dev
+```
+
+### Observability Endpoints
+
+```bash
+# Basic health
+curl http://localhost:8080/api/health
+
+# Provider readiness
+curl http://localhost:8080/health/providers
+
+# Structured metrics (requires auth if STRATIFYAI_API_KEY is set)
+curl -H "Authorization: Bearer $STRATIFYAI_API_KEY" http://localhost:8080/api/metrics
+```
+
+If you want request tracing in logs, send a correlation header:
+
+```bash
+curl -H "X-Correlation-ID: demo-trace-123" http://localhost:8080/api/health
 ```
 
 ---
