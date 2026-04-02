@@ -1,13 +1,12 @@
 """OpenAI provider implementation."""
 
-import os
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator, List, Optional
 
 from openai import AsyncOpenAI
 
 from ..config import OPENAI_MODELS, PROVIDER_CONSTRAINTS
-from ..exceptions import AuthenticationError, InvalidModelError, ProviderAPIError
+from ..exceptions import InvalidModelError, ProviderAPIError
 from ..models import ChatRequest, ChatResponse, Usage
 from ..utils.sanitizer import sanitize_error
 from .base import BaseProvider
@@ -16,7 +15,7 @@ from .base import BaseProvider
 class OpenAIProvider(BaseProvider):
     """OpenAI provider implementation with cost tracking."""
 
-    def __init__(self, api_key: Optional[str] = None, config: dict = None):
+    def __init__(self, api_key: str | None = None, config: dict = None):
         """
         Initialize OpenAI provider.
 
@@ -43,14 +42,14 @@ class OpenAIProvider(BaseProvider):
         except Exception as e:
             raise ProviderAPIError(
                 f"Failed to initialize OpenAI client: {str(e)}", "openai"
-            )
+            ) from e
 
     @property
     def provider_name(self) -> str:
         """Return provider name."""
         return "openai"
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Return list of supported OpenAI models."""
         return list(OPENAI_MODELS.keys())
 
@@ -179,10 +178,10 @@ class OpenAIProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -272,10 +271,10 @@ class OpenAIProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Streaming chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     def _normalize_response(self, raw_response: dict) -> ChatResponse:
         """

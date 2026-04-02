@@ -4,26 +4,26 @@ Model catalogs are now loaded from catalog/models.json via catalog_manager.
 This file maintains provider constraints and INTERACTIVE_*_MODELS for UI curation.
 """
 
-from typing import Dict, Any
+from typing import Any
 
 # Import all providers from the centralized catalog
 from .catalog_manager import (
-    get_openai_models,
     get_anthropic_models,
-    get_google_models,
-    get_deepseek_models,
-    get_groq_models,
-    get_grok_models,
-    get_openrouter_models,
-    get_ollama_models,
     get_bedrock_models,
+    get_deepseek_models,
+    get_google_models,
+    get_grok_models,
+    get_groq_models,
+    get_ollama_models,
+    get_openai_models,
+    get_openrouter_models,
 )
 
 # Load model catalogs from catalog/models.json
-OPENAI_MODELS: Dict[str, Dict[str, Any]] = get_openai_models()
+OPENAI_MODELS: dict[str, dict[str, Any]] = get_openai_models()
 
 # Provider-specific constraints
-PROVIDER_CONSTRAINTS: Dict[str, Dict[str, Any]] = {
+PROVIDER_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "anthropic": {
         "min_temperature": 0.0,
         "max_temperature": 1.0,
@@ -64,7 +64,7 @@ PROVIDER_CONSTRAINTS: Dict[str, Dict[str, Any]] = {
 
 # Provider-level timeout defaults (seconds) used by SDK clients.
 # Can be overridden via LLMClient(config={"providers": {"<provider>": {"timeout_seconds": ...}}}).
-PROVIDER_TIMEOUTS: Dict[str, float] = {
+PROVIDER_TIMEOUTS: dict[str, float] = {
     "openai": 60.0,
     "anthropic": 90.0,
     "google": 60.0,
@@ -77,14 +77,14 @@ PROVIDER_TIMEOUTS: Dict[str, float] = {
 }
 
 # Model Catalogs - Loaded from catalog/models.json
-ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = get_anthropic_models()
-GOOGLE_MODELS: Dict[str, Dict[str, Any]] = get_google_models()
-DEEPSEEK_MODELS: Dict[str, Dict[str, Any]] = get_deepseek_models()
-GROQ_MODELS: Dict[str, Dict[str, Any]] = get_groq_models()
-GROK_MODELS: Dict[str, Dict[str, Any]] = get_grok_models()
-OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = get_openrouter_models()
-OLLAMA_MODELS: Dict[str, Dict[str, Any]] = get_ollama_models()
-BEDROCK_MODELS: Dict[str, Dict[str, Any]] = get_bedrock_models()
+ANTHROPIC_MODELS: dict[str, dict[str, Any]] = get_anthropic_models()
+GOOGLE_MODELS: dict[str, dict[str, Any]] = get_google_models()
+DEEPSEEK_MODELS: dict[str, dict[str, Any]] = get_deepseek_models()
+GROQ_MODELS: dict[str, dict[str, Any]] = get_groq_models()
+GROK_MODELS: dict[str, dict[str, Any]] = get_grok_models()
+OPENROUTER_MODELS: dict[str, dict[str, Any]] = get_openrouter_models()
+OLLAMA_MODELS: dict[str, dict[str, Any]] = get_ollama_models()
+BEDROCK_MODELS: dict[str, dict[str, Any]] = get_bedrock_models()
 
 # =============================================================================
 # CURATED INTERACTIVE MODELS (validated at runtime)
@@ -92,7 +92,7 @@ BEDROCK_MODELS: Dict[str, Dict[str, Any]] = get_bedrock_models()
 # =============================================================================
 
 # OpenAI - 5 curated models
-INTERACTIVE_OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_OPENAI_MODELS: dict[str, dict[str, Any]] = {
     "gpt-4o": {
         "display_name": "GPT-4o",
         "description": "Best quality, vision/tools support",
@@ -121,7 +121,7 @@ INTERACTIVE_OPENAI_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Anthropic - 5 curated models
-INTERACTIVE_ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_ANTHROPIC_MODELS: dict[str, dict[str, Any]] = {
     "claude-sonnet-4-20250514": {
         "display_name": "Claude Sonnet 4",
         "description": "Latest flagship model",
@@ -150,7 +150,7 @@ INTERACTIVE_ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Google - 3 curated models
-INTERACTIVE_GOOGLE_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_GOOGLE_MODELS: dict[str, dict[str, Any]] = {
     "gemini-2.5-pro": {
         "display_name": "Gemini 2.5 Pro",
         "description": "Best quality, 1M context",
@@ -169,7 +169,7 @@ INTERACTIVE_GOOGLE_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # DeepSeek - 2 curated models
-INTERACTIVE_DEEPSEEK_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_DEEPSEEK_MODELS: dict[str, dict[str, Any]] = {
     "deepseek-chat": {
         "display_name": "DeepSeek Chat",
         "description": "General purpose, tools support",
@@ -183,7 +183,7 @@ INTERACTIVE_DEEPSEEK_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Groq - 4 curated models
-INTERACTIVE_GROQ_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_GROQ_MODELS: dict[str, dict[str, Any]] = {
     "llama-3.3-70b-versatile": {
         "display_name": "Llama 3.3 70B",
         "description": "Best quality open model",
@@ -207,7 +207,7 @@ INTERACTIVE_GROQ_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Grok (X.AI) - 7 curated models
-INTERACTIVE_GROK_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_GROK_MODELS: dict[str, dict[str, Any]] = {
     "grok-4-1-fast-reasoning": {
         "display_name": "Grok 4.1 Fast (Reasoning)",
         "description": "BEST VALUE - 2M context, agentic tools",
@@ -246,7 +246,7 @@ INTERACTIVE_GROK_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # OpenRouter - 11 curated models (mix of free and paid, multiple 1M context options)
-INTERACTIVE_OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_OPENROUTER_MODELS: dict[str, dict[str, Any]] = {
     "anthropic/claude-sonnet-4-5": {
         "display_name": "Claude Sonnet 4.5",
         "description": "Best Anthropic model",
@@ -305,7 +305,7 @@ INTERACTIVE_OPENROUTER_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Ollama - 3 curated models (local)
-INTERACTIVE_OLLAMA_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_OLLAMA_MODELS: dict[str, dict[str, Any]] = {
     "llama3.2": {
         "display_name": "Llama 3.2",
         "description": "Best local model",
@@ -324,7 +324,7 @@ INTERACTIVE_OLLAMA_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Bedrock - 5 curated models
-INTERACTIVE_BEDROCK_MODELS: Dict[str, Dict[str, Any]] = {
+INTERACTIVE_BEDROCK_MODELS: dict[str, dict[str, Any]] = {
     "anthropic.claude-3-sonnet-20240229-v1:0": {
         "display_name": "Claude 3 Sonnet",
         "description": "High quality, vision/tools",
@@ -353,7 +353,7 @@ INTERACTIVE_BEDROCK_MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 # Unified model catalog
-MODEL_CATALOG: Dict[str, Dict[str, Dict[str, Any]]] = {
+MODEL_CATALOG: dict[str, dict[str, dict[str, Any]]] = {
     "openai": OPENAI_MODELS,
     "anthropic": ANTHROPIC_MODELS,
     "google": GOOGLE_MODELS,
@@ -366,7 +366,7 @@ MODEL_CATALOG: Dict[str, Dict[str, Dict[str, Any]]] = {
 }
 
 # Provider base URLs for OpenAI-compatible providers
-PROVIDER_BASE_URLS: Dict[str, str] = {
+PROVIDER_BASE_URLS: dict[str, str] = {
     "google": "https://generativelanguage.googleapis.com/v1beta/openai/",
     "deepseek": "https://api.deepseek.com/v1",
     "groq": "https://api.groq.com/openai/v1",
@@ -376,7 +376,7 @@ PROVIDER_BASE_URLS: Dict[str, str] = {
 }
 
 # Environment variable names for API keys
-PROVIDER_ENV_VARS: Dict[str, str] = {
+PROVIDER_ENV_VARS: dict[str, str] = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
     "google": "GOOGLE_API_KEY",

@@ -7,8 +7,7 @@ using ChromaDB (with potential support for other vector databases).
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import chromadb
@@ -37,7 +36,7 @@ class SearchResult:
     """
 
     document: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     distance: float
     doc_id: str
 
@@ -51,7 +50,7 @@ class VectorDBClient:
     def __init__(
         self,
         embedding_provider: EmbeddingProvider,
-        persist_directory: Optional[str] = None,
+        persist_directory: str | None = None,
     ):
         """Initialize vector database client.
 
@@ -80,7 +79,7 @@ class VectorDBClient:
             self.client = chromadb.PersistentClient(path=self.persist_directory)
 
     def create_collection(
-        self, name: str, metadata: Optional[Dict[str, Any]] = None
+        self, name: str, metadata: dict[str, Any] | None = None
     ) -> str:
         """Create a new collection.
 
@@ -118,7 +117,7 @@ class VectorDBClient:
         """
         try:
             return self.client.get_collection(name=name)
-        except Exception as e:
+        except Exception:
             raise LLMAbstractionError(
                 f"Collection '{name}' not found. Create it with create_collection()."
             )
@@ -134,7 +133,7 @@ class VectorDBClient:
         """
         return self.client.get_or_create_collection(name=name)
 
-    def list_collections(self) -> List[str]:
+    def list_collections(self) -> list[str]:
         """List all collections.
 
         Returns:
@@ -157,10 +156,10 @@ class VectorDBClient:
     async def add_documents(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-    ) -> List[str]:
+        documents: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+    ) -> list[str]:
         """Add documents to a collection.
 
         Args:
@@ -208,8 +207,8 @@ class VectorDBClient:
         collection_name: str,
         query_text: str,
         n_results: int = 5,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        where: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Query collection with semantic search.
 
         Args:
@@ -262,7 +261,7 @@ class VectorDBClient:
         collection = self.get_collection(collection_name)
         return collection.count()
 
-    def delete_documents(self, collection_name: str, ids: List[str]) -> None:
+    def delete_documents(self, collection_name: str, ids: list[str]) -> None:
         """Delete documents from a collection by ID.
 
         Args:
@@ -275,9 +274,9 @@ class VectorDBClient:
     async def update_documents(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
+        ids: list[str],
+        documents: list[str] | None = None,
+        metadatas: list[dict[str, Any]] | None = None,
     ) -> None:
         """Update documents in a collection.
 
@@ -307,9 +306,9 @@ class VectorDBClient:
     def update_documents_sync(
         self,
         collection_name: str,
-        ids: List[str],
-        documents: Optional[List[str]] = None,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
+        ids: list[str],
+        documents: list[str] | None = None,
+        metadatas: list[dict[str, Any]] | None = None,
     ) -> None:
         """Synchronous wrapper for update_documents()."""
         return run_sync(
@@ -324,10 +323,10 @@ class VectorDBClient:
     def add_documents_sync(
         self,
         collection_name: str,
-        documents: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-    ) -> List[str]:
+        documents: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+    ) -> list[str]:
         """Synchronous wrapper for add_documents()."""
         return run_sync(
             self.add_documents(
@@ -343,8 +342,8 @@ class VectorDBClient:
         collection_name: str,
         query_text: str,
         n_results: int = 5,
-        where: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        where: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Synchronous wrapper for query()."""
         return run_sync(
             self.query(
@@ -358,10 +357,10 @@ class VectorDBClient:
     def get_documents(
         self,
         collection_name: str,
-        ids: Optional[List[str]] = None,
-        where: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        ids: list[str] | None = None,
+        where: dict[str, Any] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Retrieve documents from a collection.
 
         Args:

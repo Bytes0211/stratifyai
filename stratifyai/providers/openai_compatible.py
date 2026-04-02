@@ -1,16 +1,16 @@
 """Base class for OpenAI-compatible providers."""
 
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator, Dict, List
 
-from openai import AsyncOpenAI, APIStatusError, APIError
+from openai import APIError, APIStatusError, AsyncOpenAI
 
 from ..config import PROVIDER_CONSTRAINTS
 from ..exceptions import (
-    ProviderAPIError,
-    InvalidModelError,
-    InsufficientBalanceError,
     AuthenticationError,
+    InsufficientBalanceError,
+    InvalidModelError,
+    ProviderAPIError,
 )
 from ..models import ChatRequest, ChatResponse, Usage
 from ..utils.sanitizer import sanitize_error
@@ -25,7 +25,7 @@ class OpenAICompatibleProvider(BaseProvider):
     """
 
     def __init__(
-        self, api_key: str, base_url: str, model_catalog: Dict, config: dict = None
+        self, api_key: str, base_url: str, model_catalog: dict, config: dict = None
     ):
         """
         Initialize OpenAI-compatible provider.
@@ -53,9 +53,9 @@ class OpenAICompatibleProvider(BaseProvider):
             raise ProviderAPIError(
                 f"Failed to initialize {self.provider_name} client: {str(e)}",
                 self.provider_name,
-            )
+            ) from e
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Return list of supported models."""
         return list(self.model_catalog.keys())
 

@@ -7,7 +7,7 @@ Usage:
     # Model is always required
     from stratifyai.chat import openai, anthropic, google
     response = await openai.chat("Hello!", model="gpt-4.1-mini")
-    
+
     # Builder pattern (model required first)
     from stratifyai.chat import anthropic
     client = (
@@ -17,7 +17,7 @@ Usage:
         .with_developer("Use markdown formatting")
     )
     response = await client.chat("Hello!")
-    
+
     # With additional parameters
     response = await anthropic.chat(
         "Explain quantum computing",
@@ -27,18 +27,34 @@ Usage:
     )
 """
 
-from stratifyai.chat.builder import ChatBuilder
 from stratifyai.chat import (
-    stratifyai_openai as openai,
     stratifyai_anthropic as anthropic,
-    stratifyai_google as google,
-    stratifyai_deepseek as deepseek,
-    stratifyai_groq as groq,
-    stratifyai_grok as grok,
-    stratifyai_openrouter as openrouter,
-    stratifyai_ollama as ollama,
+)
+from stratifyai.chat import (
     stratifyai_bedrock as bedrock,
 )
+from stratifyai.chat import (
+    stratifyai_deepseek as deepseek,
+)
+from stratifyai.chat import (
+    stratifyai_google as google,
+)
+from stratifyai.chat import (
+    stratifyai_grok as grok,
+)
+from stratifyai.chat import (
+    stratifyai_groq as groq,
+)
+from stratifyai.chat import (
+    stratifyai_ollama as ollama,
+)
+from stratifyai.chat import (
+    stratifyai_openai as openai,
+)
+from stratifyai.chat import (
+    stratifyai_openrouter as openrouter,
+)
+from stratifyai.chat.builder import ChatBuilder
 
 __all__ = [
     "ChatBuilder",

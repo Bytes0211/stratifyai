@@ -1,11 +1,17 @@
 """Progressive summarization utilities for large files."""
 
-from typing import List, Optional
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
+
+from .chunking import chunk_content, get_chunk_metadata
 from .client import LLMClient
 from .models import ChatRequest, Message
-from .chunking import chunk_content, get_chunk_metadata
 
 
 def summarize_chunk(
@@ -13,20 +19,20 @@ def summarize_chunk(
     client: LLMClient,
     model: str = "gpt-4o-mini",
     max_tokens: int = 1000,
-    context: Optional[str] = None
+    context: str | None = None
 ) -> str:
     """
     Summarize a single chunk of content.
-    
+
     Uses a cheaper model for cost efficiency.
-    
+
     Args:
         chunk: The content chunk to summarize
         client: LLMClient instance (already configured with provider)
         model: Model to use for summarization (default: gpt-4o-mini for cost)
         max_tokens: Maximum tokens for summary
         context: Optional context about the overall document
-        
+
     Returns:
         Summary of the chunk
     """
@@ -44,49 +50,49 @@ Provide a concise summary that preserves key information."""
         prompt = f"""Summarize the following text concisely, preserving key information:
 
 {chunk}"""
-    
+
     # Create request
     request = ChatRequest(
         model=model,
         messages=[Message(role="user", content=prompt)],
         max_tokens=max_tokens
     )
-    
+
     # Get summary (use sync wrapper since this is called from ThreadPoolExecutor)
     response = client.chat_completion_sync(request)
     return response.content
 
 
 def summarize_chunks_progressive(
-    chunks: List[str],
+    chunks: list[str],
     client: LLMClient,
     model: str = "gpt-4o-mini",
-    context: Optional[str] = None,
+    context: str | None = None,
     show_progress: bool = True
 ) -> str:
     """
     Progressively summarize multiple chunks.
-    
+
     Each chunk is summarized individually, then all summaries are combined.
-    
+
     Args:
         chunks: List of content chunks
         client: LLMClient instance
         model: Model to use for summarization
         context: Optional context about the overall document
         show_progress: Whether to show progress bar
-        
+
     Returns:
         Combined summary of all chunks
     """
     if not chunks:
         return ""
-    
+
     if len(chunks) == 1:
         return summarize_chunk(chunks[0], client, model, context=context)
-    
+
     summaries = []
-    
+
     if show_progress:
         with Progress(
             SpinnerColumn(),
@@ -98,7 +104,7 @@ def summarize_chunks_progressive(
                 f"[cyan]Summarizing {len(chunks)} chunks...",
                 total=len(chunks)
             )
-            
+
             for i, chunk in enumerate(chunks, 1):
                 summary = summarize_chunk(
                     chunk,
@@ -117,10 +123,10 @@ def summarize_chunks_progressive(
                 context=f"{context} (Part {i}/{len(chunks)})" if context else f"Part {i}/{len(chunks)}"
             )
             summaries.append(f"**Part {i}/{len(chunks)}:**\n{summary}")
-    
+
     # Combine summaries
     combined = "\n\n".join(summaries)
-    
+
     # If combined summaries are still very long, summarize the summaries
     if len(combined) > 10000:  # Arbitrary threshold
         final_summary = summarize_chunk(
@@ -130,7 +136,7 @@ def summarize_chunks_progressive(
             context="Combined summaries of document sections"
         )
         return f"**Overall Summary:**\n{final_summary}\n\n**Detailed Summaries:**\n{combined}"
-    
+
     return combined
 
 
@@ -139,18 +145,18 @@ async def summarize_chunk_async(
     client: LLMClient,
     model: str = "gpt-4o-mini",
     max_tokens: int = 1000,
-    context: Optional[str] = None
+    context: str | None = None
 ) -> str:
     """
     Async version: Summarize a single chunk of content.
-    
+
     Args:
         chunk: The content chunk to summarize
         client: LLMClient instance
         model: Model to use for summarization
         max_tokens: Maximum tokens for summary
         context: Optional context about the overall document
-        
+
     Returns:
         Summary of the chunk
     """
@@ -168,45 +174,45 @@ Provide a concise summary that preserves key information."""
         prompt = f"""Summarize the following text concisely, preserving key information:
 
 {chunk}"""
-    
+
     # Create request
     request = ChatRequest(
         model=model,
         messages=[Message(role="user", content=prompt)],
         max_tokens=max_tokens
     )
-    
+
     # Get summary (async)
     response = await client.chat_completion(request)
     return response.content
 
 
 async def summarize_chunks_progressive_async(
-    chunks: List[str],
+    chunks: list[str],
     client: LLMClient,
     model: str = "gpt-4o-mini",
-    context: Optional[str] = None,
+    context: str | None = None,
     show_progress: bool = False
 ) -> str:
     """
     Async version: Progressively summarize multiple chunks.
-    
+
     Args:
         chunks: List of content chunks
         client: LLMClient instance
         model: Model to use for summarization
         context: Optional context about the overall document
         show_progress: Whether to show progress bar (disabled for async)
-        
+
     Returns:
         Combined summary of all chunks
     """
     if not chunks:
         return ""
-    
+
     if len(chunks) == 1:
         return await summarize_chunk_async(chunks[0], client, model, context=context)
-    
+
     summaries = []
     for i, chunk in enumerate(chunks, 1):
         summary = await summarize_chunk_async(
@@ -216,10 +222,10 @@ async def summarize_chunks_progressive_async(
             context=f"{context} (Part {i}/{len(chunks)})" if context else f"Part {i}/{len(chunks)}"
         )
         summaries.append(f"**Part {i}/{len(chunks)}:**\n{summary}")
-    
+
     # Combine summaries
     combined = "\n\n".join(summaries)
-    
+
     # If combined summaries are still very long, summarize the summaries
     if len(combined) > 10000:
         final_summary = await summarize_chunk_async(
@@ -229,7 +235,7 @@ async def summarize_chunks_progressive_async(
             context="Combined summaries of document sections"
         )
         return f"**Overall Summary:**\n{final_summary}\n\n**Detailed Summaries:**\n{combined}"
-    
+
     return combined
 
 
@@ -238,12 +244,12 @@ async def summarize_file_async(
     client: LLMClient,
     chunk_size: int = 50000,
     model: str = "gpt-4o-mini",
-    context: Optional[str] = None,
+    context: str | None = None,
     show_progress: bool = False
 ) -> dict:
     """
     Async version: Summarize a large file using progressive chunking.
-    
+
     Args:
         content: Full file content
         client: LLMClient instance
@@ -251,14 +257,14 @@ async def summarize_file_async(
         model: Model to use for summarization
         context: Optional context about the document
         show_progress: Whether to show progress (disabled for async)
-        
+
     Returns:
         Dictionary with summary and metadata
     """
     # Chunk the content
     chunks = chunk_content(content, chunk_size=chunk_size)
     metadata = get_chunk_metadata(chunks)
-    
+
     # Summarize chunks
     summary = await summarize_chunks_progressive_async(
         chunks,
@@ -267,7 +273,7 @@ async def summarize_file_async(
         context=context,
         show_progress=show_progress
     )
-    
+
     return {
         "summary": summary,
         "original_length": len(content),
@@ -283,12 +289,12 @@ def summarize_file(
     client: LLMClient,
     chunk_size: int = 50000,
     model: str = "gpt-4o-mini",
-    context: Optional[str] = None,
+    context: str | None = None,
     show_progress: bool = True
 ) -> dict:
     """
     Sync version: Summarize a large file using progressive chunking.
-    
+
     Args:
         content: Full file content
         client: LLMClient instance
@@ -296,14 +302,14 @@ def summarize_file(
         model: Model to use for summarization
         context: Optional context about the document
         show_progress: Whether to show progress
-        
+
     Returns:
         Dictionary with summary and metadata
     """
     # Chunk the content
     chunks = chunk_content(content, chunk_size=chunk_size)
     metadata = get_chunk_metadata(chunks)
-    
+
     # Summarize chunks
     summary = summarize_chunks_progressive(
         chunks,
@@ -312,7 +318,7 @@ def summarize_file(
         context=context,
         show_progress=show_progress
     )
-    
+
     return {
         "summary": summary,
         "original_length": len(content),

@@ -11,7 +11,7 @@ decoupled from the catalog.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 
 @dataclass
@@ -35,9 +35,9 @@ class ProfileParameter:
     name: str
     type: Literal["number", "integer", "boolean", "string", "select"] = "string"
     description: str = ""
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    choices: Optional[List[str]] = None
+    min_value: float | None = None
+    max_value: float | None = None
+    choices: list[str] | None = None
     default: Any = None
 
     def validate(self, value: Any) -> Any:
@@ -111,7 +111,7 @@ class ProfileParameter:
 # Global parameter definitions — the fixed schema for all profiles
 # ---------------------------------------------------------------------------
 
-PARAMETER_DEFINITIONS: Dict[str, ProfileParameter] = {
+PARAMETER_DEFINITIONS: dict[str, ProfileParameter] = {
     "temperature": ProfileParameter(
         name="temperature",
         type="number",
@@ -191,11 +191,11 @@ class Profile:
 
     name: str
     description: str = ""
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    tags: List[str] = field(default_factory=list)
-    extends: Optional[str] = None
+    parameters: dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    extends: str | None = None
     source: Literal["builtin", "user"] = "builtin"
-    notes: Optional[str] = None
+    notes: str | None = None
 
     def validate_parameters(self) -> None:
         """Validate all parameter values against :data:`PARAMETER_DEFINITIONS`.
@@ -209,7 +209,7 @@ class Profile:
         """
         import warnings
 
-        errors: List[str] = []
+        errors: list[str] = []
 
         for key, value in self.parameters.items():
             param_def = PARAMETER_DEFINITIONS.get(key)
@@ -234,7 +234,7 @@ class Profile:
                 + "\n".join(f"  - {e}" for e in errors)
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize the profile for API responses.
 
         Returns:
@@ -252,9 +252,9 @@ class Profile:
 
 
 def merge_parameters(
-    parent: Dict[str, Any],
-    child: Dict[str, Any],
-) -> Dict[str, Any]:
+    parent: dict[str, Any],
+    child: dict[str, Any],
+) -> dict[str, Any]:
     """Merge parent and child profile parameters.
 
     Child values override parent values. Used by the registry to resolve

@@ -12,7 +12,7 @@ transparently handles:
 
 import logging
 import time
-from typing import AsyncIterator, Optional, Union
+from collections.abc import AsyncIterator
 
 from .client import LLMClient
 from .cost_tracker import CostTracker
@@ -47,7 +47,7 @@ class TrackedLLMClient:
         model: str,
         messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> ChatResponse:
         """Execute a tracked chat completion request."""

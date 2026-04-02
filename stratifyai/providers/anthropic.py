@@ -1,11 +1,11 @@
 """Anthropic provider implementation."""
 
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator, List, Optional
 
 from anthropic import AsyncAnthropic
-from ..api_key_helper import get_api_key_or_error
 
+from ..api_key_helper import get_api_key_or_error
 from ..config import ANTHROPIC_MODELS, PROVIDER_CONSTRAINTS
 from ..exceptions import InvalidModelError, ProviderAPIError
 from ..models import ChatRequest, ChatResponse, Usage
@@ -16,7 +16,7 @@ from .base import BaseProvider
 class AnthropicProvider(BaseProvider):
     """Anthropic provider implementation with Messages API."""
 
-    def __init__(self, api_key: Optional[str] = None, config: dict = None):
+    def __init__(self, api_key: str | None = None, config: dict = None):
         """
         Initialize Anthropic provider.
 
@@ -41,14 +41,14 @@ class AnthropicProvider(BaseProvider):
         except Exception as e:
             raise ProviderAPIError(
                 f"Failed to initialize Anthropic client: {str(e)}", "anthropic"
-            )
+            ) from e
 
     @property
     def provider_name(self) -> str:
         """Return provider name."""
         return "anthropic"
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Return list of supported Anthropic models."""
         return list(ANTHROPIC_MODELS.keys())
 
@@ -169,10 +169,10 @@ class AnthropicProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -256,10 +256,10 @@ class AnthropicProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Streaming chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     def _normalize_response(self, raw_response: dict) -> ChatResponse:
         """

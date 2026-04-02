@@ -7,9 +7,10 @@ YAML profiles on first access, then user overrides from
 
 from __future__ import annotations
 
+import builtins
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from stratifyai.profiles.models import (
     PARAMETER_DEFINITIONS,
@@ -44,7 +45,7 @@ class ProfileRegistry:
     """
 
     def __init__(self) -> None:
-        self._profiles: Dict[str, Profile] = {}
+        self._profiles: dict[str, Profile] = {}
         self._loaded: bool = False
 
     # ------------------------------------------------------------------
@@ -78,14 +79,14 @@ class ProfileRegistry:
         Raises:
             ValueError: If a cycle is detected in the ``extends`` chain.
         """
-        resolved: Dict[str, Dict[str, Any]] = {}
+        resolved: dict[str, dict[str, Any]] = {}
 
-        for name, profile in self._profiles.items():
+        for name, _profile in self._profiles.items():
             if name in resolved:
                 continue
 
             # Walk the chain collecting ancestors (child → parent order)
-            chain: List[str] = []
+            chain: list[str] = []
             visited: set[str] = set()
             current = name
 
@@ -110,7 +111,7 @@ class ProfileRegistry:
                 current = parent_name
 
             # Merge from root ancestor down to the leaf
-            merged: Dict[str, Any] = {}
+            merged: dict[str, Any] = {}
             for ancestor_name in reversed(chain):
                 merged = merge_parameters(
                     merged, self._profiles[ancestor_name].parameters
@@ -186,9 +187,9 @@ class ProfileRegistry:
 
     def list(
         self,
-        tag: Optional[str] = None,
-        source: Optional[str] = None,
-    ) -> List[Profile]:
+        tag: str | None = None,
+        source: str | None = None,
+    ) -> builtins.list[Profile]:
         """List profiles with optional filtering.
 
         Args:
@@ -211,8 +212,8 @@ class ProfileRegistry:
     def render(
         self,
         name: str,
-        overrides: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        overrides: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Return the effective parameter map for a profile.
 
         Profile parameters are merged with *overrides* (overrides win).
@@ -263,7 +264,7 @@ class ProfileRegistry:
 
         profile = self.get(name)
         params = profile.parameters
-        errors: List[str] = []
+        errors: list[str] = []
 
         metadata = get_model_metadata(provider, model)
 
@@ -333,7 +334,7 @@ class ProfileRegistry:
 def _load_yaml_profiles(
     path: Path,
     source: str = "user",
-) -> List[Profile]:
+) -> list[Profile]:
     """Load profiles from a single YAML file.
 
     Supports the multi-profile format used by ``profiles.yaml``::
@@ -365,7 +366,7 @@ def _load_yaml_profiles(
             "Install it with: pip install pyyaml"
         )
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
@@ -382,7 +383,7 @@ def _load_yaml_profiles(
             )
         raw_profiles = [data]
 
-    profiles: List[Profile] = []
+    profiles: list[Profile] = []
     for entry in raw_profiles:
         if not isinstance(entry, dict) or "name" not in entry:
             logger.warning(

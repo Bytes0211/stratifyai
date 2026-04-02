@@ -1,7 +1,6 @@
 """Sanitization helpers for safe error handling."""
 
 import re
-from typing import Optional
 
 # Pre-compiled patterns for known API key formats
 _KEY_PATTERNS = [
@@ -31,7 +30,7 @@ _KEY_PATTERNS = [
 _REDACTED = "***REDACTED***"
 
 
-def sanitize_error(message: str, api_key: Optional[str] = None) -> str:
+def sanitize_error(message: str, api_key: str | None = None) -> str:
     """Remove sensitive API key fragments from error messages.
 
     Strategy:

@@ -9,7 +9,7 @@ Usage:
     # Model is always required
     from stratifyai.chat import bedrock
     response = await bedrock.chat("Hello!", model="anthropic.claude-3-5-sonnet-20241022-v2:0")
-    
+
     # Builder pattern (model required)
     client = (
         bedrock
@@ -20,11 +20,11 @@ Usage:
     response = await client.chat("Hello!")
 """
 
-from typing import AsyncIterator, Optional, Union
+from collections.abc import AsyncIterator
 
 from stratifyai import LLMClient
-from stratifyai.models import ChatResponse, Message
 from stratifyai.chat.builder import ChatBuilder, create_module_builder
+from stratifyai.models import ChatResponse, Message
 from stratifyai.utils.sync_helpers import run_sync
 
 # Default configuration (no default model - must be specified)
@@ -32,7 +32,7 @@ DEFAULT_TEMPERATURE = 0.7
 DEFAULT_MAX_TOKENS = None
 
 # Module-level client (lazy initialization)
-_client: Optional[LLMClient] = None
+_client: LLMClient | None = None
 
 
 def _get_client() -> LLMClient:
@@ -84,15 +84,15 @@ def with_options(**kwargs) -> ChatBuilder:
 
 
 async def chat(
-    prompt: Union[str, list[Message]],
+    prompt: str | list[Message],
     *,
     model: str,
-    system: Optional[str] = None,
+    system: str | None = None,
     temperature: float = DEFAULT_TEMPERATURE,
-    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    max_tokens: int | None = DEFAULT_MAX_TOKENS,
     stream: bool = False,
     **kwargs,
-) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
+) -> ChatResponse | AsyncIterator[ChatResponse]:
     """
     Send a chat completion request to AWS Bedrock.
 
@@ -141,12 +141,12 @@ async def chat(
 
 
 async def chat_stream(
-    prompt: Union[str, list[Message]],
+    prompt: str | list[Message],
     *,
     model: str,
-    system: Optional[str] = None,
+    system: str | None = None,
     temperature: float = DEFAULT_TEMPERATURE,
-    max_tokens: Optional[int] = DEFAULT_MAX_TOKENS,
+    max_tokens: int | None = DEFAULT_MAX_TOKENS,
     **kwargs,
 ) -> AsyncIterator[ChatResponse]:
     """

@@ -3,13 +3,13 @@
 import json
 import logging
 import os
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator, List, Optional
 
 try:
     import aioboto3
-    from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
     from botocore.config import Config as BotoConfig
+    from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 except ImportError:
     raise ImportError(
         "aioboto3 is required for AWS Bedrock async support. "
@@ -30,13 +30,13 @@ class BedrockProvider(BaseProvider):
 
     def __init__(
         self,
-        api_key: Optional[
-            str
-        ] = None,  # For compatibility with LLMClient (AWS_BEARER_TOKEN_BEDROCK)
-        aws_access_key_id: Optional[str] = None,
-        aws_secret_access_key: Optional[str] = None,
-        aws_session_token: Optional[str] = None,
-        region_name: Optional[str] = None,
+        api_key: (
+            str | None
+        ) = None,  # For compatibility with LLMClient (AWS_BEARER_TOKEN_BEDROCK)
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
+        aws_session_token: str | None = None,
+        region_name: str | None = None,
         config: dict = None,
     ):
         """
@@ -109,24 +109,24 @@ class BedrockProvider(BaseProvider):
             self._session = aioboto3.Session(**session_params)
             self._client = None  # Will be created in async context
 
-        except NoCredentialsError:
+        except NoCredentialsError as e:
             raise AuthenticationError(
                 "bedrock",
                 "AWS credentials not found. Set AWS_ACCESS_KEY_ID and "
                 "AWS_SECRET_ACCESS_KEY environment variables or configure "
                 "~/.aws/credentials",
-            )
+            ) from e
         except Exception as e:
             raise ProviderAPIError(
                 f"Failed to initialize AWS Bedrock session: {str(e)}", "bedrock"
-            )
+            ) from e
 
     @property
     def provider_name(self) -> str:
         """Return provider name."""
         return "bedrock"
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Return list of supported Bedrock models."""
         return list(BEDROCK_MODELS.keys())
 
@@ -200,16 +200,16 @@ class BedrockProvider(BaseProvider):
                     friendly_msg = "Model configuration error: Invalid message role format for this model."
                 else:
                     friendly_msg = f"Request validation failed: {error_message}"
-                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name)
+                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name) from e
 
             raise ProviderAPIError(
                 f"Bedrock API error ({error_code}): {error_message}", self.provider_name
-            )
+            ) from e
         except Exception as e:
             raise ProviderAPIError(
                 f"Chat completion failed: {sanitize_error(str(e), self.api_key)}",
                 self.provider_name,
-            )
+            ) from e
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -284,17 +284,17 @@ class BedrockProvider(BaseProvider):
                     friendly_msg = "Model configuration error: Invalid message role format for this model."
                 else:
                     friendly_msg = f"Request validation failed: {error_message}"
-                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name)
+                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name) from e
 
             raise ProviderAPIError(
                 f"Bedrock streaming error ({error_code}): {error_message}",
                 self.provider_name,
-            )
+            ) from e
         except Exception as e:
             raise ProviderAPIError(
                 f"Streaming chat completion failed: {sanitize_error(str(e), self.api_key)}",
                 self.provider_name,
-            )
+            ) from e
 
     def _build_request_body(self, request: ChatRequest) -> dict:
         """
@@ -528,7 +528,7 @@ class BedrockProvider(BaseProvider):
             },
         }
 
-    def _messages_to_prompt(self, messages: List) -> str:
+    def _messages_to_prompt(self, messages: list) -> str:
         """
         Convert message list to a single prompt string.
 

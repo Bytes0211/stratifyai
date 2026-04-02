@@ -1,8 +1,9 @@
 """Helpers for safe sync wrappers around async APIs."""
 
 import asyncio
+from collections.abc import Coroutine
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Coroutine
+from typing import Any
 
 
 def run_sync(coro: Coroutine[Any, Any, Any]) -> Any:

@@ -3,11 +3,10 @@
 import asyncio
 import logging
 import time
+from collections.abc import AsyncIterator
 from enum import Enum
-from typing import AsyncIterator, Dict, Optional, Type, Union
 
-logger = logging.getLogger(__name__)
-
+from .api_key_helper import APIKeyHelper
 from .config import MODEL_CATALOG
 from .exceptions import (
     AuthenticationError,
@@ -17,20 +16,21 @@ from .exceptions import (
     ValidationError,
 )
 from .models import ChatRequest, ChatResponse, Message
+from .providers.anthropic import AnthropicProvider
+from .providers.base import BaseProvider
+from .providers.bedrock import BedrockProvider
+from .providers.deepseek import DeepSeekProvider
+from .providers.google import GoogleProvider
+from .providers.grok import GrokProvider
+from .providers.groq import GroqProvider
+from .providers.ollama import OllamaProvider
+from .providers.openai import OpenAIProvider
+from .providers.openrouter import OpenRouterProvider
 from .retry import RetryConfig, exponential_backoff, with_retry
 from .utils.reasoning_detector import is_reasoning_model
-from .providers.base import BaseProvider
-from .providers.openai import OpenAIProvider
-from .providers.anthropic import AnthropicProvider
-from .providers.google import GoogleProvider
-from .providers.deepseek import DeepSeekProvider
-from .providers.groq import GroqProvider
-from .providers.grok import GrokProvider
-from .providers.openrouter import OpenRouterProvider
-from .providers.ollama import OllamaProvider
-from .providers.bedrock import BedrockProvider
 from .utils.sync_helpers import run_sync
-from .api_key_helper import APIKeyHelper
+
+logger = logging.getLogger(__name__)
 
 
 class ProviderType(str, Enum):
@@ -51,10 +51,10 @@ class ProviderType(str, Enum):
 # Key: "<provider_name>:<api_key_hash>" → BaseProvider instance.
 # Prevents creating duplicate SDK clients (AsyncOpenAI, AsyncAnthropic, …)
 # when multiple LLMClient objects target the same provider.
-_provider_pool: Dict[str, BaseProvider] = {}
+_provider_pool: dict[str, BaseProvider] = {}
 
 
-def _pool_key(provider: str, api_key: Optional[str]) -> str:
+def _pool_key(provider: str, api_key: str | None) -> str:
     """Build a deterministic key for the provider pool."""
     # Use a short hash of the api_key so different keys get different clients
     key_part = str(hash(api_key))[:12] if api_key else "env"
@@ -74,7 +74,7 @@ class LLMClient:
     """Unified client for all LLM providers."""
 
     # Provider registry maps provider names to provider classes
-    _provider_registry: Dict[str, Type[BaseProvider]] = {
+    _provider_registry: dict[str, type[BaseProvider]] = {
         "openai": OpenAIProvider,
         "anthropic": AnthropicProvider,
         "google": GoogleProvider,
@@ -88,8 +88,8 @@ class LLMClient:
 
     def __init__(
         self,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
         config: dict = None,
     ):
         """
@@ -108,7 +108,7 @@ class LLMClient:
         self.api_key = api_key
         self.config = config or {}
         self._provider_instance = None
-        self._providers: Dict[str, BaseProvider] = {}
+        self._providers: dict[str, BaseProvider] = {}
         self._retry_config = self._build_retry_config()
 
         # Fail-fast API key validation when provider is explicit.
@@ -165,7 +165,7 @@ class LLMClient:
             )
 
     async def _check_cancellation(
-        self, cancel_event: Optional[asyncio.Event], model: Optional[str] = None
+        self, cancel_event: asyncio.Event | None, model: str | None = None
     ) -> None:
         """Raise cancellation when the provided cancel event is set."""
         if cancel_event and cancel_event.is_set():
@@ -251,11 +251,11 @@ class LLMClient:
         model: str,
         messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
-        cancel_event: Optional[asyncio.Event] = None,
+        cancel_event: asyncio.Event | None = None,
         **kwargs,
-    ) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
+    ) -> ChatResponse | AsyncIterator[ChatResponse]:
         """
         Execute a chat completion request.
 
@@ -307,7 +307,7 @@ class LLMClient:
     async def chat_completion(
         self,
         request: ChatRequest,
-        cancel_event: Optional[asyncio.Event] = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> ChatResponse:
         """
         Execute a chat completion request using ChatRequest object.
@@ -343,7 +343,7 @@ class LLMClient:
     async def chat_completion_stream(
         self,
         request: ChatRequest,
-        cancel_event: Optional[asyncio.Event] = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> AsyncIterator[ChatResponse]:
         """
         Execute a streaming chat completion request.
@@ -372,7 +372,7 @@ class LLMClient:
         self,
         provider: BaseProvider,
         request: ChatRequest,
-        cancel_event: Optional[asyncio.Event] = None,
+        cancel_event: asyncio.Event | None = None,
     ) -> AsyncIterator[ChatResponse]:
         """Execute streaming requests with retry and cancellation support.
 
@@ -418,7 +418,7 @@ class LLMClient:
         model: str,
         messages: list[Message],
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         **kwargs,
     ) -> ChatResponse:
         """
@@ -459,7 +459,7 @@ class LLMClient:
 
     def close(self) -> None:
         """Release this client's provider from the shared pool."""
-        for prov_name, prov_inst in list(self._providers.items()):
+        for prov_name, _prov_inst in list(self._providers.items()):
             key = _pool_key(prov_name, self.api_key)
             _provider_pool.pop(key, None)
         self._providers.clear()
@@ -482,7 +482,7 @@ class LLMClient:
         return list(cls._provider_registry.keys())
 
     @classmethod
-    def get_supported_models(cls, provider: Optional[str] = None) -> list[str]:
+    def get_supported_models(cls, provider: str | None = None) -> list[str]:
         """
         Get list of supported models.
 

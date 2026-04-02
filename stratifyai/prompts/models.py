@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from stratifyai.models import Message
 
@@ -27,7 +27,7 @@ class PromptParameter:
     description: str = ""
     default: Any = None
     required: bool = True
-    choices: Optional[list[str]] = None
+    choices: list[str] | None = None
 
     def validate(self, value: Any = None) -> Any:
         """Validate and coerce a parameter value.
@@ -96,7 +96,7 @@ class PromptTemplate:
     parameters: list[PromptParameter] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     recommended_models: list[str] = field(default_factory=list)
-    recommended_temperature: Optional[float] = None
+    recommended_temperature: float | None = None
     source: Literal["builtin", "user"] = "builtin"
 
     def render(self, **kwargs: Any) -> list[Message]:

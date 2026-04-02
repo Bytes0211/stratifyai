@@ -2,14 +2,13 @@
 
 import asyncio
 import hmac
-import json
 import logging
 import os
 import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import tomllib
 from dotenv import load_dotenv
@@ -23,22 +22,15 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-# Load environment variables from .env file
-load_dotenv()
-
-from stratifyai import ChatRequest, LLMClient, Message, ProviderType
-from stratifyai.catalog_manager import (
-    get_catalog_updated,
-    get_catalog_version,
-    load_catalog,
-)
+from stratifyai import ChatRequest, LLMClient, Message
+from stratifyai.catalog_manager import load_catalog
 from stratifyai.config import MODEL_CATALOG
 from stratifyai.cost_tracker import CostTracker
 from stratifyai.middleware import TrackedLLMClient
@@ -46,6 +38,9 @@ from stratifyai.utils.reasoning_detector import (
     get_temperature_for_model,
     is_reasoning_model,
 )
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +67,7 @@ API_VERSION = _get_version()
 _executor = ThreadPoolExecutor(max_workers=4)
 
 # Client cache for connection pooling (BUG-003)
-_client_cache: Dict[str, LLMClient] = {}
+_client_cache: dict[str, LLMClient] = {}
 
 
 def get_client(provider: str) -> LLMClient:
@@ -127,7 +122,7 @@ cost_tracker = CostTracker()
 # Each key is a client IP mapping to a deque of request timestamps.
 # _WS_RATE_LIMIT_MAX_IPS caps the total number of tracked IPs so that
 # a long-running server doesn't leak memory from unique visitors.
-_ws_rate_limit: Dict[str, deque] = defaultdict(deque)
+_ws_rate_limit: dict[str, deque] = defaultdict(deque)
 _WS_RATE_LIMIT_MAX_IPS = 10_000
 _WS_RATE_LIMIT_WINDOW_SECS = 60
 
@@ -160,7 +155,7 @@ def _evict_stale_ws_entries() -> None:
             del _ws_rate_limit[ip]
 
 
-def verify_api_key(authorization: Optional[str] = Header(default=None)) -> None:
+def verify_api_key(authorization: str | None = Header(default=None)) -> None:
     """Verify bearer token if STRATIFYAI_API_KEY is configured.
 
     Uses ``hmac.compare_digest`` for constant-time comparison to prevent
@@ -175,7 +170,7 @@ def verify_api_key(authorization: Optional[str] = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-def _sanitize_file_name(file_name: Optional[str]) -> Optional[str]:
+def _sanitize_file_name(file_name: str | None) -> str | None:
     """Validate and sanitize user-supplied filename."""
     if not file_name:
         return None
@@ -220,12 +215,12 @@ class ChatCompletionRequest(BaseModel):
 
     provider: str
     model: str
-    messages: List[dict]
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
+    messages: list[dict]
+    temperature: float | None = None
+    max_tokens: int | None = None
     stream: bool = False
-    file_content: Optional[str] = None  # Base64 encoded file content or plain text
-    file_name: Optional[str] = None  # Original filename for type detection
+    file_content: str | None = None  # Base64 encoded file content or plain text
+    file_name: str | None = None  # Original filename for type detection
     chunked: bool = False  # Enable smart chunking and summarization
     chunk_size: int = 50000  # Chunk size in characters
 
@@ -246,7 +241,7 @@ class ProviderInfo(BaseModel):
     """Provider information model."""
 
     name: str
-    models: List[str]
+    models: list[str]
 
 
 class ErrorResponse(BaseModel):
@@ -299,7 +294,7 @@ async def models_page():
     return {"error": "Models page not found"}
 
 
-@app.get("/api/providers", response_model=List[str])
+@app.get("/api/providers", response_model=list[str])
 async def list_providers(_: None = Depends(verify_api_key)):
     """List all available providers."""
     return [
@@ -329,7 +324,7 @@ class ModelInfo(BaseModel):
 class ModelListResponse(BaseModel):
     """Model list response with validation metadata."""
 
-    models: List[ModelInfo]
+    models: list[ModelInfo]
     validation: dict
 
 
@@ -428,7 +423,7 @@ async def get_model_info(provider: str, model: str, _: None = Depends(verify_api
     }
 
 
-@app.get("/api/provider-info", response_model=List[ProviderInfo])
+@app.get("/api/provider-info", response_model=list[ProviderInfo])
 async def get_provider_info(_: None = Depends(verify_api_key)):
     """Get information about all providers and their models."""
     providers = []
@@ -554,9 +549,9 @@ async def chat_completion(
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
                 # Combine with existing user message
-                messages[
-                    -1
-                ].content = f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
+                messages[-1].content = (
+                    f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
+                )
             else:
                 # Create new user message with file content
                 messages.append(
@@ -746,7 +741,7 @@ async def chat_completion(
         if suggestion:
             detail["suggestion"] = suggestion
 
-        raise HTTPException(status_code=status_code, detail=detail)
+        raise HTTPException(status_code=status_code, detail=detail) from e
 
 
 @app.websocket("/api/chat/stream")
@@ -826,12 +821,16 @@ async def chat_stream(websocket: WebSocket):
             detail = budget_exc.detail
             await websocket.send_json(
                 {
-                    "error": detail.get("error", "budget_exceeded")
-                    if isinstance(detail, dict)
-                    else "budget_exceeded",
-                    "detail": detail.get("message", str(detail))
-                    if isinstance(detail, dict)
-                    else str(detail),
+                    "error": (
+                        detail.get("error", "budget_exceeded")
+                        if isinstance(detail, dict)
+                        else "budget_exceeded"
+                    ),
+                    "detail": (
+                        detail.get("message", str(detail))
+                        if isinstance(detail, dict)
+                        else str(detail)
+                    ),
                     "done": True,
                 }
             )
@@ -930,9 +929,9 @@ async def chat_stream(websocket: WebSocket):
 
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
-                messages[
-                    -1
-                ].content = f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
+                messages[-1].content = (
+                    f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
+                )
             else:
                 messages.append(
                     Message(
@@ -1096,16 +1095,16 @@ async def reset_cost_tracker(_: None = Depends(verify_api_key)):
 class ProviderModelsInfo(BaseModel):
     """Models info for a single provider."""
 
-    models: List[dict]
+    models: list[dict]
     active: bool
-    validation_error: Optional[str] = None
+    validation_error: str | None = None
     validation_time_ms: int = 0
 
 
 class AllModelsResponse(BaseModel):
     """Response model for all validated models."""
 
-    providers: Dict[str, ProviderModelsInfo]
+    providers: dict[str, ProviderModelsInfo]
     summary: dict
 
 
@@ -1243,8 +1242,8 @@ async def get_catalog(_: None = Depends(verify_api_key)):
 
 @app.get("/api/templates")
 async def list_templates(
-    tag: Optional[str] = None,
-    source: Optional[str] = None,
+    tag: str | None = None,
+    source: str | None = None,
     _: None = Depends(verify_api_key),
 ):
     """List all available prompt templates.
@@ -1284,13 +1283,13 @@ async def get_template(
         template = registry.get(name)
         return template.to_dict()
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 class TemplateRenderRequest(BaseModel):
     """Request model for template rendering."""
 
-    params: Dict[str, Any]
+    params: dict[str, Any]
 
 
 @app.post("/api/templates/{name}/render")
@@ -1318,9 +1317,9 @@ async def render_template(
         messages = template.render(**request.params)
         return [{"role": m.role, "content": m.content} for m in messages]
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.get("/api/health")

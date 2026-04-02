@@ -5,18 +5,17 @@ a dictionary interface compatible with the existing config.py structure.
 """
 
 import json
-import os
+import logging
 import threading
 from pathlib import Path
-from typing import Dict, Any, Optional
-import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 # Global catalog cache with thread safety
 _catalog_lock = threading.Lock()
-_CATALOG_CACHE: Optional[Dict[str, Any]] = None
-_CATALOG_PATH: Optional[Path] = None
+_CATALOG_CACHE: dict[str, Any] | None = None
+_CATALOG_PATH: Path | None = None
 
 
 def get_catalog_path() -> Path:
@@ -30,12 +29,12 @@ def get_catalog_path() -> Path:
     return _CATALOG_PATH
 
 
-def load_catalog(force_reload: bool = False) -> Dict[str, Any]:
+def load_catalog(force_reload: bool = False) -> dict[str, Any]:
     """Load model catalog from JSON file.
-    
+
     Args:
         force_reload: If True, reload from disk even if cached
-        
+
     Returns:
         Catalog dictionary with structure:
         {
@@ -49,37 +48,37 @@ def load_catalog(force_reload: bool = False) -> Dict[str, Any]:
         }
     """
     global _CATALOG_CACHE
-    
+
     # Double-checked locking for thread safety
     if _CATALOG_CACHE is not None and not force_reload:
         return _CATALOG_CACHE
-    
+
     with _catalog_lock:
         # Re-check after acquiring lock
         if _CATALOG_CACHE is not None and not force_reload:
             return _CATALOG_CACHE
-        
+
         catalog_path = get_catalog_path()
-        
+
         if not catalog_path.exists():
             logger.error(f"Catalog file not found: {catalog_path}")
             raise FileNotFoundError(f"Model catalog not found at {catalog_path}")
-        
+
         try:
-            with open(catalog_path, 'r', encoding='utf-8') as f:
+            with open(catalog_path, encoding='utf-8') as f:
                 catalog = json.load(f)
-            
+
             # Validate basic structure
             if not isinstance(catalog, dict):
                 raise ValueError("Catalog must be a JSON object")
-            
+
             if "providers" not in catalog:
                 raise ValueError("Catalog missing 'providers' key")
-            
+
             _CATALOG_CACHE = catalog
             logger.info(f"Loaded catalog version {catalog.get('version', 'unknown')}")
             return catalog
-            
+
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in catalog: {e}")
             raise ValueError(f"Failed to parse catalog JSON: {e}")
@@ -88,15 +87,15 @@ def load_catalog(force_reload: bool = False) -> Dict[str, Any]:
             raise
 
 
-def get_provider_models(provider: str) -> Dict[str, Dict[str, Any]]:
+def get_provider_models(provider: str) -> dict[str, dict[str, Any]]:
     """Get models for a specific provider.
-    
+
     Args:
         provider: Provider name (e.g., 'anthropic', 'openai')
-        
+
     Returns:
         Dictionary of model_id -> model_metadata
-        
+
     Example:
         >>> models = get_provider_models("anthropic")
         >>> models["claude-3-haiku-20240307"]["cost_input"]
@@ -104,21 +103,21 @@ def get_provider_models(provider: str) -> Dict[str, Dict[str, Any]]:
     """
     catalog = load_catalog()
     providers = catalog.get("providers", {})
-    
+
     if provider not in providers:
         logger.warning(f"Provider '{provider}' not found in catalog")
         return {}
-    
+
     return providers[provider]
 
 
-def get_model_metadata(provider: str, model_id: str) -> Optional[Dict[str, Any]]:
+def get_model_metadata(provider: str, model_id: str) -> dict[str, Any] | None:
     """Get metadata for a specific model.
-    
+
     Args:
         provider: Provider name
         model_id: Model ID
-        
+
     Returns:
         Model metadata dictionary or None if not found
     """
@@ -128,11 +127,11 @@ def get_model_metadata(provider: str, model_id: str) -> Optional[Dict[str, Any]]
 
 def is_model_deprecated(provider: str, model_id: str) -> bool:
     """Check if a model is deprecated.
-    
+
     Args:
         provider: Provider name
         model_id: Model ID
-        
+
     Returns:
         True if model is deprecated, False otherwise
     """
@@ -142,13 +141,13 @@ def is_model_deprecated(provider: str, model_id: str) -> bool:
     return metadata.get("deprecated", False)
 
 
-def get_model_replacement(provider: str, model_id: str) -> Optional[str]:
+def get_model_replacement(provider: str, model_id: str) -> str | None:
     """Get replacement model ID for a deprecated model.
-    
+
     Args:
         provider: Provider name
         model_id: Model ID
-        
+
     Returns:
         Replacement model ID or None
     """
@@ -158,18 +157,18 @@ def get_model_replacement(provider: str, model_id: str) -> Optional[str]:
     return metadata.get("replacement_model")
 
 
-def list_all_models(include_deprecated: bool = False) -> Dict[str, list]:
+def list_all_models(include_deprecated: bool = False) -> dict[str, list]:
     """List all models across all providers.
-    
+
     Args:
         include_deprecated: If False, filter out deprecated models
-        
+
     Returns:
         Dictionary of provider -> list of model IDs
     """
     catalog = load_catalog()
     providers = catalog.get("providers", {})
-    
+
     result = {}
     for provider, models in providers.items():
         if include_deprecated:
@@ -179,7 +178,7 @@ def list_all_models(include_deprecated: bool = False) -> Dict[str, list]:
                 model_id for model_id, metadata in models.items()
                 if not metadata.get("deprecated", False)
             ]
-    
+
     return result
 
 
@@ -196,46 +195,46 @@ def get_catalog_updated() -> str:
 
 
 # Convenience functions for backward compatibility with config.py
-def get_anthropic_models() -> Dict[str, Dict[str, Any]]:
+def get_anthropic_models() -> dict[str, dict[str, Any]]:
     """Get Anthropic models catalog (backward compatibility)."""
     return get_provider_models("anthropic")
 
 
-def get_openai_models() -> Dict[str, Dict[str, Any]]:
+def get_openai_models() -> dict[str, dict[str, Any]]:
     """Get OpenAI models catalog (backward compatibility)."""
     return get_provider_models("openai")
 
 
-def get_google_models() -> Dict[str, Dict[str, Any]]:
+def get_google_models() -> dict[str, dict[str, Any]]:
     """Get Google models catalog (backward compatibility)."""
     return get_provider_models("google")
 
 
-def get_deepseek_models() -> Dict[str, Dict[str, Any]]:
+def get_deepseek_models() -> dict[str, dict[str, Any]]:
     """Get DeepSeek models catalog (backward compatibility)."""
     return get_provider_models("deepseek")
 
 
-def get_groq_models() -> Dict[str, Dict[str, Any]]:
+def get_groq_models() -> dict[str, dict[str, Any]]:
     """Get Groq models catalog (backward compatibility)."""
     return get_provider_models("groq")
 
 
-def get_grok_models() -> Dict[str, Dict[str, Any]]:
+def get_grok_models() -> dict[str, dict[str, Any]]:
     """Get Grok models catalog (backward compatibility)."""
     return get_provider_models("grok")
 
 
-def get_openrouter_models() -> Dict[str, Dict[str, Any]]:
+def get_openrouter_models() -> dict[str, dict[str, Any]]:
     """Get OpenRouter models catalog (backward compatibility)."""
     return get_provider_models("openrouter")
 
 
-def get_ollama_models() -> Dict[str, Dict[str, Any]]:
+def get_ollama_models() -> dict[str, dict[str, Any]]:
     """Get Ollama models catalog (backward compatibility)."""
     return get_provider_models("ollama")
 
 
-def get_bedrock_models() -> Dict[str, Dict[str, Any]]:
+def get_bedrock_models() -> dict[str, dict[str, Any]]:
     """Get Bedrock models catalog (backward compatibility)."""
     return get_provider_models("bedrock")

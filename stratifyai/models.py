@@ -2,7 +2,7 @@
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 
 @dataclass
@@ -10,27 +10,27 @@ class Message:
     """Standard message format for all providers (OpenAI-compatible)."""
     role: Literal["system", "user", "assistant"]
     content: str  # Can be plain text or contain [IMAGE:mime_type]\nbase64_data format
-    name: Optional[str] = None  # For multi-agent scenarios
-    cache_control: Optional[dict] = None  # For providers that support prompt caching (Anthropic, OpenAI)
-    
+    name: str | None = None  # For multi-agent scenarios
+    cache_control: dict | None = None  # For providers that support prompt caching (Anthropic, OpenAI)
+
     def has_image(self) -> bool:
         """Check if message contains image data."""
         return "[IMAGE:" in self.content
-    
-    def parse_vision_content(self) -> tuple[Optional[str], Optional[tuple[str, str]]]:
+
+    def parse_vision_content(self) -> tuple[str | None, tuple[str, str] | None]:
         """Parse content into text and image data.
-        
+
         Returns:
             (text_content, (mime_type, base64_data)) or (text_content, None) if no image
         """
         if not self.has_image():
             return (self.content, None)
-        
+
         # Split content by [IMAGE:...] marker
         parts = self.content.split("[IMAGE:")
         text_parts = []
         image_data = None
-        
+
         for i, part in enumerate(parts):
             if i == 0:
                 # First part is text before image
@@ -44,7 +44,7 @@ class Message:
                     base64_data = rest.strip()
                     if base64_data:
                         image_data = (mime_type.strip(), base64_data)
-        
+
         text_content = "\n".join(text_parts).strip() if text_parts else None
         return (text_content, image_data)
 
@@ -60,23 +60,23 @@ class Usage:
     cache_read_tokens: int = 0  # Tokens read from cache (Anthropic)
     reasoning_tokens: int = 0  # For reasoning models like o1/o3
     cost_usd: float = 0.0
-    cost_breakdown: Optional[dict] = None  # Detailed cost breakdown by token type
+    cost_breakdown: dict | None = None  # Detailed cost breakdown by token type
 
 
 @dataclass
 class ChatRequest:
     """Unified request structure for chat completions."""
     model: str
-    messages: List[Message]
+    messages: list[Message]
     temperature: float = 0.7
-    max_tokens: Optional[int] = None
+    max_tokens: int | None = None
     stream: bool = False
     top_p: float = 1.0
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
-    stop: Optional[List[str]] = None
+    stop: list[str] | None = None
     # Provider-specific extensions
-    reasoning_effort: Optional[str] = None  # OpenAI o1/o3
+    reasoning_effort: str | None = None  # OpenAI o1/o3
     extra_params: dict = field(default_factory=dict)
 
 
@@ -91,9 +91,9 @@ class ChatResponse:
     provider: str
     created_at: datetime
     raw_response: dict  # Original provider response for debugging
-    latency_ms: Optional[float] = None  # Response latency in milliseconds
+    latency_ms: float | None = None  # Response latency in milliseconds
 
-    def to_dict(self, include_raw: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_raw: bool = False) -> dict[str, Any]:
         """Serialize to a plain dict, excluding ``raw_response`` by default.
 
         Args:

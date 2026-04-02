@@ -2,15 +2,15 @@
 
 import hashlib
 import json
-import os
 import sqlite3
 import threading
 import time
-from dataclasses import asdict, dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
 from .models import ChatResponse, Usage
 
@@ -26,29 +26,29 @@ class CacheEntry:
 
 class ResponseCache:
     """Thread-safe in-memory cache for LLM responses."""
-    
+
     def __init__(self, ttl: int = 3600, max_size: int = 1000):
         """
         Initialize response cache.
-        
+
         Args:
             ttl: Time-to-live for cache entries in seconds
             max_size: Maximum number of entries to store
         """
         self.ttl = ttl
         self.max_size = max_size
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._lock = threading.Lock()
         self._total_misses: int = 0
         self._total_cost_saved: float = 0.0
-    
-    def get(self, key: str) -> Optional[ChatResponse]:
+
+    def get(self, key: str) -> ChatResponse | None:
         """
         Get response from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached response if found and not expired, None otherwise
         """
@@ -56,28 +56,28 @@ class ResponseCache:
             if key not in self._cache:
                 self._total_misses += 1
                 return None
-            
+
             entry = self._cache[key]
-            
+
             # Check if expired
             if time.time() - entry.timestamp > self.ttl:
                 del self._cache[key]
                 self._total_misses += 1
                 return None
-            
+
             # Update hit count and cost saved
             entry.hits += 1
             if hasattr(entry.response, 'usage') and hasattr(entry.response.usage, 'cost_usd'):
                 cost = entry.response.usage.cost_usd
                 entry.cost_saved += cost
                 self._total_cost_saved += cost
-            
+
             return entry.response
-    
+
     def set(self, key: str, response: ChatResponse) -> None:
         """
         Store response in cache.
-        
+
         Args:
             key: Cache key
             response: Response to cache
@@ -90,24 +90,24 @@ class ResponseCache:
                     key=lambda k: self._cache[k].timestamp
                 )
                 del self._cache[oldest_key]
-            
+
             self._cache[key] = CacheEntry(
                 response=response,
                 timestamp=time.time(),
                 hits=0
             )
-    
+
     def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
             self._cache.clear()
             self._total_misses = 0
             self._total_cost_saved = 0.0
-    
-    def get_stats(self) -> Dict[str, Any]:
+
+    def get_stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
-        
+
         Returns:
             Dictionary with cache stats including hits, misses, and cost savings
         """
@@ -115,7 +115,7 @@ class ResponseCache:
             total_hits = sum(entry.hits for entry in self._cache.values())
             total_requests = total_hits + self._total_misses
             hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0.0
-            
+
             return {
                 "size": len(self._cache),
                 "max_size": self.max_size,
@@ -126,11 +126,11 @@ class ResponseCache:
                 "total_cost_saved": self._total_cost_saved,
                 "ttl": self.ttl,
             }
-    
-    def get_entries(self) -> list[Dict[str, Any]]:
+
+    def get_entries(self) -> list[dict[str, Any]]:
         """
         Get detailed information about cache entries.
-        
+
         Returns:
             List of cache entry details
         """
@@ -147,7 +147,7 @@ class ResponseCache:
                     "age_seconds": int(age),
                     "expires_in": int(self.ttl - age),
                 })
-            
+
             # Sort by hits (most popular first)
             entries.sort(key=lambda x: x["hits"], reverse=True)
             return entries
@@ -255,7 +255,7 @@ class PersistentResponseCache:
 
     # ---- Public interface (matches ResponseCache) -------------------------
 
-    def get(self, key: str) -> Optional[ChatResponse]:
+    def get(self, key: str) -> ChatResponse | None:
         with self._lock:
             with self._connect() as conn:
                 row = conn.execute(
@@ -307,7 +307,7 @@ class PersistentResponseCache:
                 conn.execute("DELETE FROM cache")
                 conn.commit()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         with self._lock:
             with self._connect() as conn:
                 row = conn.execute(
@@ -325,7 +325,7 @@ class PersistentResponseCache:
                     "db_path": self._db_path,
                 }
 
-    def get_entries(self) -> list[Dict[str, Any]]:
+    def get_entries(self) -> list[dict[str, Any]]:
         with self._lock:
             with self._connect() as conn:
                 rows = conn.execute(
@@ -357,29 +357,29 @@ def generate_cache_key(
     model: str,
     messages: list,
     temperature: float,
-    max_tokens: Optional[int] = None,
+    max_tokens: int | None = None,
     **kwargs
 ) -> str:
     """
     Generate a unique cache key from request parameters.
-    
+
     Args:
         model: Model name
         messages: List of messages
         temperature: Temperature parameter
         max_tokens: Maximum tokens
         **kwargs: Additional parameters
-        
+
     Returns:
         SHA256 hash of the request parameters
     """
     # Convert messages to hashable format
     messages_str = json.dumps(
-        [{"role": m.role, "content": m.content} if hasattr(m, "role") else m 
+        [{"role": m.role, "content": m.content} if hasattr(m, "role") else m
          for m in messages],
         sort_keys=True
     )
-    
+
     # Include relevant parameters
     cache_data = {
         "model": model,
@@ -387,12 +387,12 @@ def generate_cache_key(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    
+
     # Add any additional kwargs that affect the response
     for key in sorted(kwargs.keys()):
         if key not in ["stream", "extra_params"]:  # Skip non-deterministic params
             cache_data[key] = kwargs[key]
-    
+
     # Generate hash
     cache_str = json.dumps(cache_data, sort_keys=True)
     return hashlib.sha256(cache_str.encode()).hexdigest()
@@ -400,12 +400,12 @@ def generate_cache_key(
 
 def cache_response(
     ttl: int = 3600,
-    cache_instance: Optional[ResponseCache] = None,
-    cache_backend: Optional[PersistentResponseCache] = None,
+    cache_instance: ResponseCache | None = None,
+    cache_backend: PersistentResponseCache | None = None,
 ):
     """
     Decorator to cache async LLM responses.
-    
+
     Args:
         ttl: Time-to-live for cache entries in seconds. When using ``cache_instance``,
             the TTL should match the cache's configured TTL, as the cache's TTL is
@@ -413,15 +413,15 @@ def cache_response(
         cache_instance: Optional in-memory cache instance (uses global if None)
         cache_backend: Optional persistent cache backend (takes precedence over
             ``cache_instance`` if provided)
-        
+
     Returns:
         Decorated async function
-        
+
     Example:
         @cache_response(ttl=3600)
         async def chat(self, request: ChatRequest) -> ChatResponse:
             return await self.provider.chat_completion(request)
-        
+
     Note:
         When using a custom ``cache_instance``, expiration is controlled by the
         cache's TTL, not the decorator's ``ttl`` parameter. Ensure both are set
@@ -430,7 +430,7 @@ def cache_response(
     # Persistent backend takes precedence if provided
     backend = cache_backend
     cache = cache_instance or _global_cache
-    
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def async_wrapper(*args, **kwargs) -> ChatResponse:
@@ -446,7 +446,7 @@ def cache_response(
                 )
             else:
                 cache_key = generate_cache_key(**kwargs)
-            
+
             # --- Persistent backend path (PersistentResponseCache) ---
             if backend is not None:
                 cached = backend.get(cache_key)
@@ -462,34 +462,34 @@ def cache_response(
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
-            
+
             # Execute async function
             response = await func(*args, **kwargs)
-            
+
             # Cache response (only if not streaming)
             if not kwargs.get("stream", False):
                 cache.set(cache_key, response)
-            
+
             return response
-        
+
         return async_wrapper
     return decorator
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """
     Get statistics from the global cache.
-    
+
     Returns:
         Dictionary with cache statistics
     """
     return _global_cache.get_stats()
 
 
-def get_cache_entries() -> list[Dict[str, Any]]:
+def get_cache_entries() -> list[dict[str, Any]]:
     """
     Get detailed information about cache entries.
-    
+
     Returns:
         List of cache entry details
     """

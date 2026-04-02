@@ -1,11 +1,11 @@
 """Abstract base class for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, List, Optional
+from collections.abc import AsyncIterator
 
 from ..config import PROVIDER_TIMEOUTS
-from ..models import ChatRequest, ChatResponse, Usage
 from ..exceptions import ValidationError
+from ..models import ChatRequest, ChatResponse, Usage
 from ..utils.sync_helpers import run_sync
 
 
@@ -121,7 +121,7 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """
         Return list of models supported by this provider.
 

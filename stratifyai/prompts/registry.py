@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from stratifyai.models import Message
 from stratifyai.prompts.models import PromptParameter, PromptTemplate
@@ -102,8 +102,8 @@ class PromptRegistry:
 
     def list(
         self,
-        tag: Optional[str] = None,
-        source: Optional[str] = None,
+        tag: str | None = None,
+        source: str | None = None,
     ) -> list[PromptTemplate]:
         """List templates with optional filtering.
 
@@ -189,7 +189,7 @@ def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
             "Install it with: pip install pyyaml"
         )
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
