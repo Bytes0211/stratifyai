@@ -1,9 +1,10 @@
 """Tests for caching functionality."""
 
 import asyncio
+import logging
 import time
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -240,6 +241,40 @@ class TestCacheDecorator:
     """Tests for cache_response decorator."""
 
     @pytest.mark.asyncio
+    async def test_decorator_logs_cache_hits_and_misses(self, caplog):
+        """Cache logging should include detailed miss and hit entries."""
+        cache = ResponseCache()
+
+        @cache_response(cache_instance=cache)
+        async def mock_api_call(**kwargs):
+            return ChatResponse(
+                id="test-1",
+                model=kwargs["model"],
+                content="Hello!",
+                finish_reason="stop",
+                usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+                provider="openai",
+                created_at=datetime.now(),
+                raw_response={},
+            )
+
+        with caplog.at_level(logging.INFO, logger="stratifyai.caching"):
+            await mock_api_call(
+                model="gpt-4.1-mini",
+                messages=[Message(role="user", content="Hello")],
+                temperature=0.7,
+            )
+            await mock_api_call(
+                model="gpt-4.1-mini",
+                messages=[Message(role="user", content="Hello")],
+                temperature=0.7,
+            )
+
+        assert "Cache miss" in caplog.text
+        assert "Cache hit" in caplog.text
+        assert "gpt-4.1-mini" in caplog.text
+
+    @pytest.mark.asyncio
     async def test_decorator_caches_response(self):
         """Test that decorator caches responses."""
         cache = ResponseCache()
@@ -382,7 +417,6 @@ class TestCacheCostCalculation:
     @patch("stratifyai.providers.openai.AsyncOpenAI")
     def test_cache_cost_calculation(self, mock_openai_client):
         """Test that cache costs are calculated correctly."""
-        from stratifyai.models import Message, Usage
         from stratifyai.providers.openai import OpenAIProvider
 
         # Mock OpenAI client

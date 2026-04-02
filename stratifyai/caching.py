@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import sqlite3
 import threading
 import time
@@ -13,6 +14,38 @@ from pathlib import Path
 from typing import Any
 
 from .models import ChatResponse, Usage
+from .observability import build_log_extra
+
+logger = logging.getLogger(__name__)
+
+
+def _short_cache_key(key: str) -> str:
+    return key[:16] + "..."
+
+
+def _log_cache_event(
+    event: str,
+    *,
+    key: str,
+    model: str,
+    ttl_remaining: int | None,
+    backend: str,
+) -> None:
+    logger.info(
+        "Cache %s: model=%s key=%s ttl_remaining=%s backend=%s",
+        event,
+        model,
+        _short_cache_key(key),
+        ttl_remaining if ttl_remaining is not None else "n/a",
+        backend,
+        extra=build_log_extra(
+            cache_event=event,
+            model=model,
+            key=_short_cache_key(key),
+            ttl_remaining=ttl_remaining,
+            backend=backend,
+        ),
+    )
 
 
 @dataclass
@@ -64,6 +97,13 @@ class ResponseCache:
             if time.time() - entry.timestamp > self.ttl:
                 del self._cache[key]
                 self._total_misses += 1
+                _log_cache_event(
+                    "expired",
+                    key=key,
+                    model=entry.response.model,
+                    ttl_remaining=0,
+                    backend="memory",
+                )
                 return None
 
             # Update hit count and cost saved
@@ -74,6 +114,15 @@ class ResponseCache:
                 cost = entry.response.usage.cost_usd
                 entry.cost_saved += cost
                 self._total_cost_saved += cost
+
+            ttl_remaining = max(0, int(self.ttl - (time.time() - entry.timestamp)))
+            _log_cache_event(
+                "hit",
+                key=key,
+                model=entry.response.model,
+                ttl_remaining=ttl_remaining,
+                backend="memory",
+            )
 
             return entry.response
 
@@ -143,12 +192,16 @@ class ResponseCache:
                 entries.append(
                     {
                         "key": key[:16] + "...",  # Truncate hash for display
-                        "model": entry.response.model
-                        if hasattr(entry.response, "model")
-                        else "unknown",
-                        "provider": entry.response.provider
-                        if hasattr(entry.response, "provider")
-                        else "unknown",
+                        "model": (
+                            entry.response.model
+                            if hasattr(entry.response, "model")
+                            else "unknown"
+                        ),
+                        "provider": (
+                            entry.response.provider
+                            if hasattr(entry.response, "provider")
+                            else "unknown"
+                        ),
                         "hits": entry.hits,
                         "cost_saved": entry.cost_saved,
                         "age_seconds": int(age),
@@ -279,6 +332,14 @@ class PersistentResponseCache:
                 if time.time() - ts > self.ttl:
                     conn.execute("DELETE FROM cache WHERE key = ?", (key,))
                     conn.commit()
+                    response = self._deserialize_response(response_json)
+                    _log_cache_event(
+                        "expired",
+                        key=key,
+                        model=response.model,
+                        ttl_remaining=0,
+                        backend="sqlite",
+                    )
                     return None
 
                 response = self._deserialize_response(response_json)
@@ -292,6 +353,14 @@ class PersistentResponseCache:
                     (cost, key),
                 )
                 conn.commit()
+                ttl_remaining = max(0, int(self.ttl - (time.time() - ts)))
+                _log_cache_event(
+                    "hit",
+                    key=key,
+                    model=response.model,
+                    ttl_remaining=ttl_remaining,
+                    backend="sqlite",
+                )
                 return response
 
     def set(self, key: str, response: ChatResponse) -> None:
@@ -469,6 +538,19 @@ def cache_response(
                 if cached is not None:
                     return cached
 
+                model = (
+                    request.model
+                    if args and hasattr(args[0], "model")
+                    else kwargs.get("model", "unknown")
+                )
+                _log_cache_event(
+                    "miss",
+                    key=cache_key,
+                    model=model,
+                    ttl_remaining=None,
+                    backend="sqlite",
+                )
+
                 response = await func(*args, **kwargs)
                 if not kwargs.get("stream", False):
                     backend.set(cache_key, response)
@@ -478,6 +560,19 @@ def cache_response(
             cached = cache.get(cache_key)
             if cached is not None:
                 return cached
+
+            model = (
+                request.model
+                if args and hasattr(args[0], "model")
+                else kwargs.get("model", "unknown")
+            )
+            _log_cache_event(
+                "miss",
+                key=cache_key,
+                model=model,
+                ttl_remaining=None,
+                backend="memory",
+            )
 
             # Execute async function
             response = await func(*args, **kwargs)

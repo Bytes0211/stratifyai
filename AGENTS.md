@@ -637,6 +637,72 @@ aws sts get-caller-identity
 - Keep functions focused and single-purpose
 - Ruff formatting/linting (line length 88) and Mypy type checking
 
+### Type Safety & Mypy Configuration
+
+**Mypy is configured in pyproject.toml with the following settings:**
+- `python_version = "3.10"` - Target Python 3.10+ compatibility
+- `check_untyped_defs = true` - Check definitions of untyped functions
+- `no_implicit_optional = true` - Disallow implicit `Optional` types (PEP 484)
+- `ignore_missing_imports = true` - Ignore missing stubs for external libraries
+
+**Type Hint Patterns:**
+
+1. **Required vs Optional Parameters:**
+   ```python
+   # ✅ Good: Optional parameters use `| None` syntax (PEP 604)
+   def __init__(self, api_key: str, config: dict | None = None):
+       pass
+
+   # ❌ Bad: Implicit Optional (will fail mypy)
+   def __init__(self, api_key: str, config: dict = None):
+       pass
+   ```
+
+2. **Dictionary Type Inference:**
+   ```python
+   # ✅ Good: Cast values from .get() calls to ensure proper typing
+   cost_input = float(model_info.get("cost_input", 0.0))
+   return bool(model_info.get("supports_caching", False))
+
+   # ❌ Bad: Returns `Any` from dict.get() without casting
+   cost_input = model_info.get("cost_input", 0.0)  # Type: Any
+   return model_info.get("supports_caching", False)  # Returns Any, not bool
+   ```
+
+3. **Indexed Dictionary Access:**
+   ```python
+   # ✅ Good: Use local variable with type guard
+   inference_config = body["inferenceConfig"]
+   if isinstance(inference_config, dict):
+       inference_config["stopSequences"] = request.stop
+
+   # ❌ Bad: Direct chained indexing may cause "Unsupported target" error
+   body["inferenceConfig"]["stopSequences"] = request.stop
+   ```
+
+4. **Return Type Consistency:**
+   ```python
+   # ✅ Good: Explicitly cast arithmetic results to return type
+   def _calculate_cost(self) -> float:
+       input_cost = (tokens / 1_000_000) * cost_value  # Type: Any
+       return float(input_cost)  # Explicit cast to float
+
+   # ❌ Bad: Returns Any instead of declared float
+   return input_cost + output_cost  # Type: Any, declared: float
+   ```
+
+**Running Mypy:**
+```bash
+# Check specific files
+uv run mypy stratifyai/providers/openai.py
+
+# Check specific directories
+uv run mypy stratifyai
+
+# Check with verbose output
+uv run mypy --show-error-codes stratifyai
+```
+
 ### Git Practices
 - Never commit `.env` files or credentials
 - Use `.gitignore` for environment files

@@ -18,6 +18,7 @@ from .client import LLMClient
 from .cost_tracker import CostTracker
 from .exceptions import BudgetExceededError
 from .models import ChatRequest, ChatResponse, Message
+from .observability import build_log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class TrackedLLMClient:
     ) -> None:
         self.client = client
         self.cost_tracker = cost_tracker
+        self._last_stream_metrics: dict[str, float | int | None] = {}
 
     # ------------------------------------------------------------------
     # Non-streaming chat
@@ -83,10 +85,47 @@ class TrackedLLMClient:
     async def chat_completion_stream(
         self, request: ChatRequest
     ) -> AsyncIterator[ChatResponse]:
-        """Proxy streaming — budget check only (no post-response tracking)."""
+        """Track streaming latency while proxying streamed chunks."""
         self._pre_request(request.model, request.messages)
-        async for chunk in self.client.chat_completion_stream(request):
-            yield chunk
+
+        start = time.perf_counter()
+        first_token_latency_ms: float | None = None
+        chunk_count = 0
+
+        try:
+            async for chunk in self.client.chat_completion_stream(request):
+                if first_token_latency_ms is None:
+                    first_token_latency_ms = (time.perf_counter() - start) * 1000
+                chunk_count += 1
+                yield chunk
+        finally:
+            total_latency_ms = (time.perf_counter() - start) * 1000
+            self._last_stream_metrics = {
+                "first_token_latency_ms": first_token_latency_ms,
+                "total_latency_ms": total_latency_ms,
+                "chunk_count": chunk_count,
+            }
+            logger.info(
+                "LLM stream response: model=%s chunks=%d first_token_latency=%s total_latency=%.0fms",
+                request.model,
+                chunk_count,
+                (
+                    f"{first_token_latency_ms:.0f}ms"
+                    if first_token_latency_ms is not None
+                    else "n/a"
+                ),
+                total_latency_ms,
+                extra=build_log_extra(
+                    model=request.model,
+                    chunk_count=chunk_count,
+                    first_token_latency_ms=first_token_latency_ms,
+                    total_latency_ms=total_latency_ms,
+                ),
+            )
+
+    def get_last_stream_metrics(self) -> dict[str, float | int | None]:
+        """Return telemetry from the most recent streaming request."""
+        return dict(self._last_stream_metrics)
 
     # ------------------------------------------------------------------
     # Internals
@@ -100,6 +139,9 @@ class TrackedLLMClient:
             provider,
             model,
             len(messages),
+            extra=build_log_extra(
+                provider=provider, model=model, message_count=len(messages)
+            ),
         )
 
         if self.cost_tracker.is_over_budget():
@@ -131,4 +173,10 @@ class TrackedLLMClient:
             usage.total_tokens,
             usage.cost_usd,
             latency_ms,
+            extra=build_log_extra(
+                model=response.model,
+                total_tokens=usage.total_tokens,
+                cost_usd=usage.cost_usd,
+                latency_ms=latency_ms,
+            ),
         )

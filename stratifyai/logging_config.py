@@ -17,7 +17,7 @@ import json
 import logging
 import sys
 from datetime import datetime, timezone
-from typing import Literal
+from typing import IO, Literal
 
 
 class JSONFormatter(logging.Formatter):
@@ -30,6 +30,8 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        if hasattr(record, "correlation_id"):
+            log_entry["correlation_id"] = record.correlation_id
         if record.exc_info and record.exc_info[0] is not None:
             log_entry["exception"] = self.formatException(record.exc_info)
         if hasattr(record, "extra_data"):
@@ -50,7 +52,7 @@ class HumanFormatter(logging.Formatter):
 def configure_logging(
     format: Literal["json", "human"] = "human",
     level: str = "INFO",
-    stream: object | None = None,
+    stream: IO[str] | None = None,
 ) -> None:
     """Configure the root ``stratifyai`` logger.
 
