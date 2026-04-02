@@ -9,12 +9,12 @@ from datetime import datetime
 try:
     import aioboto3
     from botocore.config import Config as BotoConfig
-    from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
-except ImportError:
+    from botocore.exceptions import ClientError, NoCredentialsError
+except ImportError as e:
     raise ImportError(
         "aioboto3 is required for AWS Bedrock async support. "
         "Install with: pip install aioboto3>=12.0.0"
-    )
+    ) from e
 
 from ..config import BEDROCK_MODELS, PROVIDER_CONSTRAINTS
 from ..exceptions import AuthenticationError, InvalidModelError, ProviderAPIError

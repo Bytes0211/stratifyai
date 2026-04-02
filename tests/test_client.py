@@ -85,7 +85,7 @@ class TestLLMClient:
         # Execute
         client = LLMClient(api_key="test-key")
         messages = [Message(role="user", content="Hello")]
-        response = await client.chat(model="gpt-4.1-mini", messages=messages)
+        await client.chat(model="gpt-4.1-mini", messages=messages)
 
         # Verify provider was initialized and called
         assert client._provider_instance is not None
@@ -142,7 +142,7 @@ class TestLLMClient:
         # Execute
         client = LLMClient(api_key="test-key")
         messages = [Message(role="user", content="Hello")]
-        response = await client.chat(
+        await client.chat(
             model="gpt-4.1-mini", messages=messages, temperature=0.5, max_tokens=100
         )
 

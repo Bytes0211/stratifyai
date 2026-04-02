@@ -163,13 +163,13 @@ class OpenAICompatibleProvider(BaseProvider):
             error_msg = str(e)
             # Check for specific error types
             if "insufficient balance" in error_msg.lower():
-                raise InsufficientBalanceError(self.provider_name)
+                raise InsufficientBalanceError(self.provider_name) from e
             elif (
                 "invalid_api_key" in error_msg.lower()
                 or "unauthorized" in error_msg.lower()
                 or (hasattr(e, "status_code") and e.status_code == 401)
             ):
-                raise AuthenticationError(self.provider_name)
+                raise AuthenticationError(self.provider_name) from e
             # Check for vision-related errors
             elif "image" in error_msg.lower() and (
                 "not supported" in error_msg.lower()
@@ -180,12 +180,12 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model (e.g., gemini-2.5-pro for Google, gpt-4o for OpenAI via OpenRouter).",
                     self.provider_name,
-                )
+                ) from e
             else:
                 raise ProviderAPIError(
                     f"Chat completion failed: {sanitize_error(error_msg, self.api_key)}",
                     self.provider_name,
-                )
+                ) from e
         except Exception as e:
             error_str = sanitize_error(str(e), self.api_key)
             # Check for vision-related errors in generic exceptions
@@ -198,10 +198,10 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -289,13 +289,13 @@ class OpenAICompatibleProvider(BaseProvider):
             error_msg = str(e)
             # Check for specific error types
             if "insufficient balance" in error_msg.lower():
-                raise InsufficientBalanceError(self.provider_name)
+                raise InsufficientBalanceError(self.provider_name) from e
             elif (
                 "invalid_api_key" in error_msg.lower()
                 or "unauthorized" in error_msg.lower()
                 or (hasattr(e, "status_code") and e.status_code == 401)
             ):
-                raise AuthenticationError(self.provider_name)
+                raise AuthenticationError(self.provider_name) from e
             # Check for vision-related errors
             elif "image" in error_msg.lower() and (
                 "not supported" in error_msg.lower()
@@ -306,12 +306,12 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model.",
                     self.provider_name,
-                )
+                ) from e
             else:
                 raise ProviderAPIError(
                     f"Streaming chat completion failed: {sanitize_error(error_msg, self.api_key)}",
                     self.provider_name,
-                )
+                ) from e
         except Exception as e:
             error_str = sanitize_error(str(e), self.api_key)
             # Check for vision-related errors
@@ -324,10 +324,10 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Vision not supported: The model '{request.model}' cannot process images. "
                     f"Please use a vision-capable model.",
                     self.provider_name,
-                )
+                ) from e
             raise ProviderAPIError(
                 f"Streaming chat completion failed: {error_str}", self.provider_name
-            )
+            ) from e
 
     def _normalize_response(self, raw_response: dict) -> ChatResponse:
         """

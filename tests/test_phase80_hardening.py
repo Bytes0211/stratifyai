@@ -478,6 +478,7 @@ class TestApiIntegration:
         assert resp.status_code == 200
         assert resp.headers["X-Correlation-ID"] == "trace-123"
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
     @patch("api.main.LLMClient")
     def test_provider_health_endpoint_returns_summary(self, mock_client_class):
         from fastapi.testclient import TestClient
