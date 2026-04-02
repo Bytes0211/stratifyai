@@ -8,7 +8,7 @@ import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import tomllib
 from dotenv import load_dotenv
@@ -64,7 +64,11 @@ def _get_version() -> str:
         if pyproject_path.exists():
             with open(pyproject_path, "rb") as f:
                 data = tomllib.load(f)
-                return data.get("project", {}).get("version", "0.1.0")
+                project = data.get("project")
+                if isinstance(project, dict):
+                    version = project.get("version")
+                    if isinstance(version, str):
+                        return version
     except Exception:
         pass
     return "0.1.0"
@@ -1346,7 +1350,7 @@ async def get_catalog(_: None = Depends(verify_api_key)):
     providers = catalog.get("providers", {})
 
     # Transform to frontend-expected format
-    result = {}
+    result: dict[str, dict[str, dict[str, Any]]] = {}
     for provider, models in providers.items():
         result[provider] = {}
         for model_id, model_data in models.items():
@@ -1369,7 +1373,7 @@ async def get_catalog(_: None = Depends(verify_api_key)):
                 "replacement_model": model_data.get("replacement_model"),
             }
 
-    return result
+    return cast(dict[str, Any], result)
 
 
 @app.get("/api/templates")

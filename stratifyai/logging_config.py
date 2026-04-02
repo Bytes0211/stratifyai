@@ -17,7 +17,7 @@ import json
 import logging
 import sys
 from datetime import datetime, timezone
-from typing import Literal
+from typing import IO, Literal
 
 
 class JSONFormatter(logging.Formatter):
@@ -52,7 +52,7 @@ class HumanFormatter(logging.Formatter):
 def configure_logging(
     format: Literal["json", "human"] = "human",
     level: str = "INFO",
-    stream: object | None = None,
+    stream: IO[str] | None = None,
 ) -> None:
     """Configure the root ``stratifyai`` logger.
 
