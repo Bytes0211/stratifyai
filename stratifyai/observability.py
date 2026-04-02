@@ -60,6 +60,7 @@ class MetricsRegistry:
         """Reset all metrics."""
         with self._lock:
             self.http_requests_total = 0
+            self.http_responses_total = 0
             self.http_errors_total = 0
             self.http_status_counts: dict[str, int] = defaultdict(int)
             self.http_path_counts: dict[str, int] = defaultdict(int)
@@ -85,6 +86,7 @@ class MetricsRegistry:
     ) -> None:
         """Record a completed HTTP response."""
         with self._lock:
+            self.http_responses_total += 1
             self.http_status_counts[str(status_code)] += 1
             if status_code >= 400:
                 self.http_errors_total += 1
@@ -125,8 +127,8 @@ class MetricsRegistry:
         """Export metrics as structured JSON-compatible data."""
         with self._lock:
             avg_http_latency = (
-                self.http_total_latency_ms / self.http_requests_total
-                if self.http_requests_total
+                self.http_total_latency_ms / self.http_responses_total
+                if self.http_responses_total
                 else 0.0
             )
             avg_first_token_latency = (
@@ -145,6 +147,7 @@ class MetricsRegistry:
                 "version": api_version,
                 "http": {
                     "requests_total": self.http_requests_total,
+                    "responses_total": self.http_responses_total,
                     "errors_total": self.http_errors_total,
                     "avg_latency_ms": round(avg_http_latency, 2),
                     "status_counts": dict(self.http_status_counts),

@@ -169,9 +169,9 @@ class TestVerifyApiKeyHmac:
         from api.main import verify_api_key
 
         source = inspect.getsource(verify_api_key)
-        assert (
-            "hmac.compare_digest" in source
-        ), "verify_api_key must use hmac.compare_digest for timing-safe comparison"
+        assert "hmac.compare_digest" in source, (
+            "verify_api_key must use hmac.compare_digest for timing-safe comparison"
+        )
 
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "test-secret-key"})
     def test_valid_key_passes(self):

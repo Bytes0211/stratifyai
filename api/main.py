@@ -629,9 +629,9 @@ async def chat_completion(
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
                 # Combine with existing user message
-                messages[-1].content = (
-                    f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
-                )
+                messages[
+                    -1
+                ].content = f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
             else:
                 # Create new user message with file content
                 messages.append(
@@ -1015,9 +1015,9 @@ async def chat_stream(websocket: WebSocket):
 
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
-                messages[-1].content = (
-                    f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
-                )
+                messages[
+                    -1
+                ].content = f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
             else:
                 messages.append(
                     Message(
@@ -1063,8 +1063,6 @@ async def chat_stream(websocket: WebSocket):
         completion_tokens = 0
         stream = tracked.chat_completion_stream(chat_request)
         async for chunk in stream:
-            if first_token_latency_ms is None:
-                first_token_latency_ms = (time.perf_counter() - start_time) * 1000
             full_content += chunk.content
             # Accumulate token usage from chunks if available
             if hasattr(chunk, "usage") and chunk.usage:
@@ -1504,22 +1502,28 @@ def _provider_health_snapshot() -> dict[str, Any]:
                 "error": None,
             }
             ready_count += 1
-        except AuthenticationError as exc:
+        except AuthenticationError:
             results[provider] = {
                 "status": "missing_credentials",
                 "configured": configured,
                 "client_initialized": False,
                 "models_known": len(MODEL_CATALOG.get(provider, {})),
-                "error": str(exc),
+                "error": "authentication error",
             }
             degraded_count += 1
         except Exception as exc:
+            logger.warning(
+                "Provider health initialization error for provider=%s: %s",
+                provider,
+                str(exc),
+                extra=build_log_extra(provider=provider, event="provider_health_error"),
+            )
             results[provider] = {
                 "status": "degraded",
                 "configured": configured,
                 "client_initialized": False,
                 "models_known": len(MODEL_CATALOG.get(provider, {})),
-                "error": str(exc),
+                "error": "initialization error",
             }
             degraded_count += 1
 
@@ -1539,7 +1543,7 @@ def _provider_health_snapshot() -> dict[str, Any]:
 @app.get("/api/health/providers")
 async def provider_health_check():
     """Return lightweight provider health information."""
-    return _provider_health_snapshot()
+    return await asyncio.to_thread(_provider_health_snapshot)
 
 
 @app.get("/api/metrics")
