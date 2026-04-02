@@ -23,11 +23,11 @@
 
 > Late failures and inconsistent validation hurt developer experience.
 
-- [ ] Move API key validation to client initialization (fail-fast instead of on first request)
-- [ ] Add client-level temperature validation for reasoning models (o1, o3) before reaching provider
-- [ ] Apply retry logic consistently across all code paths (some paths skip `@retry`)
-- [ ] Add granular timeout configuration per provider (some providers are slower than others)
-- [ ] Add cancellation support for long-running async operations
+- [x] Move API key validation to client initialization (fail-fast instead of on first request)
+- [x] Add client-level temperature validation for reasoning models (o1, o3) before reaching provider
+- [x] Apply retry logic consistently across all code paths (some paths skip `@retry`)
+- [x] Add granular timeout configuration per provider (some providers are slower than others)
+- [x] Add cancellation support for long-running async operations
 
 ---
 

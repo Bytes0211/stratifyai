@@ -6,7 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from stratifyai.client import LLMClient
-from stratifyai.exceptions import InvalidModelError, InvalidProviderError
+from stratifyai.exceptions import (
+    AuthenticationError,
+    InvalidModelError,
+    InvalidProviderError,
+    ProviderAPIError,
+    ValidationError,
+)
 from stratifyai.models import ChatRequest, Message
 
 
@@ -286,3 +292,136 @@ class TestLLMClient:
         assert "openai" in client._providers
         assert "anthropic" in client._providers
         assert client.provider_name == "anthropic"
+
+    @patch("stratifyai.client.APIKeyHelper.validate_api_key")
+    def test_client_initialization_fail_fast_api_key_validation(
+        self, mock_validate_api_key
+    ):
+        """Explicit provider should validate auth during client init."""
+        mock_validate_api_key.return_value = (False, "missing key")
+
+        with pytest.raises(AuthenticationError):
+            LLMClient(provider="openai")
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_client_blocks_invalid_reasoning_temperature(self, mock_openai):
+        """Reasoning models must use temperature=1.0 at client layer."""
+        mock_openai.return_value = MagicMock()
+
+        client = LLMClient(api_key="test-key")
+        messages = [Message(role="user", content="Hello")]
+
+        with pytest.raises(ValidationError):
+            await client.chat(model="o1", messages=messages, temperature=0.7)
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_chat_completion_retries_provider_errors(self, mock_openai):
+        """Non-streaming calls should retry transient provider failures."""
+        mock_client = MagicMock()
+        mock_openai.return_value = mock_client
+
+        successful_response = MagicMock()
+        successful_response.model_dump.return_value = {
+            "id": "test",
+            "model": "gpt-4.1-mini",
+            "created": 1234567890,
+            "choices": [{"message": {"content": "Recovered"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        }
+
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[
+                ProviderAPIError("transient", "openai"),
+                successful_response,
+            ]
+        )
+
+        client = LLMClient(api_key="test-key", config={"retry": {"max_retries": 1, "jitter": False}})
+        request = ChatRequest(
+            model="gpt-4.1-mini",
+            messages=[Message(role="user", content="Hello")],
+        )
+
+        response = await client.chat_completion(request)
+
+        assert response.content == "Recovered"
+        assert mock_client.chat.completions.create.call_count == 2
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_streaming_retries_provider_errors(self, mock_openai):
+        """Streaming calls should retry when setup fails with provider errors."""
+        mock_client = MagicMock()
+        mock_openai.return_value = mock_client
+
+        chunk = MagicMock()
+        chunk.model_dump.return_value = {
+            "id": "stream-test",
+            "model": "gpt-4.1-mini",
+            "created": 1234567890,
+            "choices": [{"delta": {"content": "Hello"}, "finish_reason": None}],
+        }
+        chunk.choices = [MagicMock(delta=MagicMock(content="Hello"))]
+
+        async def async_iter_chunks():
+            yield chunk
+
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[
+                ProviderAPIError("transient stream", "openai"),
+                async_iter_chunks(),
+            ]
+        )
+
+        client = LLMClient(api_key="test-key", config={"retry": {"max_retries": 1, "jitter": False}})
+        request = ChatRequest(
+            model="gpt-4.1-mini",
+            messages=[Message(role="user", content="Hello")],
+            stream=True,
+        )
+
+        chunks = [c async for c in client.chat_completion_stream(request)]
+
+        assert len(chunks) == 1
+        assert chunks[0].content == "Hello"
+        assert mock_client.chat.completions.create.call_count == 2
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    def test_provider_timeout_override_via_client_config(self, mock_openai):
+        """Provider timeout should be configurable per provider."""
+        mock_openai.return_value = MagicMock()
+
+        LLMClient(
+            provider="openai",
+            api_key="test-key",
+            config={
+                "providers": {
+                    "openai": {
+                        "timeout_seconds": 12,
+                    }
+                }
+            },
+        )
+
+        kwargs = mock_openai.call_args.kwargs
+        assert kwargs["timeout"] == 12
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_chat_cancellation_via_cancel_event(self, mock_openai):
+        """Client should support cooperative cancellation for long-running calls."""
+        mock_openai.return_value = MagicMock()
+        cancel_event = asyncio.Event()
+        cancel_event.set()
+
+        client = LLMClient(api_key="test-key")
+        messages = [Message(role="user", content="Hello")]
+
+        with pytest.raises(asyncio.CancelledError):
+            await client.chat(
+                model="gpt-4.1-mini",
+                messages=messages,
+                cancel_event=cancel_event,
+            )

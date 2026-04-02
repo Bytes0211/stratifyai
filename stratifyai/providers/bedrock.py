@@ -9,6 +9,7 @@ from typing import AsyncIterator, List, Optional
 try:
     import aioboto3
     from botocore.exceptions import ClientError, NoCredentialsError, BotoCoreError
+    from botocore.config import Config as BotoConfig
 except ImportError:
     raise ImportError(
         "aioboto3 is required for AWS Bedrock async support. "
@@ -152,7 +153,13 @@ class BedrockProvider(BaseProvider):
         
         try:
             # Create async client and invoke Bedrock model
-            async with self._session.client("bedrock-runtime") as client:
+            async with self._session.client(
+                "bedrock-runtime",
+                config=BotoConfig(
+                    connect_timeout=self.connect_timeout_seconds,
+                    read_timeout=self.timeout_seconds,
+                ),
+            ) as client:
                 response = await client.invoke_model(
                     modelId=request.model,
                     contentType="application/json",
@@ -227,7 +234,13 @@ class BedrockProvider(BaseProvider):
         
         try:
             # Create async client and invoke Bedrock model with streaming
-            async with self._session.client("bedrock-runtime") as client:
+            async with self._session.client(
+                "bedrock-runtime",
+                config=BotoConfig(
+                    connect_timeout=self.connect_timeout_seconds,
+                    read_timeout=self.timeout_seconds,
+                ),
+            ) as client:
                 response = await client.invoke_model_with_response_stream(
                     modelId=request.model,
                     contentType="application/json",

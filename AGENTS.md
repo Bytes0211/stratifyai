@@ -366,9 +366,9 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** Phase 7.11 - Svelte 5 SPA ✅ COMPLETE
-**Progress:** Phases 1–6 + Phase 7.1–7.11 Complete
-**Latest Updates:** Phase 7.11 complete — Svelte 5 SPA (48 files, ~8,500 lines) (Feb 16, 2026)
+**Current Phase:** Phase 11 - Error Handling & Validation Hardening (In Progress)
+**Progress:** Phases 1-10 complete; Phase 11 active
+**Latest Updates:** Phase 10 CI/CD and testing infrastructure completed; docs/status alignment refresh (Apr 2026)
 **Test Suite:** 408+ tests
 
 ### Completed Phases
@@ -526,7 +526,7 @@ stratifyai check-keys
   - **State Management**: Svelte stores for chat, config, cost, files
   - Dependencies: Svelte 5, Vite 6, TypeScript, marked, highlight.js, DOMPurify
 
-**Status:** Production Ready — All core features complete (Feb 2026)
+**Status:** Production Ready baseline with active hardening roadmap
 
 - ✅ Phase 9.1: Prompt Templates (100%) - Feb 27, 2026
   - PromptTemplate and PromptParameter data models (~170 lines)
@@ -539,25 +539,29 @@ stratifyai check-keys
   - 30 comprehensive tests (100% passing)
   - Full documentation (docs/PROMPT-TEMPLATES.md)
 
-**Status:** Production Ready — All core features complete (Feb 2026)
+**Status:** Production Ready baseline with active hardening roadmap (Phase 11)
 
-- 🔧 Phase 9.0: Profile Data Model (In Progress) - Mar 1, 2026
-  - ProfileParameter schema class with 5-type validation (number, integer, boolean, string, select)
-  - PARAMETER_DEFINITIONS: 8 profile parameters (temperature, max_tokens, reasoning_depth, etc.)
-  - Profile dataclass with structural validation, to_dict(), extends field
-  - merge_parameters() utility for inheritance resolution
-  - Data model decoupled from catalog (no config/catalog imports)
+- ✅ Phase 10: CI/CD & Testing Infrastructure (100%)
+  - Full PR/push CI workflow for tests
+  - Ruff, Mypy, and Black quality gates
+  - Integration tests lane with marker and secret gating
+  - Coverage reporting with minimum threshold
+  - Frontend build artifacts removed from source control and built in CI
 
 ### In Progress
 
-- 🔧 Phase 9.0: Profile registry, YAML loading, ChatBuilder/CLI/API integration (Steps 2–10)
+- 🔧 Phase 11: Error Handling & Validation Hardening
+  - Fail-fast API key validation at client initialization
+  - Client-level reasoning model temperature validation
+  - Retry consistency across all request paths
+  - Provider-specific timeout controls
+  - Cancellation support for long-running async operations
 
 ### Future Enhancements
 
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
 - 📝 Phase 8: PyPI package publishing
-- 📝 Phase 10: CI/CD & Testing Infrastructure (HIGH PRIORITY)
 - 📝 Phase 11: Error Handling & Validation Hardening (HIGH PRIORITY)
 - 📝 Phase 12: Observability & Streaming (MEDIUM PRIORITY)
 - 📝 Phase 13: Performance & Scalability (MEDIUM PRIORITY)
@@ -586,7 +590,7 @@ See **developer/TODO.md** for detailed task breakdowns per phase.
 - **docs/StratifyAI-Prompt-Caching.md** — Prompt caching strategies
 - **docs/large-file-strategies.md** — Large file handling approach
 - **docs/performance.md** — Performance targets and benchmarks
-- **docs/developer-journal.md** — Implementation log and lessons learned
+- **developer/developer-journal.md** — Implementation log and lessons learned
 - **docs/CHANGELOG.md** — Version history
 - **docs/CONTRIBUTING.md** — Contribution guidelines
 - **developer/TODO.md** — Prioritized roadmap (Phases 10–15)

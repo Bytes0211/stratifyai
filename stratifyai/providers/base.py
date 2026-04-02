@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import AsyncIterator, List, Optional
 
+from ..config import PROVIDER_TIMEOUTS
 from ..models import ChatRequest, ChatResponse, Usage
 from ..exceptions import ValidationError
 from ..utils.sync_helpers import run_sync
@@ -22,6 +23,16 @@ class BaseProvider(ABC):
         self.api_key = api_key
         self.config = config or {}
         self._client = None
+        provider_default_timeout = PROVIDER_TIMEOUTS.get(self.provider_name, 60.0)
+        self.timeout_seconds = float(
+            self.config.get("timeout_seconds", provider_default_timeout)
+        )
+        self.connect_timeout_seconds = float(
+            self.config.get(
+                "connect_timeout_seconds",
+                min(10.0, self.timeout_seconds),
+            )
+        )
     
     @abstractmethod
     def _initialize_client(self) -> None:

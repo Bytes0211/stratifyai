@@ -1,4 +1,21 @@
 # Developer Journal
+## April 2, 2026 - Documentation Alignment and Roadmap Refresh
+
+Aligned project documentation to reflect the current delivery state and active roadmap focus.
+
+### Changes
+- Updated `docs/project-status.md` from an outdated phase-7 snapshot to a current status document.
+- Synced `AGENTS.md` project status to reflect Phase 10 completion and Phase 11 in progress.
+- Updated `README.md` status/test metadata to match current test scale and roadmap position.
+- Cleaned `.gitignore` documentation rules so `docs/` and `developer/` are tracked while generated docs artifacts remain ignored.
+
+### Notes
+- CI and testing infrastructure work is complete and now treated as baseline.
+- Phase 11 tasks are now the active engineering focus (validation, retries, timeouts, cancellation).
+- `developer/TODO.md` remains the checklist source of truth for pending tasks.
+
+---
+
 ## March 1, 2026 - Phase 9.0 Profile Data Model
 
 Implemented the foundational data model for the StratifyAI profile system (Phase 9 — Profiles).

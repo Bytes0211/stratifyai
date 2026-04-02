@@ -39,7 +39,10 @@ class OpenAIProvider(BaseProvider):
     def _initialize_client(self) -> None:
         """Initialize OpenAI async client."""
         try:
-            self._client = AsyncOpenAI(api_key=self.api_key)
+            self._client = AsyncOpenAI(
+                api_key=self.api_key,
+                timeout=self.timeout_seconds,
+            )
         except Exception as e:
             raise ProviderAPIError(
                 f"Failed to initialize OpenAI client: {str(e)}",

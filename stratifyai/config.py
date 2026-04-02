@@ -62,6 +62,20 @@ PROVIDER_CONSTRAINTS: Dict[str, Dict[str, Any]] = {
     },
 }
 
+# Provider-level timeout defaults (seconds) used by SDK clients.
+# Can be overridden via LLMClient(config={"providers": {"<provider>": {"timeout_seconds": ...}}}).
+PROVIDER_TIMEOUTS: Dict[str, float] = {
+    "openai": 60.0,
+    "anthropic": 90.0,
+    "google": 60.0,
+    "deepseek": 90.0,
+    "groq": 45.0,
+    "grok": 60.0,
+    "openrouter": 75.0,
+    "ollama": 120.0,
+    "bedrock": 120.0,
+}
+
 # Model Catalogs - Loaded from catalog/models.json
 ANTHROPIC_MODELS: Dict[str, Dict[str, Any]] = get_anthropic_models()
 GOOGLE_MODELS: Dict[str, Dict[str, Any]] = get_google_models()

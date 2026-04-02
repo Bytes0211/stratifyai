@@ -45,7 +45,8 @@ class OpenAICompatibleProvider(BaseProvider):
         try:
             self._client = AsyncOpenAI(
                 api_key=self.api_key,
-                base_url=self.base_url
+                base_url=self.base_url,
+                timeout=self.timeout_seconds,
             )
         except Exception as e:
             raise ProviderAPIError(

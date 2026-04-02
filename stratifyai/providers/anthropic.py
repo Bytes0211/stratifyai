@@ -37,7 +37,10 @@ class AnthropicProvider(BaseProvider):
     def _initialize_client(self) -> None:
         """Initialize Anthropic async client."""
         try:
-            self._client = AsyncAnthropic(api_key=self.api_key)
+            self._client = AsyncAnthropic(
+                api_key=self.api_key,
+                timeout=self.timeout_seconds,
+            )
         except Exception as e:
             raise ProviderAPIError(
                 f"Failed to initialize Anthropic client: {str(e)}",

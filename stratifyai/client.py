@@ -1,5 +1,6 @@
 """Unified client for accessing multiple LLM providers."""
 
+import asyncio
 import logging
 import time
 from enum import Enum
@@ -8,8 +9,16 @@ from typing import AsyncIterator, Dict, Optional, Type, Union
 logger = logging.getLogger(__name__)
 
 from .config import MODEL_CATALOG
-from .exceptions import InvalidModelError, InvalidProviderError
+from .exceptions import (
+    AuthenticationError,
+    InvalidModelError,
+    InvalidProviderError,
+    MaxRetriesExceededError,
+    ValidationError,
+)
 from .models import ChatRequest, ChatResponse, Message
+from .retry import RetryConfig, exponential_backoff, with_retry
+from .utils.reasoning_detector import is_reasoning_model
 from .providers.base import BaseProvider
 from .providers.openai import OpenAIProvider
 from .providers.anthropic import AnthropicProvider
@@ -21,6 +30,7 @@ from .providers.openrouter import OpenRouterProvider
 from .providers.ollama import OllamaProvider
 from .providers.bedrock import BedrockProvider
 from .utils.sync_helpers import run_sync
+from .api_key_helper import APIKeyHelper
 
 
 class ProviderType(str, Enum):
@@ -98,10 +108,69 @@ class LLMClient:
         self.config = config or {}
         self._provider_instance = None
         self._providers: Dict[str, BaseProvider] = {}
+        self._retry_config = self._build_retry_config()
+
+        # Fail-fast API key validation when provider is explicit.
+        if provider:
+            self._validate_provider_auth(provider)
         
         # Initialize provider if specified
         if provider:
             self._initialize_provider(provider)
+
+    def _build_retry_config(self) -> RetryConfig:
+        """Build retry configuration from client config."""
+        retry_cfg = self.config.get("retry", {})
+        if not isinstance(retry_cfg, dict):
+            retry_cfg = {}
+
+        return RetryConfig(
+            max_retries=int(retry_cfg.get("max_retries", 3)),
+            initial_delay=float(retry_cfg.get("initial_delay", 1.0)),
+            max_delay=float(retry_cfg.get("max_delay", 60.0)),
+            exponential_base=float(retry_cfg.get("exponential_base", 2.0)),
+            jitter=bool(retry_cfg.get("jitter", True)),
+        )
+
+    def _validate_provider_auth(self, provider: str) -> None:
+        """Validate provider authentication settings at client init time."""
+        if provider not in self._provider_registry:
+            return
+
+        # Providers that can rely on local/default credentials should not hard-fail.
+        if provider in {"ollama", "bedrock"}:
+            return
+
+        is_valid, error_message = APIKeyHelper.validate_api_key(provider, self.api_key)
+        if not is_valid:
+            raise AuthenticationError(provider, error_message)
+
+    def _build_provider_config(self, provider: str) -> dict:
+        """Build provider-specific config with optional per-provider overrides."""
+        provider_config = dict(self.config)
+        providers_cfg = provider_config.pop("providers", None)
+        if isinstance(providers_cfg, dict):
+            specific_cfg = providers_cfg.get(provider, {})
+            if isinstance(specific_cfg, dict):
+                provider_config.update(specific_cfg)
+        return provider_config
+
+    def _validate_reasoning_temperature(self, model: str, temperature: float) -> None:
+        """Enforce client-level temperature requirements for reasoning models."""
+        provider = self._detect_provider(model)
+        if is_reasoning_model(provider, model, MODEL_CATALOG) and temperature != 1.0:
+            raise ValidationError(
+                f"Reasoning model '{model}' requires temperature=1.0, got {temperature}"
+            )
+
+    async def _check_cancellation(
+        self, cancel_event: Optional[asyncio.Event], model: Optional[str] = None
+    ) -> None:
+        """Raise cancellation when the provided cancel event is set."""
+        if cancel_event and cancel_event.is_set():
+            if model:
+                logger.info("Request cancelled before completion for model=%s", model)
+            raise asyncio.CancelledError()
     
     def _initialize_provider(self, provider: str) -> None:
         """
@@ -130,7 +199,7 @@ class LLMClient:
             provider_class = self._provider_registry[provider]
             provider_instance = provider_class(
                 api_key=self.api_key,
-                config=self.config,
+                config=self._build_provider_config(provider),
             )
             _provider_pool[key] = provider_instance
 
@@ -186,6 +255,7 @@ class LLMClient:
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
         stream: bool = False,
+        cancel_event: Optional[asyncio.Event] = None,
         **kwargs
     ) -> Union[ChatResponse, AsyncIterator[ChatResponse]]:
         """
@@ -206,6 +276,9 @@ class LLMClient:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
         """
+        await self._check_cancellation(cancel_event, model=model)
+        self._validate_reasoning_temperature(model, temperature)
+
         provider = self._get_provider_for_model(model)
         
         # Build request
@@ -220,14 +293,23 @@ class LLMClient:
         
         # Execute request
         if stream:
-            return provider.chat_completion_stream(request)
+            return self._stream_with_retry(provider, request, cancel_event=cancel_event)
         else:
+            @with_retry(config=self._retry_config)
+            async def _chat_call() -> ChatResponse:
+                await self._check_cancellation(cancel_event, model=model)
+                return await provider.chat_completion(request)
+
             start_time = time.perf_counter()
-            response = await provider.chat_completion(request)
+            response = await _chat_call()
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             return response
     
-    async def chat_completion(self, request: ChatRequest) -> ChatResponse:
+    async def chat_completion(
+        self,
+        request: ChatRequest,
+        cancel_event: Optional[asyncio.Event] = None,
+    ) -> ChatResponse:
         """
         Execute a chat completion request using ChatRequest object.
         
@@ -241,11 +323,18 @@ class LLMClient:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
         """
+        await self._check_cancellation(cancel_event, model=request.model)
+        self._validate_reasoning_temperature(request.model, request.temperature)
         provider = self._get_provider_for_model(request.model)
+
+        @with_retry(config=self._retry_config)
+        async def _completion_call() -> ChatResponse:
+            await self._check_cancellation(cancel_event, model=request.model)
+            return await provider.chat_completion(request)
         
         # Capture timing
         start_time = time.perf_counter()
-        response = await provider.chat_completion(request)
+        response = await _completion_call()
         latency_ms = (time.perf_counter() - start_time) * 1000
         
         # Add latency to response
@@ -253,7 +342,9 @@ class LLMClient:
         return response
     
     async def chat_completion_stream(
-        self, request: ChatRequest
+        self,
+        request: ChatRequest,
+        cancel_event: Optional[asyncio.Event] = None,
     ) -> AsyncIterator[ChatResponse]:
         """
         Execute a streaming chat completion request.
@@ -268,9 +359,54 @@ class LLMClient:
             InvalidModelError: If model not supported
             InvalidProviderError: If provider not supported
         """
+        await self._check_cancellation(cancel_event, model=request.model)
+        self._validate_reasoning_temperature(request.model, request.temperature)
         provider = self._get_provider_for_model(request.model)
-        async for chunk in provider.chat_completion_stream(request):
+        async for chunk in self._stream_with_retry(
+            provider,
+            request,
+            cancel_event=cancel_event,
+        ):
             yield chunk
+
+    async def _stream_with_retry(
+        self,
+        provider: BaseProvider,
+        request: ChatRequest,
+        cancel_event: Optional[asyncio.Event] = None,
+    ) -> AsyncIterator[ChatResponse]:
+        """Execute streaming requests with retry and cancellation support."""
+        cfg = self._retry_config
+
+        for attempt in range(cfg.max_retries + 1):
+            try:
+                await self._check_cancellation(cancel_event, model=request.model)
+                async for chunk in provider.chat_completion_stream(request):
+                    await self._check_cancellation(cancel_event, model=request.model)
+                    yield chunk
+                return
+            except asyncio.CancelledError:
+                raise
+            except cfg.retry_on_exceptions as exc:
+                if attempt == cfg.max_retries:
+                    raise MaxRetriesExceededError(cfg.max_retries, exc)
+
+                delay = exponential_backoff(
+                    attempt,
+                    initial_delay=cfg.initial_delay,
+                    exponential_base=cfg.exponential_base,
+                    max_delay=cfg.max_delay,
+                    jitter=cfg.jitter,
+                )
+                logger.warning(
+                    "Streaming retry attempt %s/%s for model=%s after %.2fs: %s",
+                    attempt + 1,
+                    cfg.max_retries,
+                    request.model,
+                    delay,
+                    str(exc),
+                )
+                await asyncio.sleep(delay)
     
     def chat_sync(
         self,
