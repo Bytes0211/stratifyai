@@ -8,10 +8,13 @@ from typing import Any, Literal
 @dataclass
 class Message:
     """Standard message format for all providers (OpenAI-compatible)."""
+
     role: Literal["system", "user", "assistant"]
     content: str  # Can be plain text or contain [IMAGE:mime_type]\nbase64_data format
     name: str | None = None  # For multi-agent scenarios
-    cache_control: dict | None = None  # For providers that support prompt caching (Anthropic, OpenAI)
+    cache_control: dict | None = (
+        None  # For providers that support prompt caching (Anthropic, OpenAI)
+    )
 
     def has_image(self) -> bool:
         """Check if message contains image data."""
@@ -52,6 +55,7 @@ class Message:
 @dataclass
 class Usage:
     """Token usage and cost information."""
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -66,6 +70,7 @@ class Usage:
 @dataclass
 class ChatRequest:
     """Unified request structure for chat completions."""
+
     model: str
     messages: list[Message]
     temperature: float = 0.7
@@ -83,6 +88,7 @@ class ChatRequest:
 @dataclass
 class ChatResponse:
     """Standard response from any provider."""
+
     id: str
     model: str
     content: str

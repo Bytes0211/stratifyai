@@ -200,7 +200,9 @@ class BedrockProvider(BaseProvider):
                     friendly_msg = "Model configuration error: Invalid message role format for this model."
                 else:
                     friendly_msg = f"Request validation failed: {error_message}"
-                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name) from e
+                raise ProviderAPIError(
+                    f"[bedrock] {friendly_msg}", self.provider_name
+                ) from e
 
             raise ProviderAPIError(
                 f"Bedrock API error ({error_code}): {error_message}", self.provider_name
@@ -284,7 +286,9 @@ class BedrockProvider(BaseProvider):
                     friendly_msg = "Model configuration error: Invalid message role format for this model."
                 else:
                     friendly_msg = f"Request validation failed: {error_message}"
-                raise ProviderAPIError(f"[bedrock] {friendly_msg}", self.provider_name) from e
+                raise ProviderAPIError(
+                    f"[bedrock] {friendly_msg}", self.provider_name
+                ) from e
 
             raise ProviderAPIError(
                 f"Bedrock streaming error ({error_code}): {error_message}",

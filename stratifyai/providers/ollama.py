@@ -1,6 +1,5 @@
 """Ollama provider implementation for local models."""
 
-
 from ..api_key_helper import get_api_key_or_error
 from ..config import OLLAMA_MODELS, PROVIDER_BASE_URLS
 from .openai_compatible import OpenAICompatibleProvider
@@ -9,11 +8,7 @@ from .openai_compatible import OpenAICompatibleProvider
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama provider for local models using OpenAI-compatible API."""
 
-    def __init__(
-        self,
-        api_key: str | None = None,
-        config: dict = None
-    ):
+    def __init__(self, api_key: str | None = None, config: dict = None):
         """
         Initialize Ollama provider.
 

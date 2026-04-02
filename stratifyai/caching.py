@@ -18,6 +18,7 @@ from .models import ChatResponse, Usage
 @dataclass
 class CacheEntry:
     """Entry in the response cache."""
+
     response: ChatResponse
     timestamp: float
     hits: int = 0
@@ -67,7 +68,9 @@ class ResponseCache:
 
             # Update hit count and cost saved
             entry.hits += 1
-            if hasattr(entry.response, 'usage') and hasattr(entry.response.usage, 'cost_usd'):
+            if hasattr(entry.response, "usage") and hasattr(
+                entry.response.usage, "cost_usd"
+            ):
                 cost = entry.response.usage.cost_usd
                 entry.cost_saved += cost
                 self._total_cost_saved += cost
@@ -86,15 +89,12 @@ class ResponseCache:
             # Evict oldest entry if cache is full
             if len(self._cache) >= self.max_size:
                 oldest_key = min(
-                    self._cache.keys(),
-                    key=lambda k: self._cache[k].timestamp
+                    self._cache.keys(), key=lambda k: self._cache[k].timestamp
                 )
                 del self._cache[oldest_key]
 
             self._cache[key] = CacheEntry(
-                response=response,
-                timestamp=time.time(),
-                hits=0
+                response=response, timestamp=time.time(), hits=0
             )
 
     def clear(self) -> None:
@@ -114,7 +114,9 @@ class ResponseCache:
         with self._lock:
             total_hits = sum(entry.hits for entry in self._cache.values())
             total_requests = total_hits + self._total_misses
-            hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0.0
+            hit_rate = (
+                (total_hits / total_requests * 100) if total_requests > 0 else 0.0
+            )
 
             return {
                 "size": len(self._cache),
@@ -138,15 +140,21 @@ class ResponseCache:
             entries = []
             for key, entry in self._cache.items():
                 age = time.time() - entry.timestamp
-                entries.append({
-                    "key": key[:16] + "...",  # Truncate hash for display
-                    "model": entry.response.model if hasattr(entry.response, 'model') else "unknown",
-                    "provider": entry.response.provider if hasattr(entry.response, 'provider') else "unknown",
-                    "hits": entry.hits,
-                    "cost_saved": entry.cost_saved,
-                    "age_seconds": int(age),
-                    "expires_in": int(self.ttl - age),
-                })
+                entries.append(
+                    {
+                        "key": key[:16] + "...",  # Truncate hash for display
+                        "model": entry.response.model
+                        if hasattr(entry.response, "model")
+                        else "unknown",
+                        "provider": entry.response.provider
+                        if hasattr(entry.response, "provider")
+                        else "unknown",
+                        "hits": entry.hits,
+                        "cost_saved": entry.cost_saved,
+                        "age_seconds": int(age),
+                        "expires_in": int(self.ttl - age),
+                    }
+                )
 
             # Sort by hits (most popular first)
             entries.sort(key=lambda x: x["hits"], reverse=True)
@@ -274,7 +282,11 @@ class PersistentResponseCache:
                     return None
 
                 response = self._deserialize_response(response_json)
-                cost = response.usage.cost_usd if hasattr(response.usage, "cost_usd") else 0.0
+                cost = (
+                    response.usage.cost_usd
+                    if hasattr(response.usage, "cost_usd")
+                    else 0.0
+                )
                 conn.execute(
                     "UPDATE cache SET hits = hits + 1, cost_saved = cost_saved + ? WHERE key = ?",
                     (cost, key),
@@ -337,15 +349,17 @@ class PersistentResponseCache:
                 for key, rj, ts, hits, cs in rows:
                     resp = self._deserialize_response(rj)
                     age = now - ts
-                    entries.append({
-                        "key": key[:16] + "...",
-                        "model": resp.model,
-                        "provider": resp.provider,
-                        "hits": hits,
-                        "cost_saved": cs,
-                        "age_seconds": int(age),
-                        "expires_in": int(self.ttl - age),
-                    })
+                    entries.append(
+                        {
+                            "key": key[:16] + "...",
+                            "model": resp.model,
+                            "provider": resp.provider,
+                            "hits": hits,
+                            "cost_saved": cs,
+                            "age_seconds": int(age),
+                            "expires_in": int(self.ttl - age),
+                        }
+                    )
                 return entries
 
 
@@ -358,7 +372,7 @@ def generate_cache_key(
     messages: list,
     temperature: float,
     max_tokens: int | None = None,
-    **kwargs
+    **kwargs,
 ) -> str:
     """
     Generate a unique cache key from request parameters.
@@ -375,9 +389,11 @@ def generate_cache_key(
     """
     # Convert messages to hashable format
     messages_str = json.dumps(
-        [{"role": m.role, "content": m.content} if hasattr(m, "role") else m
-         for m in messages],
-        sort_keys=True
+        [
+            {"role": m.role, "content": m.content} if hasattr(m, "role") else m
+            for m in messages
+        ],
+        sort_keys=True,
     )
 
     # Include relevant parameters
@@ -473,6 +489,7 @@ def cache_response(
             return response
 
         return async_wrapper
+
     return decorator
 
 

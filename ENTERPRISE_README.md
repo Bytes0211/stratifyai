@@ -205,7 +205,7 @@ flowchart LR
 - **Python 3.10+**
 - **OpenAI SDK**, **Anthropic SDK**, **Google Generative AI**
 - **boto3** for AWS Bedrock
-- **pytest**, **pytest‑cov**, **mypy**, **ruff**, **black**
+- **pytest**, **pytest‑cov**, **mypy**, **ruff** (format + lint)
 - **FastAPI** (optional web UI)
 - **ChromaDB** for vector storage
 

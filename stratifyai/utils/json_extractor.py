@@ -13,10 +13,11 @@ from typing import Any, Optional
 @dataclass
 class JSONSchema:
     """Schema information for a JSON structure."""
+
     type: str  # object, array, string, number, boolean, null
     keys: list[str] | None = None  # For objects
-    value_schema: Optional['JSONSchema'] = None  # For arrays
-    nested_schemas: dict[str, 'JSONSchema'] | None = None  # For objects
+    value_schema: Optional["JSONSchema"] = None  # For arrays
+    nested_schemas: dict[str, "JSONSchema"] | None = None  # For objects
     sample_values: list[Any] | None = None  # For primitives and arrays
     depth: int = 0
 
@@ -59,10 +60,7 @@ class JSONSchema:
 
 
 def infer_json_schema(
-    data: Any,
-    max_depth: int = 10,
-    current_depth: int = 0,
-    sample_size: int = 3
+    data: Any, max_depth: int = 10, current_depth: int = 0, sample_size: int = 3
 ) -> JSONSchema:
     """Infer schema from JSON data structure.
 
@@ -82,24 +80,16 @@ def infer_json_schema(
         return JSONSchema(type="null", depth=current_depth)
 
     elif isinstance(data, bool):
-        return JSONSchema(
-            type="boolean",
-            sample_values=[data],
-            depth=current_depth
-        )
+        return JSONSchema(type="boolean", sample_values=[data], depth=current_depth)
 
     elif isinstance(data, (int, float)):
-        return JSONSchema(
-            type="number",
-            sample_values=[data],
-            depth=current_depth
-        )
+        return JSONSchema(type="number", sample_values=[data], depth=current_depth)
 
     elif isinstance(data, str):
         return JSONSchema(
             type="string",
             sample_values=[data[:100]],  # Truncate long strings
-            depth=current_depth
+            depth=current_depth,
         )
 
     elif isinstance(data, list):
@@ -110,17 +100,14 @@ def infer_json_schema(
         value_schema = None
         if data:
             value_schema = infer_json_schema(
-                data[0],
-                max_depth,
-                current_depth + 1,
-                sample_size
+                data[0], max_depth, current_depth + 1, sample_size
             )
 
         return JSONSchema(
             type="array",
             value_schema=value_schema,
             sample_values=sample_values,
-            depth=current_depth
+            depth=current_depth,
         )
 
     elif isinstance(data, dict):
@@ -130,17 +117,11 @@ def infer_json_schema(
 
         for key in keys:
             nested_schemas[key] = infer_json_schema(
-                data[key],
-                max_depth,
-                current_depth + 1,
-                sample_size
+                data[key], max_depth, current_depth + 1, sample_size
             )
 
         return JSONSchema(
-            type="object",
-            keys=keys,
-            nested_schemas=nested_schemas,
-            depth=current_depth
+            type="object", keys=keys, nested_schemas=nested_schemas, depth=current_depth
         )
 
     else:
@@ -164,7 +145,7 @@ def extract_json_schema(file_path: Path) -> dict[str, Any]:
         raise FileNotFoundError(f"JSON file not found: {file_path}")
 
     # Read and parse JSON
-    with open(file_path, encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         data = json.load(f)
 
     # Infer schema
@@ -184,13 +165,15 @@ def extract_json_schema(file_path: Path) -> dict[str, Any]:
         structure = f"Primitive: {type(data).__name__}"
 
     return {
-        'schema': schema,
-        'schema_text': schema_text,
-        'structure': structure,
-        'original_size_bytes': original_size,
-        'schema_size_bytes': schema_size,
-        'token_reduction_pct': ((original_size - schema_size) / original_size * 100) if original_size > 0 else 0.0,
-        'recommended_action': 'Use schema for LLM analysis instead of full JSON'
+        "schema": schema,
+        "schema_text": schema_text,
+        "structure": structure,
+        "original_size_bytes": original_size,
+        "schema_size_bytes": schema_size,
+        "token_reduction_pct": ((original_size - schema_size) / original_size * 100)
+        if original_size > 0
+        else 0.0,
+        "recommended_action": "Use schema for LLM analysis instead of full JSON",
     }
 
 
@@ -213,7 +196,7 @@ def analyze_json_file(file_path: Path) -> str:
         f"Token reduction: {result['token_reduction_pct']:.1f}%",
         "",
         "Schema:",
-        result['schema_text']
+        result["schema_text"],
     ]
 
     return "\n".join(lines)

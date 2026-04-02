@@ -183,12 +183,14 @@ def chat_sync(
     **kwargs,
 ) -> ChatResponse:
     """Synchronous wrapper for chat(). Model is required."""
-    return run_sync(chat(
-        prompt,
-        model=model,
-        system=system,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stream=False,
-        **kwargs,
-    ))
+    return run_sync(
+        chat(
+            prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+            **kwargs,
+        )
+    )

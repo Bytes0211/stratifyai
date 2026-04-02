@@ -63,7 +63,9 @@ def with_retry(
                     if attempt == config.max_retries:
                         # Try fallbacks if configured
                         if fallback_models or fallback_provider:
-                            logging.info(f"Attempting fallback after {attempt + 1} retries")
+                            logging.info(
+                                f"Attempting fallback after {attempt + 1} retries"
+                            )
                             return await _try_fallback_async(
                                 func,
                                 args,
@@ -76,14 +78,15 @@ def with_retry(
 
                     # Calculate delay with exponential backoff
                     delay = min(
-                        config.initial_delay * (config.exponential_base ** attempt),
-                        config.max_delay
+                        config.initial_delay * (config.exponential_base**attempt),
+                        config.max_delay,
                     )
 
                     # Add jitter if enabled
                     if config.jitter:
                         import random
-                        delay *= (0.5 + random.random())
+
+                        delay *= 0.5 + random.random()
 
                     logging.warning(
                         f"Retry attempt {attempt + 1}/{config.max_retries} "
@@ -95,6 +98,7 @@ def with_retry(
             raise last_exception
 
         return async_wrapper
+
     return decorator
 
 
@@ -129,10 +133,10 @@ async def _try_fallback_async(
             try:
                 logging.info(f"Trying fallback model: {model}")
                 # Update model in kwargs if present
-                if 'request' in kwargs and hasattr(kwargs['request'], 'model'):
-                    kwargs['request'].model = model
-                elif 'model' in kwargs:
-                    kwargs['model'] = model
+                if "request" in kwargs and hasattr(kwargs["request"], "model"):
+                    kwargs["request"].model = model
+                elif "model" in kwargs:
+                    kwargs["model"] = model
                 return await func(*args, **kwargs)
             except Exception as e:
                 logging.warning(f"Fallback model {model} failed: {str(e)}")
@@ -142,8 +146,8 @@ async def _try_fallback_async(
     if fallback_provider:
         try:
             logging.info(f"Trying fallback provider: {fallback_provider}")
-            if 'provider' in kwargs:
-                kwargs['provider'] = fallback_provider
+            if "provider" in kwargs:
+                kwargs["provider"] = fallback_provider
             return await func(*args, **kwargs)
         except Exception as e:
             logging.warning(f"Fallback provider {fallback_provider} failed: {str(e)}")
@@ -172,10 +176,11 @@ def exponential_backoff(
     Returns:
         Delay in seconds
     """
-    delay = min(initial_delay * (exponential_base ** attempt), max_delay)
+    delay = min(initial_delay * (exponential_base**attempt), max_delay)
 
     if jitter:
         import random
-        delay *= (0.5 + random.random())
+
+        delay *= 0.5 + random.random()
 
     return delay

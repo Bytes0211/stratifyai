@@ -180,8 +180,7 @@ class ProfileRegistry:
         if name not in self._profiles:
             available = sorted(self._profiles.keys())
             raise KeyError(
-                f"Profile '{name}' not found. "
-                f"Available profiles: {available}"
+                f"Profile '{name}' not found. Available profiles: {available}"
             )
         return self._profiles[name]
 
@@ -378,8 +377,7 @@ def _load_yaml_profiles(
         # Single-profile format: { name: ..., parameters: ... }
         if "name" not in data:
             raise ValueError(
-                f"Profile YAML {path.name} missing 'profiles' list "
-                f"or 'name' field."
+                f"Profile YAML {path.name} missing 'profiles' list or 'name' field."
             )
         raw_profiles = [data]
 

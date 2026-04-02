@@ -435,14 +435,14 @@ mypy llm_abstraction/ --strict 2>&1 | tail -1
 Success: no issues found in X source files
 ```
 
-### Check code formatting (if black installed)
+### Check code formatting (if ruff installed)
 ```bash
-black --check llm_abstraction/ tests/ 2>&1 | tail -1
+ruff format --check stratifyai/ cli/ api/ tests/ 2>&1 | tail -1
 ```
 
 **Expected Output:**
 ```
-All done! ✨ 🍰 ✨
+N files already formatted
 ```
 
 ### Run linting (if ruff installed)

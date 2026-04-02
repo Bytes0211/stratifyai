@@ -52,7 +52,9 @@ def validate_provider_models(
     return validator(model_ids, api_key)
 
 
-def _validate_openai(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_openai(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate OpenAI models using models.list() API."""
     result = _init_result()
     start_time = time.time()
@@ -88,7 +90,9 @@ def _validate_openai(model_ids: list[str], api_key: str | None = None) -> dict[s
     return result
 
 
-def _validate_anthropic(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_anthropic(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate Anthropic models using models.list() API."""
     result = _init_result()
     start_time = time.time()
@@ -118,7 +122,9 @@ def _validate_anthropic(model_ids: list[str], api_key: str | None = None) -> dic
             # Just verify key format
             if key.startswith("sk-ant-"):
                 result["valid_models"] = model_ids
-                result["error"] = "SDK too old - upgrade anthropic package for model validation"
+                result["error"] = (
+                    "SDK too old - upgrade anthropic package for model validation"
+                )
             else:
                 result["error"] = "Invalid API key format"
                 result["valid_models"] = model_ids
@@ -135,7 +141,9 @@ def _validate_anthropic(model_ids: list[str], api_key: str | None = None) -> dic
     return result
 
 
-def _validate_google(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_google(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate Google models using client.models.list()."""
     result = _init_result()
     start_time = time.time()
@@ -163,7 +171,9 @@ def _validate_google(model_ids: list[str], api_key: str | None = None) -> dict[s
 
         for model_id in model_ids:
             # Check exact match or prefix match
-            if model_id in available_ids or any(model_id in aid for aid in available_ids):
+            if model_id in available_ids or any(
+                model_id in aid for aid in available_ids
+            ):
                 result["valid_models"].append(model_id)
             else:
                 result["invalid_models"].append(model_id)
@@ -229,7 +239,9 @@ def _validate_openai_compatible(
     return result
 
 
-def _validate_deepseek(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_deepseek(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate DeepSeek models using OpenAI-compatible API."""
     return _validate_openai_compatible(
         model_ids,
@@ -261,7 +273,9 @@ def _validate_grok(model_ids: list[str], api_key: str | None = None) -> dict[str
     )
 
 
-def _validate_openrouter(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_openrouter(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate OpenRouter models using their models API."""
     result = _init_result()
     start_time = time.time()
@@ -308,7 +322,9 @@ def _validate_openrouter(model_ids: list[str], api_key: str | None = None) -> di
     return result
 
 
-def _validate_ollama(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_ollama(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate Ollama models using local API."""
     result = _init_result()
     start_time = time.time()
@@ -354,10 +370,13 @@ def _validate_ollama(model_ids: list[str], api_key: str | None = None) -> dict[s
     return result
 
 
-def _validate_bedrock(model_ids: list[str], api_key: str | None = None) -> dict[str, Any]:
+def _validate_bedrock(
+    model_ids: list[str], api_key: str | None = None
+) -> dict[str, Any]:
     """Validate Bedrock models using boto3."""
     # Import the existing bedrock validator
     from .bedrock_validator import validate_bedrock_models
+
     return validate_bedrock_models(model_ids)
 
 
@@ -371,7 +390,9 @@ def _init_result() -> dict[str, Any]:
     }
 
 
-def get_validated_interactive_models(provider: str, all_models: bool = False) -> dict[str, Any]:
+def get_validated_interactive_models(
+    provider: str, all_models: bool = False
+) -> dict[str, Any]:
     """
     Get validated models for a provider with metadata.
 

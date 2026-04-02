@@ -36,11 +36,11 @@ class TestChatBuilder:
         """Test with_model returns a new ChatBuilder instance."""
         builder = ChatBuilder(provider="openai")
         new_builder = builder.with_model("gpt-4.1")
-        
+
         # Original unchanged
         assert builder.model is None
         assert builder._model is None
-        
+
         # New builder has model set
         assert new_builder.model == "gpt-4.1"
         assert new_builder._model == "gpt-4.1"
@@ -49,7 +49,7 @@ class TestChatBuilder:
         """Test with_system returns a new ChatBuilder instance."""
         builder = ChatBuilder(provider="openai")
         new_builder = builder.with_system("You are helpful")
-        
+
         assert builder._system is None
         assert new_builder._system == "You are helpful"
 
@@ -57,7 +57,7 @@ class TestChatBuilder:
         """Test with_developer returns a new ChatBuilder instance."""
         builder = ChatBuilder(provider="openai")
         new_builder = builder.with_developer("Use markdown")
-        
+
         assert builder._developer is None
         assert new_builder._developer == "Use markdown"
 
@@ -68,7 +68,7 @@ class TestChatBuilder:
             default_temperature=0.7,
         )
         new_builder = builder.with_temperature(0.3)
-        
+
         assert builder.temperature == 0.7
         assert new_builder.temperature == 0.3
 
@@ -76,7 +76,7 @@ class TestChatBuilder:
         """Test with_max_tokens returns a new ChatBuilder instance."""
         builder = ChatBuilder(provider="openai")
         new_builder = builder.with_max_tokens(500)
-        
+
         assert builder.max_tokens is None
         assert new_builder.max_tokens == 500
 
@@ -84,7 +84,7 @@ class TestChatBuilder:
         """Test with_options returns a new ChatBuilder instance."""
         builder = ChatBuilder(provider="openai")
         new_builder = builder.with_options(top_p=0.9, frequency_penalty=0.5)
-        
+
         assert builder._extra_kwargs == {}
         assert new_builder._extra_kwargs == {"top_p": 0.9, "frequency_penalty": 0.5}
 
@@ -98,23 +98,22 @@ class TestChatBuilderChaining:
             provider="anthropic",
             default_temperature=0.7,
         )
-        
+
         configured = (
-            builder
-            .with_model("claude-opus-4-5")
+            builder.with_model("claude-opus-4-5")
             .with_system("You are a coding assistant")
             .with_developer("Use markdown formatting")
             .with_temperature(0.5)
             .with_max_tokens(1000)
         )
-        
+
         # Original unchanged
         assert builder.model is None
         assert builder._system is None
         assert builder._developer is None
         assert builder.temperature == 0.7
         assert builder.max_tokens is None
-        
+
         # Configured builder has all settings
         assert configured.model == "claude-opus-4-5"
         assert configured._system == "You are a coding assistant"
@@ -126,7 +125,7 @@ class TestChatBuilderChaining:
         """Test that chaining preserves the provider."""
         builder = ChatBuilder(provider="google")
         configured = builder.with_model("gemini-2.5-pro").with_temperature(0.3)
-        
+
         assert configured.provider == "google"
 
 
@@ -138,7 +137,7 @@ class TestChatBuilderSystemPrompt:
         builder = ChatBuilder(
             provider="openai",
         ).with_system("You are helpful")
-        
+
         assert builder._build_system_prompt() == "You are helpful"
 
     def test_build_system_prompt_developer_only(self):
@@ -146,15 +145,19 @@ class TestChatBuilderSystemPrompt:
         builder = ChatBuilder(
             provider="openai",
         ).with_developer("Use markdown")
-        
+
         assert builder._build_system_prompt() == "Use markdown"
 
     def test_build_system_prompt_both(self):
         """Test system prompt building with both developer and system."""
-        builder = ChatBuilder(
-            provider="openai",
-        ).with_system("You are helpful").with_developer("Use markdown")
-        
+        builder = (
+            ChatBuilder(
+                provider="openai",
+            )
+            .with_system("You are helpful")
+            .with_developer("Use markdown")
+        )
+
         expected = "Use markdown\n\nYou are helpful"
         assert builder._build_system_prompt() == expected
 
@@ -171,7 +174,7 @@ class TestChatBuilderMessages:
         """Test building messages from string prompt."""
         builder = ChatBuilder(provider="openai")
         messages = builder._build_messages("Hello!")
-        
+
         assert len(messages) == 1
         assert messages[0].role == "user"
         assert messages[0].content == "Hello!"
@@ -181,9 +184,9 @@ class TestChatBuilderMessages:
         builder = ChatBuilder(
             provider="openai",
         ).with_system("Be helpful")
-        
+
         messages = builder._build_messages("Hello!")
-        
+
         assert len(messages) == 2
         assert messages[0].role == "system"
         assert messages[0].content == "Be helpful"
@@ -198,9 +201,9 @@ class TestChatBuilderMessages:
             Message(role="assistant", content="Hi there!"),
             Message(role="user", content="How are you?"),
         ]
-        
+
         messages = builder._build_messages(input_messages)
-        
+
         assert len(messages) == 3
         assert messages[0].content == "Hello"
         assert messages[1].content == "Hi there!"
@@ -226,15 +229,15 @@ class TestChatBuilderAsyncChat:
             raw_response={},
         )
         mock_client.chat = AsyncMock(return_value=mock_response)
-        
+
         # Create builder with mock client factory - must use with_model
         builder = create_module_builder(
             provider="openai",
             client_factory=lambda: mock_client,
         ).with_model("gpt-4.1")
-        
+
         response = await builder.chat("Hello")
-        
+
         # Verify model was passed correctly
         call_args = mock_client.chat.call_args
         assert call_args[1]["model"] == "gpt-4.1"
@@ -254,15 +257,19 @@ class TestChatBuilderAsyncChat:
             raw_response={},
         )
         mock_client.chat = AsyncMock(return_value=mock_response)
-        
+
         # Must specify model
-        builder = create_module_builder(
-            provider="openai",
-            client_factory=lambda: mock_client,
-        ).with_model("gpt-4o-mini").with_temperature(0.3)
-        
+        builder = (
+            create_module_builder(
+                provider="openai",
+                client_factory=lambda: mock_client,
+            )
+            .with_model("gpt-4o-mini")
+            .with_temperature(0.3)
+        )
+
         response = await builder.chat("Hello")
-        
+
         call_args = mock_client.chat.call_args
         assert call_args[1]["temperature"] == 0.3
 
@@ -281,15 +288,15 @@ class TestChatBuilderAsyncChat:
             raw_response={},
         )
         mock_client.chat = AsyncMock(return_value=mock_response)
-        
+
         builder = create_module_builder(
             provider="openai",
             client_factory=lambda: mock_client,
         ).with_model("gpt-4.1")
-        
+
         # Override with different model
         response = await builder.chat("Hello", model="gpt-4.1-mini")
-        
+
         call_args = mock_client.chat.call_args
         assert call_args[1]["model"] == "gpt-4.1-mini"
 
@@ -297,12 +304,12 @@ class TestChatBuilderAsyncChat:
     async def test_chat_without_model_raises_error(self):
         """Test chat raises error when no model specified."""
         mock_client = MagicMock()
-        
+
         builder = create_module_builder(
             provider="openai",
             client_factory=lambda: mock_client,
         )
-        
+
         with pytest.raises(ValueError, match="Model is required"):
             await builder.chat("Hello")
 
@@ -317,7 +324,7 @@ class TestModuleLevelBuilder:
             default_temperature=0.8,
             default_max_tokens=2000,
         )
-        
+
         assert builder.provider == "anthropic"
         assert builder.model is None  # No default model
         assert builder.default_temperature == 0.8
@@ -327,12 +334,12 @@ class TestModuleLevelBuilder:
         """Test builder uses client factory when provided."""
         mock_client = MagicMock()
         factory = MagicMock(return_value=mock_client)
-        
+
         builder = create_module_builder(
             provider="openai",
             client_factory=factory,
         )
-        
+
         client = builder._get_client()
         factory.assert_called_once()
         assert client == mock_client
@@ -344,7 +351,7 @@ class TestProviderModuleBuilder:
     def test_openai_module_has_builder_methods(self):
         """Test openai module exposes builder methods."""
         from stratifyai.chat import stratifyai_openai as openai
-        
+
         assert hasattr(openai, "with_model")
         assert hasattr(openai, "with_system")
         assert hasattr(openai, "with_developer")
@@ -355,7 +362,7 @@ class TestProviderModuleBuilder:
     def test_anthropic_module_has_builder_methods(self):
         """Test anthropic module exposes builder methods."""
         from stratifyai.chat import stratifyai_anthropic as anthropic
-        
+
         assert hasattr(anthropic, "with_model")
         assert hasattr(anthropic, "with_system")
         assert hasattr(anthropic, "with_developer")
@@ -363,7 +370,7 @@ class TestProviderModuleBuilder:
     def test_openai_with_model_returns_builder(self):
         """Test openai.with_model returns ChatBuilder."""
         from stratifyai.chat import stratifyai_openai as openai
-        
+
         builder = openai.with_model("gpt-4.1")
         assert isinstance(builder, ChatBuilder)
         assert builder.model == "gpt-4.1"
@@ -371,7 +378,7 @@ class TestProviderModuleBuilder:
     def test_anthropic_with_system_returns_builder(self):
         """Test anthropic.with_system returns ChatBuilder."""
         from stratifyai.chat import stratifyai_anthropic as anthropic
-        
+
         builder = anthropic.with_system("Be helpful")
         assert isinstance(builder, ChatBuilder)
         assert builder._system == "Be helpful"
@@ -379,15 +386,14 @@ class TestProviderModuleBuilder:
     def test_builder_chaining_from_module(self):
         """Test builder chaining works from module."""
         from stratifyai.chat import stratifyai_openai as openai
-        
+
         builder = (
-            openai
-            .with_model("gpt-4.1")
+            openai.with_model("gpt-4.1")
             .with_system("You are helpful")
             .with_developer("Use markdown")
             .with_temperature(0.5)
         )
-        
+
         assert isinstance(builder, ChatBuilder)
         assert builder.model == "gpt-4.1"
         assert builder._system == "You are helpful"
@@ -401,7 +407,7 @@ class TestChatBuilderExport:
     def test_chatbuilder_exported_from_chat_package(self):
         """Test ChatBuilder is exported from stratifyai.chat."""
         from stratifyai.chat import ChatBuilder
-        
+
         builder = ChatBuilder(provider="openai")
         assert builder.provider == "openai"
         assert builder.model is None  # No default model

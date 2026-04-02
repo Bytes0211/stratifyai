@@ -9,6 +9,7 @@ from .token_counter import check_token_limit, estimate_tokens
 
 class FileType(Enum):
     """Supported file types for intelligent processing."""
+
     CSV = "csv"
     JSON = "json"
     LOG = "log"
@@ -24,6 +25,7 @@ class FileType(Enum):
 @dataclass
 class FileAnalysis:
     """Results of file analysis."""
+
     file_path: Path
     file_type: FileType
     file_size_bytes: int
@@ -72,7 +74,7 @@ def get_recommendation(
     file_type: FileType,
     estimated_tokens: int,
     context_window: int,
-    percentage_used: float
+    percentage_used: float,
 ) -> str:
     """
     Get processing recommendation based on file analysis.
@@ -102,7 +104,12 @@ def get_recommendation(
             return "⚠ Large JSON detected - use schema extraction (--extract-mode schema) for 95% token reduction"
         elif file_type == FileType.LOG:
             return "⚠ Large log file detected - use error extraction (--extract errors) for 90% token reduction"
-        elif file_type in [FileType.PYTHON, FileType.JAVASCRIPT, FileType.JAVA, FileType.GO]:
+        elif file_type in [
+            FileType.PYTHON,
+            FileType.JAVASCRIPT,
+            FileType.JAVA,
+            FileType.GO,
+        ]:
             return "⚠ Large code file detected - use code extraction (--extract summary) for 80% token reduction"
         elif estimated_tokens > context_window:
             return "✗ File exceeds model context - chunking required (--chunked)"
@@ -114,7 +121,7 @@ def analyze_file(
     file_path: Path,
     provider: str = "openai",
     model: str = "gpt-4o",
-    threshold: float = 0.8
+    threshold: float = 0.8,
 ) -> FileAnalysis:
     """
     Analyze a file and provide recommendations for processing.
@@ -151,14 +158,14 @@ def analyze_file(
     try:
         if file_size_bytes > MAX_READ_SIZE:
             # For very large files, estimate based on sample
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 sample = f.read(MAX_READ_SIZE)
             # Extrapolate token count
             sample_tokens = estimate_tokens(sample, provider, model)
             estimated_tokens = int(sample_tokens * (file_size_bytes / len(sample)))
             content_length = file_size_bytes  # Approximate
         else:
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
             content_length = len(content)
             estimated_tokens = estimate_tokens(content, provider, model)
@@ -187,5 +194,5 @@ def analyze_file(
         exceeds_threshold=exceeds_threshold,
         context_window=context_window,
         percentage_used=percentage_used,
-        recommendation=recommendation
+        recommendation=recommendation,
     )

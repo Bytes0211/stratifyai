@@ -192,7 +192,7 @@ This pipeline makes every request predictable, auditable, and portable.
 **Backend:** Python 3.10+, FastAPI, uv, Pydantic, provider SDKs  
 **Frontend:** Svelte 5, Vite, TypeScript, DOMPurify  
 **Infra:** WebSockets, slowapi, ChromaDB, tiktoken  
-**Testing:** pytest, ruff, black, mypy
+**Testing:** pytest, ruff (format + lint), mypy
 
 ---
 

@@ -543,7 +543,7 @@ stratifyai check-keys
 
 - ✅ Phase 10: CI/CD & Testing Infrastructure (100%)
   - Full PR/push CI workflow for tests
-  - Ruff, Mypy, and Black quality gates
+  - Ruff format/lint and Mypy quality gates
   - Integration tests lane with marker and secret gating
   - Coverage reporting with minimum threshold
   - Frontend build artifacts removed from source control and built in CI
@@ -635,7 +635,7 @@ aws sts get-caller-identity
 - Use type hints on all public functions and methods
 - Write Google-style docstrings for all public classes and methods
 - Keep functions focused and single-purpose
-- Black formatting (line length 88), Ruff linting, Mypy type checking
+- Ruff formatting/linting (line length 88) and Mypy type checking
 
 ### Git Practices
 - Never commit `.env` files or credentials
@@ -708,7 +708,7 @@ chore(deps): update openai SDK to 1.15.0
 - Cost reduction > 40% with cost-optimized routing
 
 ### Code Quality Standards
-- Black formatting compliance (line length 88)
+- Ruff formatting compliance (line length 88)
 - Ruff linting compliance (all rules enabled)
 - Mypy type checking passes with strict mode
 - Docstrings on all public classes and methods (Google style)

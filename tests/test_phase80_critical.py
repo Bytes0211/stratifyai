@@ -14,6 +14,7 @@ from stratifyai.utils.sync_helpers import run_sync
 @pytest.mark.asyncio
 async def test_retry_raises_max_retries_with_attempts_and_last_error():
     """MaxRetriesExceededError should preserve attempts and last_error."""
+
     @with_retry(config=RetryConfig(max_retries=1))
     async def fail():
         raise ProviderAPIError("boom", "openai")

@@ -5,7 +5,6 @@ providers and code paths (REST API, WebSocket, provider implementations).
 """
 
 
-
 def is_reasoning_model(
     provider: str,
     model: str,
@@ -50,23 +49,28 @@ def is_reasoning_model(
     # OpenAI reasoning models: o1, o3, o-series, gpt-5 (requires temp=1.0)
     if provider in ["openai", "deepseek", "openrouter"]:
         if (
-            model_lower.startswith("o1") or
-            model_lower.startswith("o3") or
-            model_lower.startswith("gpt-5") or
-            "reasoner" in model_lower or
-            "reasoning" in model_lower or
+            model_lower.startswith("o1")
+            or model_lower.startswith("o3")
+            or model_lower.startswith("gpt-5")
+            or "reasoner" in model_lower
+            or "reasoning" in model_lower
+            or
             # Catch future o-series models (o2, o4, etc.)
-            (model_lower.startswith("o") and len(model_lower) > 1 and model_lower[1].isdigit())
+            (
+                model_lower.startswith("o")
+                and len(model_lower) > 1
+                and model_lower[1].isdigit()
+            )
         ):
             return True
 
     # Grok reasoning models
     if provider == "grok":
         if (
-            "reasoning" in model_lower or
-            model_lower == "grok-4" or  # Flagship is reasoning
-            model_lower.startswith("grok-3-mini") or  # Mini variants are reasoning
-            model_lower.startswith("grok-code")  # Code models are reasoning
+            "reasoning" in model_lower
+            or model_lower == "grok-4"  # Flagship is reasoning
+            or model_lower.startswith("grok-3-mini")  # Mini variants are reasoning
+            or model_lower.startswith("grok-code")  # Code models are reasoning
         ):
             return True
 
@@ -109,4 +113,8 @@ def get_temperature_for_model(
     if is_reasoning_model(provider, model, model_catalog):
         return 1.0
 
-    return requested_temperature if requested_temperature is not None else default_temperature
+    return (
+        requested_temperature
+        if requested_temperature is not None
+        else default_temperature
+    )

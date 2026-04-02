@@ -1953,7 +1953,7 @@ def interactive(
 
 **Provider:** {provider}
 **Model:** {model}
-**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Timestamp:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **Tokens:** {last_response.usage.total_tokens:,} (In: {last_response.usage.prompt_tokens:,}, Out: {last_response.usage.completion_tokens:,})
 **Cost:** ${last_response.usage.cost_usd:.6f}
 
@@ -2568,7 +2568,7 @@ def analyze(
 def cache_stats(
     detailed: bool = typer.Option(
         False, "--detailed", "-d", help="Show detailed cache entry information"
-    )
+    ),
 ):
     """Display cache statistics with cost savings analytics."""
 
@@ -2669,7 +2669,7 @@ def cache_stats(
 
 @app.command(name="cache-clear")
 def cache_clear(
-    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt")
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
 ):
     """Clear all cache entries."""
 

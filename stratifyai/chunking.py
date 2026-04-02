@@ -7,7 +7,7 @@ def chunk_content(
     content: str,
     chunk_size: int = 50000,
     overlap: int = 500,
-    preserve_boundaries: bool = True
+    preserve_boundaries: bool = True,
 ) -> list[str]:
     """
     Split content into chunks at natural boundaries.
@@ -41,7 +41,7 @@ def chunk_content(
 
     if preserve_boundaries:
         # Split at paragraph boundaries first
-        paragraphs = re.split(r'\n\s*\n', content)
+        paragraphs = re.split(r"\n\s*\n", content)
 
         current_chunk = ""
         for paragraph in paragraphs:
@@ -99,7 +99,7 @@ def _split_large_paragraph(paragraph: str, chunk_size: int, overlap: int) -> lis
         List of paragraph chunks
     """
     # Split at sentence boundaries
-    sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+    sentences = re.split(r"(?<=[.!?])\s+", paragraph)
 
     chunks = []
     current_chunk = ""

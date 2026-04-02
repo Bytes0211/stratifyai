@@ -13,6 +13,7 @@ from typing import Any
 @dataclass
 class FunctionInfo:
     """Information about a function."""
+
     name: str
     line_number: int
     params: list[str]
@@ -25,6 +26,7 @@ class FunctionInfo:
 @dataclass
 class ClassInfo:
     """Information about a class."""
+
     name: str
     line_number: int
     bases: list[str]
@@ -36,6 +38,7 @@ class ClassInfo:
 @dataclass
 class CodeStructure:
     """Complete code structure information."""
+
     file_path: str
     language: str
     imports: list[str]
@@ -71,13 +74,17 @@ class CodeStructure:
         if self.functions:
             lines.append(f"\nFunctions ({len(self.functions)}):")
             for func in self.functions:
-                decorators = f"@{', @'.join(func.decorators)} " if func.decorators else ""
+                decorators = (
+                    f"@{', @'.join(func.decorators)} " if func.decorators else ""
+                )
                 async_prefix = "async " if func.is_async else ""
                 params = ", ".join(func.params)
                 returns = f" -> {func.returns}" if func.returns else ""
-                lines.append(f"  [Line {func.line_number}] {decorators}{async_prefix}def {func.name}({params}){returns}")
+                lines.append(
+                    f"  [Line {func.line_number}] {decorators}{async_prefix}def {func.name}({params}){returns}"
+                )
                 if func.docstring:
-                    lines.append(f"      \"{func.docstring[:100]}\"")
+                    lines.append(f'      "{func.docstring[:100]}"')
 
         # Classes
         if self.classes:
@@ -85,9 +92,11 @@ class CodeStructure:
             for cls in self.classes:
                 decorators = f"@{', @'.join(cls.decorators)} " if cls.decorators else ""
                 bases = f"({', '.join(cls.bases)})" if cls.bases else ""
-                lines.append(f"  [Line {cls.line_number}] {decorators}class {cls.name}{bases}:")
+                lines.append(
+                    f"  [Line {cls.line_number}] {decorators}class {cls.name}{bases}:"
+                )
                 if cls.docstring:
-                    lines.append(f"      \"{cls.docstring[:100]}\"")
+                    lines.append(f'      "{cls.docstring[:100]}"')
                 if cls.methods:
                     lines.append(f"      Methods ({len(cls.methods)}):")
                     for method in cls.methods[:10]:  # Show first 10 methods
@@ -161,7 +170,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Extract docstring
         docstring = ast.get_docstring(node)
         if docstring:
-            docstring = docstring.split('\n')[0]  # First line only
+            docstring = docstring.split("\n")[0]  # First line only
 
         # Extract decorators
         decorators = []
@@ -178,7 +187,7 @@ class PythonASTVisitor(ast.NodeVisitor):
             returns=returns,
             docstring=docstring,
             decorators=decorators,
-            is_async=is_async
+            is_async=is_async,
         )
 
         # Add to appropriate list
@@ -204,7 +213,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         # Extract docstring
         docstring = ast.get_docstring(node)
         if docstring:
-            docstring = docstring.split('\n')[0]  # First line only
+            docstring = docstring.split("\n")[0]  # First line only
 
         # Extract decorators
         decorators = []
@@ -220,7 +229,7 @@ class PythonASTVisitor(ast.NodeVisitor):
             bases=bases,
             methods=[],
             docstring=docstring,
-            decorators=decorators
+            decorators=decorators,
         )
 
         self.classes.append(class_info)
@@ -249,7 +258,7 @@ def extract_python_structure(file_path: Path) -> CodeStructure:
         raise FileNotFoundError(f"Python file not found: {file_path}")
 
     # Read file
-    with open(file_path, encoding='utf-8') as f:
+    with open(file_path, encoding="utf-8") as f:
         source_code = f.read()
 
     # Parse AST
@@ -261,14 +270,14 @@ def extract_python_structure(file_path: Path) -> CodeStructure:
     # Extract module docstring
     docstring = ast.get_docstring(tree)
     if docstring:
-        docstring = docstring.split('\n')[0]  # First line only
+        docstring = docstring.split("\n")[0]  # First line only
 
     # Visit AST
     visitor = PythonASTVisitor()
     visitor.visit(tree)
 
     # Count lines
-    total_lines = source_code.count('\n') + 1
+    total_lines = source_code.count("\n") + 1
 
     return CodeStructure(
         file_path=str(file_path),
@@ -277,7 +286,7 @@ def extract_python_structure(file_path: Path) -> CodeStructure:
         functions=visitor.functions,
         classes=visitor.classes,
         total_lines=total_lines,
-        docstring=docstring
+        docstring=docstring,
     )
 
 
@@ -293,7 +302,7 @@ def analyze_code_file(file_path: Path) -> dict[str, Any]:
     # Detect language from extension
     extension = file_path.suffix.lower()
 
-    if extension == '.py':
+    if extension == ".py":
         structure = extract_python_structure(file_path)
         structure_text = structure.to_text()
 
@@ -302,26 +311,30 @@ def analyze_code_file(file_path: Path) -> dict[str, Any]:
         structure_size = len(structure_text)
 
         return {
-            'structure': structure,
-            'structure_text': structure_text,
-            'original_size_bytes': original_size,
-            'structure_size_bytes': structure_size,
-            'token_reduction_pct': ((original_size - structure_size) / original_size * 100) if original_size > 0 else 0.0,
-            'recommended_action': 'Use structure for LLM analysis instead of full code'
+            "structure": structure,
+            "structure_text": structure_text,
+            "original_size_bytes": original_size,
+            "structure_size_bytes": structure_size,
+            "token_reduction_pct": (
+                (original_size - structure_size) / original_size * 100
+            )
+            if original_size > 0
+            else 0.0,
+            "recommended_action": "Use structure for LLM analysis instead of full code",
         }
     else:
         # For non-Python files, return basic info
         original_size = file_path.stat().st_size
-        with open(file_path, encoding='utf-8', errors='ignore') as f:
+        with open(file_path, encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
 
         structure_text = f"Code File: {file_path}\nLanguage: {extension[1:] if extension else 'unknown'}\nTotal Lines: {len(lines)}\n\nNote: AST extraction only available for Python files."
 
         return {
-            'structure': None,
-            'structure_text': structure_text,
-            'original_size_bytes': original_size,
-            'structure_size_bytes': len(structure_text),
-            'token_reduction_pct': 0.0,
-            'recommended_action': 'Full file analysis required (non-Python)'
+            "structure": None,
+            "structure_text": structure_text,
+            "original_size_bytes": original_size,
+            "structure_size_bytes": len(structure_text),
+            "token_reduction_pct": 0.0,
+            "recommended_action": "Full file analysis required (non-Python)",
         }

@@ -14,15 +14,17 @@ from .file_analyzer import FileType
 
 class ExtractionMode(Enum):
     """Types of extraction tasks."""
-    SCHEMA = "schema"          # CSV/JSON schema extraction
-    ERRORS = "errors"          # Log file error extraction
-    SUMMARY = "summary"        # General summarization
-    STRUCTURE = "structure"    # Code structure extraction
+
+    SCHEMA = "schema"  # CSV/JSON schema extraction
+    ERRORS = "errors"  # Log file error extraction
+    SUMMARY = "summary"  # General summarization
+    STRUCTURE = "structure"  # Code structure extraction
 
 
 @dataclass
 class ModelRecommendation:
     """Model recommendation with reasoning."""
+
     provider: str
     model: str
     reasoning: str
@@ -37,7 +39,11 @@ class ModelSelector:
         """Initialize model selector with provider preferences."""
         # Quality-focused models for schema extraction (ordered by preference)
         self.schema_extraction_models = [
-            ("anthropic", "claude-3-5-sonnet-20241022", "Best structured output quality"),
+            (
+                "anthropic",
+                "claude-3-5-sonnet-20241022",
+                "Best structured output quality",
+            ),
             ("openai", "gpt-4.5-turbo-20250205", "Excellent for data analysis"),
             ("anthropic", "claude-sonnet-4-5-20250929", "High quality, latest model"),
             ("google", "gemini-2.5-pro", "Strong structured reasoning"),
@@ -120,10 +126,10 @@ class ModelSelector:
         if not available_candidates:
             # Fallback to any available provider
             all_models = (
-                self.schema_extraction_models +
-                self.error_extraction_models +
-                self.code_extraction_models +
-                self.summary_models
+                self.schema_extraction_models
+                + self.error_extraction_models
+                + self.code_extraction_models
+                + self.summary_models
             )
             available_candidates = [
                 (provider, model, reason)
@@ -184,10 +190,7 @@ class ModelSelector:
             candidates = self.summary_models
 
         # Filter and select
-        available = [
-            (p, m, r) for p, m, r in candidates
-            if p not in excluded
-        ]
+        available = [(p, m, r) for p, m, r in candidates if p not in excluded]
 
         if not available:
             raise ValueError("No available models after filtering")
@@ -202,7 +205,9 @@ class ModelSelector:
             estimated_cost_per_1m=self._get_estimated_cost(provider, model),
         )
 
-    def _infer_extraction_mode(self, file_type: FileType, file_path: Path) -> ExtractionMode:
+    def _infer_extraction_mode(
+        self, file_type: FileType, file_path: Path
+    ) -> ExtractionMode:
         """Infer extraction mode from file type and name.
 
         Args:
@@ -219,12 +224,17 @@ class ModelSelector:
             return ExtractionMode.SCHEMA
         elif file_type == FileType.LOG:
             return ExtractionMode.ERRORS
-        elif file_type in [FileType.PYTHON, FileType.JAVASCRIPT, FileType.JAVA, FileType.GO]:
+        elif file_type in [
+            FileType.PYTHON,
+            FileType.JAVASCRIPT,
+            FileType.JAVA,
+            FileType.GO,
+        ]:
             return ExtractionMode.STRUCTURE
         else:
             # Check filename for hints
             filename_lower = file_path.name.lower()
-            if 'log' in filename_lower or 'error' in filename_lower:
+            if "log" in filename_lower or "error" in filename_lower:
                 return ExtractionMode.ERRORS
             else:
                 return ExtractionMode.SUMMARY
@@ -244,26 +254,21 @@ class ModelSelector:
             "gpt-4.1-mini": 0.82,
             "o1-mini": 0.88,
             "o1": 0.96,
-
             # Anthropic
             "claude-sonnet-4-5-20250929": 0.94,
             "claude-3-5-sonnet-20241022": 0.92,
             "claude-haiku-4-5": 0.82,
-
             # Google
             "gemini-2.5-pro": 0.91,
             "gemini-2.5-flash": 0.85,
             "gemini-2.5-flash-lite": 0.78,
-
             # DeepSeek
             "deepseek-chat": 0.85,
             "deepseek-reasoner": 0.90,
-
             # Groq
             "llama-3.1-70b-versatile": 0.83,
             "llama-3.1-8b-instant": 0.75,
             "mixtral-8x7b-32768": 0.80,
-
             # Grok
             "grok-beta": 0.87,
         }
@@ -319,5 +324,7 @@ def select_model_for_file(
         >>> print(f"Selected {provider}/{model}: {reason}")
     """
     selector = ModelSelector()
-    recommendation = selector.select_for_file(file_path, extraction_mode, excluded_providers)
+    recommendation = selector.select_for_file(
+        file_path, extraction_mode, excluded_providers
+    )
     return recommendation.provider, recommendation.model, recommendation.reasoning

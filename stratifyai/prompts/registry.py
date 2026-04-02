@@ -68,9 +68,7 @@ class PromptRegistry:
                 self._templates[template.name] = template
                 count += 1
             except Exception as exc:
-                logger.warning(
-                    "Failed to load template %s: %s", yaml_path.name, exc
-                )
+                logger.warning("Failed to load template %s: %s", yaml_path.name, exc)
         return count
 
     def register(self, template: PromptTemplate) -> None:
@@ -95,8 +93,7 @@ class PromptRegistry:
         if name not in self._templates:
             available = sorted(self._templates.keys())
             raise KeyError(
-                f"Template '{name}' not found. "
-                f"Available templates: {available}"
+                f"Template '{name}' not found. Available templates: {available}"
             )
         return self._templates[name]
 
@@ -198,8 +195,7 @@ def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
     for required_field in ("name", "system", "user"):
         if required_field not in data:
             raise ValueError(
-                f"Template {path.name} missing required field: "
-                f"'{required_field}'"
+                f"Template {path.name} missing required field: '{required_field}'"
             )
 
     parameters = []

@@ -34,6 +34,7 @@ class IndexingResult:
         total_tokens: Total tokens processed for embeddings
         embedding_cost: Cost of embedding generation
     """
+
     collection_name: str
     num_chunks: int
     num_files: int
@@ -52,6 +53,7 @@ class RAGResponse:
         total_cost: Total cost (embeddings + generation)
         num_chunks_retrieved: Number of chunks retrieved
     """
+
     content: str
     sources: list[dict[str, Any]]
     model: str
@@ -72,7 +74,7 @@ class RAGClient:
         self,
         embedding_provider: EmbeddingProvider | None = None,
         llm_client: LLMClient | None = None,
-        persist_directory: str | None = None
+        persist_directory: str | None = None,
     ):
         """Initialize RAG client.
 
@@ -88,8 +90,7 @@ class RAGClient:
 
         # Initialize vector database
         self.vectordb = VectorDBClient(
-            embedding_provider=embedding_provider,
-            persist_directory=persist_directory
+            embedding_provider=embedding_provider, persist_directory=persist_directory
         )
 
         # Initialize LLM client
@@ -102,7 +103,7 @@ class RAGClient:
         file_path: str,
         collection_name: str,
         chunk_size: int = 1000,
-        overlap: int = 200
+        overlap: int = 200,
     ) -> IndexingResult:
         """Index a single file into the vector database.
 
@@ -124,10 +125,7 @@ class RAGClient:
 
         # Chunk content
         chunks = chunk_content(
-            content,
-            chunk_size=chunk_size,
-            overlap=overlap,
-            preserve_boundaries=True
+            content, chunk_size=chunk_size, overlap=overlap, preserve_boundaries=True
         )
 
         # Create metadata for each chunk
@@ -136,16 +134,14 @@ class RAGClient:
                 "file": str(path.absolute()),
                 "filename": path.name,
                 "chunk_idx": i,
-                "total_chunks": len(chunks)
+                "total_chunks": len(chunks),
             }
             for i in range(len(chunks))
         ]
 
         # Add to vector database (this generates embeddings automatically)
         await self.vectordb.add_documents(
-            collection_name=collection_name,
-            documents=chunks,
-            metadatas=metadatas
+            collection_name=collection_name, documents=chunks, metadatas=metadatas
         )
 
         # Get embedding stats (estimate)
@@ -157,7 +153,7 @@ class RAGClient:
             num_chunks=len(chunks),
             num_files=1,
             total_tokens=chunk_metadata["total_chars"] // 4,  # Rough estimate
-            embedding_cost=0.0  # Would need to track from vectordb
+            embedding_cost=0.0,  # Would need to track from vectordb
         )
 
     async def index_directory(
@@ -166,7 +162,7 @@ class RAGClient:
         collection_name: str,
         file_patterns: list[str] | None = None,
         chunk_size: int = 1000,
-        overlap: int = 200
+        overlap: int = 200,
     ) -> IndexingResult:
         """Index all files in a directory.
 
@@ -208,7 +204,7 @@ class RAGClient:
                     file_path=str(file_path),
                     collection_name=collection_name,
                     chunk_size=chunk_size,
-                    overlap=overlap
+                    overlap=overlap,
                 )
                 total_chunks += result.num_chunks
                 total_tokens += result.total_tokens
@@ -221,7 +217,7 @@ class RAGClient:
             num_chunks=total_chunks,
             num_files=len(files),
             total_tokens=total_tokens,
-            embedding_cost=0.0
+            embedding_cost=0.0,
         )
 
     async def query(
@@ -231,7 +227,7 @@ class RAGClient:
         provider: str = "openai",
         model: str = "gpt-4o-mini",
         n_results: int = 5,
-        include_sources: bool = True
+        include_sources: bool = True,
     ) -> RAGResponse:
         """Query the RAG system.
 
@@ -248,9 +244,7 @@ class RAGClient:
         """
         # Retrieve relevant chunks
         search_results = await self.vectordb.query(
-            collection_name=collection_name,
-            query_text=query,
-            n_results=n_results
+            collection_name=collection_name, query_text=query, n_results=n_results
         )
 
         if not search_results:
@@ -264,13 +258,16 @@ class RAGClient:
         sources = []
 
         for i, result in enumerate(search_results):
-            context_parts.append(f"[Source {i+1}]\n{result.document}")
-            sources.append({
-                "index": i + 1,
-                "file": result.metadata.get("filename", "unknown"),
-                "chunk_idx": result.metadata.get("chunk_idx", 0),
-                "similarity": 1.0 - result.distance  # Convert distance to similarity
-            })
+            context_parts.append(f"[Source {i + 1}]\n{result.document}")
+            sources.append(
+                {
+                    "index": i + 1,
+                    "file": result.metadata.get("filename", "unknown"),
+                    "chunk_idx": result.metadata.get("chunk_idx", 0),
+                    "similarity": 1.0
+                    - result.distance,  # Convert distance to similarity
+                }
+            )
 
         context = "\n\n".join(context_parts)
 
@@ -290,7 +287,7 @@ Answer:"""
         request = ChatRequest(
             model=model,
             messages=messages,
-            temperature=0.3  # Lower temperature for more factual responses
+            temperature=0.3,  # Lower temperature for more factual responses
         )
 
         # Create client with specified provider for this request
@@ -305,7 +302,7 @@ Answer:"""
             sources=sources if include_sources else [],
             model=response.model,
             total_cost=total_cost,
-            num_chunks_retrieved=len(search_results)
+            num_chunks_retrieved=len(search_results),
         )
 
     def list_collections(self) -> list[str]:
@@ -337,8 +334,7 @@ Answer:"""
 
         # Get sample documents to extract file info
         sample_docs = self.vectordb.get_documents(
-            collection_name=collection_name,
-            limit=100
+            collection_name=collection_name, limit=100
         )
 
         # Extract unique files
@@ -351,14 +347,11 @@ Answer:"""
             "name": collection_name,
             "num_chunks": count,
             "num_files": len(files),
-            "sample_files": list(files)[:10]  # Show up to 10 files
+            "sample_files": list(files)[:10],  # Show up to 10 files
         }
 
     async def retrieve_only(
-        self,
-        collection_name: str,
-        query: str,
-        n_results: int = 5
+        self, collection_name: str, query: str, n_results: int = 5
     ) -> list[SearchResult]:
         """Retrieve relevant chunks without generating a response.
 
@@ -373,7 +366,5 @@ Answer:"""
             List of SearchResult objects
         """
         return await self.vectordb.query(
-            collection_name=collection_name,
-            query_text=query,
-            n_results=n_results
+            collection_name=collection_name, query_text=query, n_results=n_results
         )

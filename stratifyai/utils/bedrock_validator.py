@@ -9,6 +9,7 @@ from typing import Any
 try:
     import boto3
     from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
+
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -53,14 +54,13 @@ def validate_bedrock_models(
         region = region_name or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
         # Create bedrock client (not bedrock-runtime - we need list_foundation_models)
-        bedrock_client = boto3.client(
-            service_name="bedrock",
-            region_name=region
-        )
+        bedrock_client = boto3.client(service_name="bedrock", region_name=region)
 
         # Get available foundation models
         response = bedrock_client.list_foundation_models()
-        available_model_ids = {model["modelId"] for model in response.get("modelSummaries", [])}
+        available_model_ids = {
+            model["modelId"] for model in response.get("modelSummaries", [])
+        }
 
         # Check each requested model
         for model_id in model_ids:

@@ -8,11 +8,7 @@ from .openai_compatible import OpenAICompatibleProvider
 class OpenRouterProvider(OpenAICompatibleProvider):
     """OpenRouter provider using OpenAI-compatible API."""
 
-    def __init__(
-        self,
-        api_key: str | None = None,
-        config: dict = None
-    ):
+    def __init__(self, api_key: str | None = None, config: dict = None):
         """
         Initialize OpenRouter provider.
 

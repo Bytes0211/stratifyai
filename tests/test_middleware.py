@@ -17,7 +17,9 @@ def _make_response(**overrides) -> ChatResponse:
         model="gpt-4.1-mini",
         content="Hello!",
         finish_reason="stop",
-        usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15, cost_usd=0.001),
+        usage=Usage(
+            prompt_tokens=10, completion_tokens=5, total_tokens=15, cost_usd=0.001
+        ),
         provider="openai",
         created_at=datetime.now(),
         raw_response={},

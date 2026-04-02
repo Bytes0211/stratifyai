@@ -3,16 +3,19 @@
 
 class LLMAbstractionError(Exception):
     """Base exception for all LLM abstraction errors."""
+
     pass
 
 
 class ProviderError(LLMAbstractionError):
     """Base exception for provider-specific errors."""
+
     pass
 
 
 class InvalidProviderError(ProviderError):
     """Raised when an invalid provider is specified."""
+
     pass
 
 
@@ -30,7 +33,9 @@ class AuthenticationError(ProviderError):
 
     def __init__(self, provider: str, message: str = None):
         self.provider = provider
-        super().__init__(message or f"Authentication failed for {provider}. Check API key.")
+        super().__init__(
+            message or f"Authentication failed for {provider}. Check API key."
+        )
 
 
 class InsufficientBalanceError(ProviderError):
@@ -38,7 +43,9 @@ class InsufficientBalanceError(ProviderError):
 
     def __init__(self, provider: str):
         self.provider = provider
-        super().__init__(f"Insufficient balance in {provider} account. Please add credits.")
+        super().__init__(
+            f"Insufficient balance in {provider} account. Please add credits."
+        )
 
 
 class RateLimitError(ProviderError):
@@ -88,4 +95,5 @@ class MaxRetriesExceededError(LLMAbstractionError):
 
 class ValidationError(LLMAbstractionError):
     """Raised when input validation fails."""
+
     pass

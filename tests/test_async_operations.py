@@ -83,7 +83,9 @@ class TestAsyncChatCompletion:
             await asyncio.sleep(0.01)
             call_order.append(len(call_order) + 1)
             mock_resp = MagicMock()
-            mock_resp.model_dump.return_value = create_mock_response(f"Response {len(call_order)}")
+            mock_resp.model_dump.return_value = create_mock_response(
+                f"Response {len(call_order)}"
+            )
             return mock_resp
 
         mock_client.chat.completions.create = AsyncMock(side_effect=delayed_response)
@@ -161,19 +163,37 @@ class TestStreamingAsyncIterator:
 
         # Create mock streaming chunks
         chunks_data = [
-            {"id": "test", "model": "gpt-4.1-mini", "created": 1234567890,
-             "choices": [{"delta": {"content": "Hello"}, "finish_reason": None}]},
-            {"id": "test", "model": "gpt-4.1-mini", "created": 1234567890,
-             "choices": [{"delta": {"content": " World"}, "finish_reason": None}]},
-            {"id": "test", "model": "gpt-4.1-mini", "created": 1234567890,
-             "choices": [{"delta": {"content": "!"}, "finish_reason": "stop"}]},
+            {
+                "id": "test",
+                "model": "gpt-4.1-mini",
+                "created": 1234567890,
+                "choices": [{"delta": {"content": "Hello"}, "finish_reason": None}],
+            },
+            {
+                "id": "test",
+                "model": "gpt-4.1-mini",
+                "created": 1234567890,
+                "choices": [{"delta": {"content": " World"}, "finish_reason": None}],
+            },
+            {
+                "id": "test",
+                "model": "gpt-4.1-mini",
+                "created": 1234567890,
+                "choices": [{"delta": {"content": "!"}, "finish_reason": "stop"}],
+            },
         ]
 
         mock_chunks = []
         for data in chunks_data:
             chunk = MagicMock()
             chunk.model_dump.return_value = data
-            chunk.choices = [MagicMock(delta=MagicMock(content=data["choices"][0]["delta"].get("content", "")))]
+            chunk.choices = [
+                MagicMock(
+                    delta=MagicMock(
+                        content=data["choices"][0]["delta"].get("content", "")
+                    )
+                )
+            ]
             mock_chunks.append(chunk)
 
         async def async_chunk_iter():
@@ -211,7 +231,9 @@ class TestStreamingAsyncIterator:
 
         mock_chunk = MagicMock()
         mock_chunk.model_dump.return_value = {
-            "id": "test", "model": "gpt-4.1-mini", "created": 1234567890,
+            "id": "test",
+            "model": "gpt-4.1-mini",
+            "created": 1234567890,
             "choices": [{"delta": {"content": "Streamed"}, "finish_reason": "stop"}],
         }
         mock_chunk.choices = [MagicMock(delta=MagicMock(content="Streamed"))]
@@ -380,7 +402,9 @@ class TestAsyncCacheDecorator:
         async def mock_call(**kwargs):
             nonlocal call_count
             call_count += 1
-            return create_chat_response(content=f"Response for temp={kwargs['temperature']}")
+            return create_chat_response(
+                content=f"Response for temp={kwargs['temperature']}"
+            )
 
         # Different temperatures should result in cache misses
         await mock_call(
@@ -414,12 +438,21 @@ class TestAsyncCacheDecorator:
 
         # Should be awaitable
         import inspect
+
         assert inspect.iscoroutinefunction(async_fn)
 
         # Should work with asyncio.gather
         results = await asyncio.gather(
-            async_fn(model="gpt-4.1-mini", messages=[Message(role="user", content="A")], temperature=0.1),
-            async_fn(model="gpt-4.1-mini", messages=[Message(role="user", content="B")], temperature=0.2),
+            async_fn(
+                model="gpt-4.1-mini",
+                messages=[Message(role="user", content="A")],
+                temperature=0.1,
+            ),
+            async_fn(
+                model="gpt-4.1-mini",
+                messages=[Message(role="user", content="B")],
+                temperature=0.2,
+            ),
         )
         assert len(results) == 2
 

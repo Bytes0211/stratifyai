@@ -629,7 +629,7 @@ not importable from the top-level package.
 #### 8.3.4 — Clean up `requirements.txt` (ARCH-5)
 
 **File:** `requirements.txt`  
-**Problem:** 153 pinned packages including dev tools (black, mypy, ruff, pytest, twine).
+**Problem:** 153 pinned packages including dev tools (mypy, ruff, pytest, twine).
 Fragile and confusing for users.
 
 **Fix:**
@@ -887,7 +887,7 @@ Externalized model catalog to community-editable JSON with automated validation:
 - Type hints on all functions
 - Docstrings (Google style)
 - Test coverage > 80%
-- Black formatting (line 88)
+- Ruff formatting (line 88)
 
 ### Commit Convention
 Format: `type(scope): brief description`

@@ -8,11 +8,7 @@ from .openai_compatible import OpenAICompatibleProvider
 class GroqProvider(OpenAICompatibleProvider):
     """Groq provider using OpenAI-compatible API."""
 
-    def __init__(
-        self,
-        api_key: str | None = None,
-        config: dict = None
-    ):
+    def __init__(self, api_key: str | None = None, config: dict = None):
         """
         Initialize Groq provider.
 

@@ -11,6 +11,7 @@ from .utils.file_analyzer import FileType
 
 class RoutingStrategy(str, Enum):
     """Routing strategy types."""
+
     COST = "cost"
     QUALITY = "quality"
     LATENCY = "latency"
@@ -20,6 +21,7 @@ class RoutingStrategy(str, Enum):
 @dataclass
 class ModelMetadata:
     """Metadata for a specific model."""
+
     provider: str
     model: str
     quality_score: float  # 0.0 - 1.0
@@ -88,10 +90,14 @@ class Router:
                 self.model_metadata[key] = ModelMetadata(
                     provider=provider,
                     model=model_name,
-                    quality_score=model_info.get("quality_score", self._DEFAULT_QUALITY_SCORE),
+                    quality_score=model_info.get(
+                        "quality_score", self._DEFAULT_QUALITY_SCORE
+                    ),
                     cost_per_1m_input=model_info.get("cost_input", 0.0),
                     cost_per_1m_output=model_info.get("cost_output", 0.0),
-                    avg_latency_ms=model_info.get("avg_latency_ms", self._DEFAULT_AVG_LATENCY_MS),
+                    avg_latency_ms=model_info.get(
+                        "avg_latency_ms", self._DEFAULT_AVG_LATENCY_MS
+                    ),
                     context_window=model_info.get("context", 8192),
                     capabilities=capabilities,
                     reasoning_model=model_info.get("reasoning_model", False),
@@ -172,15 +178,24 @@ class Router:
 
         # 1. Check for reasoning keywords (40% weight)
         reasoning_keywords = [
-            r'\banalyze\b', r'\bexplain\b', r'\breasoning\b', r'\bproof\b',
-            r'\bstep by step\b', r'\bcomplex\b', r'\bcalculate\b',
-            r'\bderive\b', r'\bsolve\b', r'\bprove\b', r'\bthink\b',
-            r'\bcompare\b', r'\bevaluate\b', r'\bdetailed\b',
+            r"\banalyze\b",
+            r"\bexplain\b",
+            r"\breasoning\b",
+            r"\bproof\b",
+            r"\bstep by step\b",
+            r"\bcomplex\b",
+            r"\bcalculate\b",
+            r"\bderive\b",
+            r"\bsolve\b",
+            r"\bprove\b",
+            r"\bthink\b",
+            r"\bcompare\b",
+            r"\bevaluate\b",
+            r"\bdetailed\b",
         ]
 
         reasoning_matches = sum(
-            1 for pattern in reasoning_keywords
-            if re.search(pattern, text.lower())
+            1 for pattern in reasoning_keywords if re.search(pattern, text.lower())
         )
         complexity_score += min(reasoning_matches / len(reasoning_keywords), 1.0) * 0.4
 
@@ -192,13 +207,18 @@ class Router:
 
         # 3. Check for code/technical content (20% weight)
         code_indicators = [
-            r'```', r'function\s+\w+', r'class\s+\w+', r'def\s+\w+',
-            r'import\s+\w+', r'\/\/.*', r'\/\*.*\*\/', r'\bcode\b',
+            r"```",
+            r"function\s+\w+",
+            r"class\s+\w+",
+            r"def\s+\w+",
+            r"import\s+\w+",
+            r"\/\/.*",
+            r"\/\*.*\*\/",
+            r"\bcode\b",
         ]
 
         code_matches = sum(
-            1 for pattern in code_indicators
-            if re.search(pattern, text, re.IGNORECASE)
+            1 for pattern in code_indicators if re.search(pattern, text, re.IGNORECASE)
         )
         complexity_score += min(code_matches / len(code_indicators), 1.0) * 0.2
 
@@ -210,13 +230,16 @@ class Router:
 
         # 5. Mathematical content (10% weight)
         math_indicators = [
-            r'\d+\s*[+\-*/]\s*\d+', r'\bequation\b', r'\bformula\b',
-            r'\bcalculus\b', r'\balgebra\b', r'\bintegral\b',
+            r"\d+\s*[+\-*/]\s*\d+",
+            r"\bequation\b",
+            r"\bformula\b",
+            r"\bcalculus\b",
+            r"\balgebra\b",
+            r"\bintegral\b",
         ]
 
         math_matches = sum(
-            1 for pattern in math_indicators
-            if re.search(pattern, text, re.IGNORECASE)
+            1 for pattern in math_indicators if re.search(pattern, text, re.IGNORECASE)
         )
         complexity_score += min(math_matches / len(math_indicators), 1.0) * 0.1
 
@@ -240,7 +263,9 @@ class Router:
 
             # Check cost constraint
             if max_cost_per_1k:
-                avg_cost_per_1k = (meta.cost_per_1m_input + meta.cost_per_1m_output) / 1000
+                avg_cost_per_1k = (
+                    meta.cost_per_1m_input + meta.cost_per_1m_output
+                ) / 1000
                 if avg_cost_per_1k > max_cost_per_1k:
                     continue
 
@@ -267,6 +292,7 @@ class Router:
 
     def _select_by_cost(self, candidates: dict[str, ModelMetadata]) -> str:
         """Select cheapest model."""
+
         def cost_score(meta: ModelMetadata) -> float:
             # Average cost per 1M tokens (input + output weighted equally)
             return (meta.cost_per_1m_input + meta.cost_per_1m_output) / 2
@@ -274,15 +300,14 @@ class Router:
         return min(candidates.keys(), key=lambda k: cost_score(candidates[k]))
 
     def _select_by_quality(
-        self,
-        candidates: dict[str, ModelMetadata],
-        complexity: float
+        self, candidates: dict[str, ModelMetadata], complexity: float
     ) -> str:
         """
         Select highest quality model.
 
         For high complexity tasks, prioritize models with reasoning capabilities.
         """
+
         def quality_score(meta: ModelMetadata) -> float:
             base_score = meta.quality_score
 
@@ -299,9 +324,7 @@ class Router:
         return min(candidates.keys(), key=lambda k: candidates[k].avg_latency_ms)
 
     def _select_hybrid(
-        self,
-        candidates: dict[str, ModelMetadata],
-        complexity: float
+        self, candidates: dict[str, ModelMetadata], complexity: float
     ) -> str:
         """
         Hybrid selection balancing cost, quality, and latency.
@@ -314,7 +337,7 @@ class Router:
 
         # Adjust weights based on complexity
         quality_weight = 0.1 + (complexity * 0.5)  # 0.1 to 0.6
-        cost_weight = 0.6 - (complexity * 0.3)     # 0.6 to 0.3
+        cost_weight = 0.6 - (complexity * 0.3)  # 0.6 to 0.3
         latency_weight = 0.3 - (complexity * 0.2)  # 0.3 to 0.1
 
         for key, meta in candidates.items():
@@ -332,9 +355,9 @@ class Router:
 
             # Calculate weighted score
             scores[key] = (
-                quality_weight * quality_score +
-                cost_weight * cost_score +
-                latency_weight * latency_score
+                quality_weight * quality_score
+                + cost_weight * cost_score
+                + latency_weight * latency_score
             )
 
         return max(scores, key=scores.get)
@@ -383,7 +406,9 @@ class Router:
         for key, meta in self.model_metadata.items():
             # Apply cost constraint if specified
             if max_cost_per_1k_tokens:
-                avg_cost_per_1k = (meta.cost_per_1m_input + meta.cost_per_1m_output) / 1000
+                avg_cost_per_1k = (
+                    meta.cost_per_1m_input + meta.cost_per_1m_output
+                ) / 1000
                 if avg_cost_per_1k > max_cost_per_1k_tokens:
                     continue
 
@@ -410,10 +435,7 @@ class Router:
             cost_score = max(0, 1 - (avg_cost_per_1k / 0.050))
 
             # Calculate weighted score (no latency for extraction)
-            scores[key] = (
-                quality_weight * quality_score +
-                cost_weight * cost_score
-            )
+            scores[key] = quality_weight * quality_score + cost_weight * cost_score
 
         # Select highest scoring model
         best_key = max(scores, key=scores.get)
@@ -467,8 +489,7 @@ class Router:
         # Exclude specified models
         if exclude_models:
             candidates = {
-                k: v for k, v in candidates.items()
-                if v.model not in exclude_models
+                k: v for k, v in candidates.items() if v.model not in exclude_models
             }
 
         if not candidates:
@@ -531,9 +552,9 @@ class Router:
                 latency_score = max(0, 1 - (meta.avg_latency_ms / 10000))
 
                 scores[key] = (
-                    quality_weight * quality_score +
-                    cost_weight * cost_score +
-                    latency_weight * latency_score
+                    quality_weight * quality_score
+                    + cost_weight * cost_score
+                    + latency_weight * latency_score
                 )
 
         return scores

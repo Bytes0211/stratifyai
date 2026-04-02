@@ -49,11 +49,7 @@ class APIKeyHelper:
     }
 
     @classmethod
-    def get_api_key(
-        cls,
-        provider: str,
-        api_key: str | None = None
-    ) -> str | None:
+    def get_api_key(cls, provider: str, api_key: str | None = None) -> str | None:
         """
         Get API key for a provider from parameter or environment.
 
@@ -80,9 +76,7 @@ class APIKeyHelper:
 
     @classmethod
     def validate_api_key(
-        cls,
-        provider: str,
-        api_key: str | None = None
+        cls, provider: str, api_key: str | None = None
     ) -> tuple[bool, str | None]:
         """
         Validate that an API key is available for a provider.
@@ -188,33 +182,34 @@ class APIKeyHelper:
 
             lines.append(f"  [{status}] {friendly_name} ({env_key})")
 
-        lines.extend([
-            "",
-            "Setup Instructions:",
-            "  1. Copy .env.example to .env: cp .env.example .env",
-            "  2. Add your API keys to .env file",
-            "  3. Test with: python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 'Hello'",
-            "",
-            "Get API Keys:",
-        ])
+        lines.extend(
+            [
+                "",
+                "Setup Instructions:",
+                "  1. Copy .env.example to .env: cp .env.example .env",
+                "  2. Add your API keys to .env file",
+                "  3. Test with: python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 'Hello'",
+                "",
+                "Get API Keys:",
+            ]
+        )
 
         for provider in sorted(cls.PROVIDER_SIGNUP_URLS.keys()):
             friendly_name = cls.PROVIDER_FRIENDLY_NAMES.get(provider, provider)
             url = cls.PROVIDER_SIGNUP_URLS.get(provider)
             lines.append(f"  • {friendly_name}: {url}")
 
-        lines.extend([
-            "",
-            "Note: You only need keys for providers you plan to use.",
-        ])
+        lines.extend(
+            [
+                "",
+                "Note: You only need keys for providers you plan to use.",
+            ]
+        )
 
         return "\n".join(lines)
 
     @classmethod
-    def suggest_alternative_providers(
-        cls,
-        original_provider: str
-    ) -> str | None:
+    def suggest_alternative_providers(cls, original_provider: str) -> str | None:
         """
         Suggest alternative providers that have API keys configured.
 
@@ -228,16 +223,14 @@ class APIKeyHelper:
 
         # Find available alternatives
         alternatives = [
-            p for p in available.keys()
-            if available[p] and p != original_provider
+            p for p in available.keys() if available[p] and p != original_provider
         ]
 
         if not alternatives:
             return None
 
         friendly_alternatives = [
-            cls.PROVIDER_FRIENDLY_NAMES.get(p, p)
-            for p in alternatives
+            cls.PROVIDER_FRIENDLY_NAMES.get(p, p) for p in alternatives
         ]
 
         suggestion = [
@@ -281,6 +274,7 @@ class APIKeyHelper:
 
 # Convenience functions for common use cases
 
+
 def get_api_key_or_error(provider: str, api_key: str | None = None) -> str:
     """
     Get API key for a provider or raise helpful error.
@@ -321,14 +315,20 @@ def print_setup_instructions() -> None:
     total_count = len(available)
 
     # API Key Status Table
-    status_table = Table(show_header=True, header_style="bold magenta", title="API Key Status")
+    status_table = Table(
+        show_header=True, header_style="bold magenta", title="API Key Status"
+    )
     status_table.add_column("Provider", style="cyan")
     status_table.add_column("Status", justify="center")
     status_table.add_column("Environment Variable", style="dim")
 
     for provider in sorted(available.keys()):
         is_available = available[provider]
-        status = "[green]✓ Configured[/green]" if is_available else "[yellow]⚠ Missing[/yellow]"
+        status = (
+            "[green]✓ Configured[/green]"
+            if is_available
+            else "[yellow]⚠ Missing[/yellow]"
+        )
         friendly_name = APIKeyHelper.PROVIDER_FRIENDLY_NAMES.get(provider, provider)
         env_key = APIKeyHelper.PROVIDER_ENV_KEYS.get(provider, "N/A")
 
@@ -342,7 +342,9 @@ def print_setup_instructions() -> None:
     elif configured_count == total_count:
         console.print(f"\n[green]✓ All {total_count} providers configured![/green]")
     else:
-        console.print(f"\n[cyan]{configured_count}/{total_count} providers configured[/cyan]")
+        console.print(
+            f"\n[cyan]{configured_count}/{total_count} providers configured[/cyan]"
+        )
 
     # Provider signup URLs table
     console.print("\n[bold magenta]Available Providers[/bold magenta]")
@@ -359,7 +361,9 @@ def print_setup_instructions() -> None:
     console.print(providers_table)
 
     # Help tip
-    console.print("\n[dim]💡 Tip: You only need to configure providers you plan to use[/dim]")
+    console.print(
+        "\n[dim]💡 Tip: You only need to configure providers you plan to use[/dim]"
+    )
 
 
 def check_provider_available(provider: str) -> bool:

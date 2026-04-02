@@ -163,7 +163,7 @@ The project claims 300+ tests across 19 test files. The test structure covers:
 
 ## Project Health & DevOps
 
-**Tooling:** The project uses a modern Python stack — `uv` for package management, `ruff` for linting, `black` for formatting, `mypy` for type checking, and `pytest` for testing. All configured in `pyproject.toml`.
+**Tooling:** The project uses a modern Python stack — `uv` for package management, `ruff` for formatting/linting, `mypy` for type checking, and `pytest` for testing. All configured in `pyproject.toml`.
 
 **Packaging:** Proper `setup.py` + `pyproject.toml` with optional dependency groups (`dev`, `cli`, `web`, `rag`, `all`). The `stratifyai` CLI entrypoint is registered. A `py.typed` marker is included for PEP 561 compliance.
 

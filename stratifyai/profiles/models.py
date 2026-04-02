@@ -64,13 +64,11 @@ class ProfileParameter:
                 )
             if self.min_value is not None and value < self.min_value:
                 raise ValueError(
-                    f"Parameter '{self.name}' must be >= {self.min_value}, "
-                    f"got: {value}"
+                    f"Parameter '{self.name}' must be >= {self.min_value}, got: {value}"
                 )
             if self.max_value is not None and value > self.max_value:
                 raise ValueError(
-                    f"Parameter '{self.name}' must be <= {self.max_value}, "
-                    f"got: {value}"
+                    f"Parameter '{self.name}' must be <= {self.max_value}, got: {value}"
                 )
 
         elif self.type == "integer":

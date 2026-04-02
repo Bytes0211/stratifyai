@@ -35,7 +35,7 @@
 - [ ] Run full test suite: `pytest`
 - [ ] Check test coverage: `pytest --cov`
 - [ ] Run linter: `ruff check .`
-- [ ] Run formatter: `black --check .`
+- [ ] Run formatter: `ruff format --check .`
 - [ ] Run type checker: `mypy llm_abstraction/`
 - [ ] Fix any warnings/errors
 

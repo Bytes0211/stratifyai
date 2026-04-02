@@ -14,6 +14,7 @@ import pandas as pd
 @dataclass
 class ColumnSchema:
     """Schema information for a single column."""
+
     name: str
     dtype: str
     null_count: int
@@ -26,6 +27,7 @@ class ColumnSchema:
 @dataclass
 class CSVSchema:
     """Complete schema information for a CSV file."""
+
     file_path: str
     row_count: int
     column_count: int
@@ -43,7 +45,7 @@ class CSVSchema:
             f"Dimensions: {self.row_count:,} rows × {self.column_count} columns",
             f"Memory: {self.memory_usage_mb:.2f} MB",
             "",
-            "Column Schema:"
+            "Column Schema:",
         ]
 
         for col in self.columns:
@@ -56,7 +58,9 @@ class CSVSchema:
             if col.numeric_stats:
                 stats = col.numeric_stats
                 lines.append(f"    - Range: {stats['min']:.2f} to {stats['max']:.2f}")
-                lines.append(f"    - Mean: {stats['mean']:.2f}, Median: {stats['median']:.2f}")
+                lines.append(
+                    f"    - Mean: {stats['mean']:.2f}, Median: {stats['median']:.2f}"
+                )
                 lines.append(f"    - Std: {stats['std']:.2f}")
 
             # Sample values
@@ -67,9 +71,7 @@ class CSVSchema:
 
 
 def extract_csv_schema(
-    file_path: Path,
-    sample_size: int = 5,
-    max_rows: int | None = None
+    file_path: Path, sample_size: int = 5, max_rows: int | None = None
 ) -> CSVSchema:
     """Extract schema information from a CSV file.
 
@@ -109,8 +111,7 @@ def extract_csv_schema(
         non_null_values = col_data.dropna()
         if len(non_null_values) > 0:
             sample_values = non_null_values.sample(
-                min(sample_size, len(non_null_values)),
-                random_state=42
+                min(sample_size, len(non_null_values)), random_state=42
             ).tolist()
         else:
             sample_values = []
@@ -120,25 +121,27 @@ def extract_csv_schema(
         if pd.api.types.is_numeric_dtype(col_data):
             try:
                 numeric_stats = {
-                    'min': float(col_data.min()),
-                    'max': float(col_data.max()),
-                    'mean': float(col_data.mean()),
-                    'median': float(col_data.median()),
-                    'std': float(col_data.std())
+                    "min": float(col_data.min()),
+                    "max": float(col_data.max()),
+                    "mean": float(col_data.mean()),
+                    "median": float(col_data.median()),
+                    "std": float(col_data.std()),
                 }
             except (ValueError, TypeError):
                 # Handle edge cases (e.g., all NaN)
                 pass
 
-        columns.append(ColumnSchema(
-            name=col_name,
-            dtype=str(col_data.dtype),
-            null_count=int(null_count),
-            null_percentage=float(null_pct),
-            unique_count=int(unique_count),
-            sample_values=sample_values,
-            numeric_stats=numeric_stats
-        ))
+        columns.append(
+            ColumnSchema(
+                name=col_name,
+                dtype=str(col_data.dtype),
+                null_count=int(null_count),
+                null_percentage=float(null_pct),
+                unique_count=int(unique_count),
+                sample_values=sample_values,
+                numeric_stats=numeric_stats,
+            )
+        )
 
     # Memory usage
     memory_bytes = df.memory_usage(deep=True).sum()
@@ -149,7 +152,7 @@ def extract_csv_schema(
         row_count=len(df),
         column_count=len(df.columns),
         columns=columns,
-        memory_usage_mb=memory_mb
+        memory_usage_mb=memory_mb,
     )
 
 
@@ -189,10 +192,10 @@ def analyze_csv_file(file_path: Path) -> dict[str, Any]:
     reduction = estimate_token_reduction(original_size, schema_size)
 
     return {
-        'schema': schema,
-        'schema_text': schema_text,
-        'original_size_bytes': original_size,
-        'schema_size_bytes': schema_size,
-        'token_reduction_pct': reduction,
-        'recommended_action': 'Use schema for LLM analysis instead of full CSV'
+        "schema": schema,
+        "schema_text": schema_text,
+        "original_size_bytes": original_size,
+        "schema_size_bytes": schema_size,
+        "token_reduction_pct": reduction,
+        "recommended_action": "Use schema for LLM analysis instead of full CSV",
     }

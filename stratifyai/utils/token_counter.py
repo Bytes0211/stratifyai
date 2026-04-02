@@ -1,12 +1,13 @@
 """Token counting utilities for estimating LLM token usage."""
 
-
 import tiktoken
 
 from ..models import Message
 
 
-def estimate_tokens(text: str, provider: str = "openai", model: str | None = None) -> int:
+def estimate_tokens(
+    text: str, provider: str = "openai", model: str | None = None
+) -> int:
     """
     Estimate the number of tokens in a text string.
 
@@ -79,7 +80,9 @@ def estimate_tokens(text: str, provider: str = "openai", model: str | None = Non
     return int(len(text) / 4)
 
 
-def count_tokens_for_messages(messages: list[Message], provider: str = "openai", model: str | None = None) -> int:
+def count_tokens_for_messages(
+    messages: list[Message], provider: str = "openai", model: str | None = None
+) -> int:
     """
     Count tokens for a list of messages, including formatting overhead.
 
@@ -152,7 +155,9 @@ def get_context_window(provider: str, model: str) -> int:
     return model_info.get("context", 128000)  # Default to 128k
 
 
-def check_token_limit(token_count: int, provider: str, model: str, threshold: float = 0.8) -> tuple[bool, int, float]:
+def check_token_limit(
+    token_count: int, provider: str, model: str, threshold: float = 0.8
+) -> tuple[bool, int, float]:
     """
     Check if token count is approaching the model's context limit.
 
@@ -175,6 +180,7 @@ def check_token_limit(token_count: int, provider: str, model: str, threshold: fl
 
     # Check for API-imposed input limits (e.g., Claude Opus 4.5)
     from ..config import MODEL_CATALOG
+
     model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
     api_max_input = model_info.get("api_max_input")
     if api_max_input and api_max_input < context_window:

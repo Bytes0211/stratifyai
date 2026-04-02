@@ -24,6 +24,7 @@ class EmbeddingResult:
         total_tokens: Total tokens processed
         cost: Cost of the embedding request in USD
     """
+
     embeddings: list[list[float]]
     model: str
     total_tokens: int
@@ -39,9 +40,7 @@ class EmbeddingProvider(ABC):
 
     @abstractmethod
     async def generate_embeddings(
-        self,
-        texts: list[str],
-        model: str | None = None
+        self, texts: list[str], model: str | None = None
     ) -> EmbeddingResult:
         """Generate embeddings for a list of texts.
 
@@ -71,9 +70,7 @@ class EmbeddingProvider(ABC):
         pass
 
     def generate_embeddings_sync(
-        self,
-        texts: list[str],
-        model: str | None = None
+        self, texts: list[str], model: str | None = None
     ) -> EmbeddingResult:
         """Synchronous wrapper for generate_embeddings."""
         return run_sync(self.generate_embeddings(texts, model))
@@ -124,9 +121,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         self.client = AsyncOpenAI(api_key=self.api_key)
 
     async def generate_embeddings(
-        self,
-        texts: list[str],
-        model: str | None = None
+        self, texts: list[str], model: str | None = None
     ) -> EmbeddingResult:
         """Generate embeddings for a list of texts using OpenAI.
 
@@ -150,19 +145,11 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             )
 
         if not texts:
-            return EmbeddingResult(
-                embeddings=[],
-                model=model,
-                total_tokens=0,
-                cost=0.0
-            )
+            return EmbeddingResult(embeddings=[], model=model, total_tokens=0, cost=0.0)
 
         try:
             # Call OpenAI API
-            response = await self.client.embeddings.create(
-                input=texts,
-                model=model
-            )
+            response = await self.client.embeddings.create(input=texts, model=model)
 
             # Extract embeddings
             embeddings = [data.embedding for data in response.data]
@@ -172,10 +159,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             cost = total_tokens * self.EMBEDDING_COSTS[model]
 
             return EmbeddingResult(
-                embeddings=embeddings,
-                model=model,
-                total_tokens=total_tokens,
-                cost=cost
+                embeddings=embeddings, model=model, total_tokens=total_tokens, cost=cost
             )
 
         except Exception as e:
@@ -185,7 +169,9 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             else:
                 raise ProviderAPIError(f"OpenAI embedding request failed: {error_msg}")
 
-    async def generate_embedding(self, text: str, model: str | None = None) -> list[float]:
+    async def generate_embedding(
+        self, text: str, model: str | None = None
+    ) -> list[float]:
         """Generate embedding for a single text string.
 
         Convenience method for single text embedding.
@@ -221,8 +207,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
 
 def create_embedding_provider(
-    provider: str = "openai",
-    api_key: str | None = None
+    provider: str = "openai", api_key: str | None = None
 ) -> EmbeddingProvider:
     """Factory function to create embedding providers.
 
@@ -240,6 +225,5 @@ def create_embedding_provider(
         return OpenAIEmbeddingProvider(api_key=api_key)
     else:
         raise ValueError(
-            f"Unknown embedding provider: {provider}. "
-            f"Currently supported: openai"
+            f"Unknown embedding provider: {provider}. Currently supported: openai"
         )

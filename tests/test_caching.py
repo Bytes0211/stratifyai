@@ -147,20 +147,20 @@ class TestResponseCache:
         )
 
         cache.set("test-key", response)
-        
+
         # Should be cached immediately
         assert cache.get("test-key") is not None
-        
+
         # Wait for expiration
         time.sleep(1.1)
-        
+
         # Should be expired
         assert cache.get("test-key") is None
 
     def test_cache_max_size(self):
         """Test cache max size eviction."""
         cache = ResponseCache(max_size=2)
-        
+
         for i in range(3):
             response = ChatResponse(
                 id=f"test-{i}",
@@ -195,12 +195,12 @@ class TestResponseCache:
         )
 
         cache.set("test-key", response)
-        
+
         # Access multiple times
         cache.get("test-key")
         cache.get("test-key")
         cache.get("test-key")
-        
+
         stats = cache.get_stats()
         assert stats["total_hits"] == 3
 
@@ -220,7 +220,7 @@ class TestResponseCache:
 
         cache.set("test-key", response)
         assert cache.get("test-key") is not None
-        
+
         cache.clear()
         assert cache.get("test-key") is None
         assert cache.get_stats()["size"] == 0
@@ -229,7 +229,7 @@ class TestResponseCache:
         """Test cache statistics."""
         cache = ResponseCache(ttl=3600, max_size=1000)
         stats = cache.get_stats()
-        
+
         assert stats["size"] == 0
         assert stats["max_size"] == 1000
         assert stats["ttl"] == 3600
@@ -394,9 +394,7 @@ class TestCacheCostCalculation:
 
         # Test cache cost calculation
         cache_cost = provider._calculate_cache_cost(
-            cache_creation_tokens=1000,
-            cache_read_tokens=500,
-            model="gpt-4.1-mini"
+            cache_creation_tokens=1000, cache_read_tokens=500, model="gpt-4.1-mini"
         )
 
         # gpt-4.1-mini: cache_write=0.1875, cache_read=0.015 per 1M tokens

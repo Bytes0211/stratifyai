@@ -124,7 +124,6 @@ python -c "from stratifyai import count_tokens, estimate_tokens, ModelSelector, 
   pytest-asyncio>=0.23.0
   pytest-cov>=4.0.0
   pytest-mock>=3.0.0
-  black>=23.0.0
   ruff>=0.1.0
   mypy>=1.0.0
   chromadb>=0.5.0
@@ -135,7 +134,7 @@ python -c "from stratifyai import count_tokens, estimate_tokens, ModelSelector, 
 - [ ] Update `docs/GETTING-STARTED.md` with separate install commands
 - [ ] Verify `pyproject.toml` `[project.optional-dependencies]` stays canonical
 
-**Why:** The current `requirements.txt` is a full `pip freeze` dump with 153 pinned packages including transitive dependencies, dev tools (black, mypy, ruff, pytest), and publishing tools (twine, wheel). This is fragile for users and confusing.
+**Why:** The current `requirements.txt` is a full `pip freeze` dump with 153 pinned packages including transitive dependencies, dev tools (mypy, ruff, pytest), and publishing tools (twine, wheel). This is fragile for users and confusing.
 
 **Validation:**
 ```bash

@@ -12,7 +12,7 @@
 
 - Completed: Phases 1 through 7.11 (core platform, router, CLI, web API, Svelte SPA, extraction, RAG, caching, async-first architecture).
 - Completed: Phase 9.1 prompt template system (registry, templates, CLI/API integration).
-- Completed: Phase 10 CI/CD and testing infrastructure (pytest, Ruff, Mypy, Black checks, coverage gate, integration test lane).
+- Completed: Phase 10 CI/CD and testing infrastructure (pytest, Ruff format/lint, Mypy checks, coverage gate, integration test lane).
 - In progress: Phase 11 error handling and validation hardening.
 
 ---

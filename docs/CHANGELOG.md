@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Abstract base classes for provider abstraction
 - Dataclasses for data models
 - Google-style docstrings
-- Black formatting, Ruff linting, Mypy type checking
+- Ruff formatting/linting and Mypy type checking
 - pytest with async support (pytest-asyncio)
 
 ## [0.0.1] - 2025-12-01

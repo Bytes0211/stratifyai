@@ -11,13 +11,17 @@ from stratifyai.caching import PersistentResponseCache
 from stratifyai.models import ChatResponse, Usage
 
 
-def _make_response(content: str = "Hello!", model: str = "gpt-4.1-mini") -> ChatResponse:
+def _make_response(
+    content: str = "Hello!", model: str = "gpt-4.1-mini"
+) -> ChatResponse:
     return ChatResponse(
         id="test-1",
         model=model,
         content=content,
         finish_reason="stop",
-        usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15, cost_usd=0.001),
+        usage=Usage(
+            prompt_tokens=10, completion_tokens=5, total_tokens=15, cost_usd=0.001
+        ),
         provider="openai",
         created_at=datetime.now(),
         raw_response={"debug": True},

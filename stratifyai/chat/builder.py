@@ -53,6 +53,7 @@ class ChatBuilder:
         _max_tokens: Configured max tokens (None = use default)
         _client_factory: Factory function to create LLMClient
     """
+
     provider: str
     default_temperature: float = 0.7
     default_max_tokens: int | None = None
@@ -222,10 +223,7 @@ class ChatBuilder:
             updates["_template_user"] = user_content
 
         # Apply recommended temperature if none is set
-        if (
-            template.recommended_temperature is not None
-            and self._temperature is None
-        ):
+        if template.recommended_temperature is not None and self._temperature is None:
             updates["_temperature"] = template.recommended_temperature
 
         return self._clone(**updates)
@@ -238,17 +236,26 @@ class ChatBuilder:
     @property
     def temperature(self) -> float:
         """Get the effective temperature (configured or default)."""
-        return self._temperature if self._temperature is not None else self.default_temperature
+        return (
+            self._temperature
+            if self._temperature is not None
+            else self.default_temperature
+        )
 
     @property
     def max_tokens(self) -> int | None:
         """Get the effective max_tokens (configured or default)."""
-        return self._max_tokens if self._max_tokens is not None else self.default_max_tokens
+        return (
+            self._max_tokens
+            if self._max_tokens is not None
+            else self.default_max_tokens
+        )
 
     def _get_client(self) -> LLMClient:
         """Get or create the LLM client."""
         if self._client_factory is None:
             from stratifyai import LLMClient
+
             return LLMClient(provider=self.provider)
         return self._client_factory()
 
@@ -288,6 +295,7 @@ class ChatBuilder:
             system_prompt = self._build_system_prompt()
             if system_prompt and (not messages or messages[0].role != "system"):
                 from stratifyai.models import Message
+
                 messages.insert(0, Message(role="system", content=system_prompt))
             return messages
 
@@ -407,15 +415,17 @@ class ChatBuilder:
         Returns:
             ChatResponse object.
         """
-        return run_sync(self.chat(
-            prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            **kwargs,
-        ))
+        return run_sync(
+            self.chat(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                **kwargs,
+            )
+        )
 
 
 def create_module_builder(

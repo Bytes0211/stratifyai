@@ -73,4 +73,3 @@ async def test_real_provider_chat_completion() -> None:
             "All configured providers returned API errors (infrastructure, not code):\n"
             + "\n".join(skipped)
         )
-

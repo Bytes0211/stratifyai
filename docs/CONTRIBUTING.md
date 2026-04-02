@@ -185,7 +185,7 @@ pytest tests/test_specific.py -v
 
 ```bash
 # Format code
-black .
+ruff format .
 
 # Lint code
 ruff check .
@@ -213,7 +213,7 @@ Then create a Pull Request on GitHub.
 ### Python Style
 
 - **PEP 8 Compliance**: Follow PEP 8 guidelines
-- **Line Length**: 88 characters (Black default)
+- **Line Length**: 88 characters (formatter default)
 - **Type Hints**: Required on all functions and methods
 - **Docstrings**: Required on all public classes and methods (Google style)
 
@@ -393,7 +393,7 @@ Co-Authored-By: Warp <agent@warp.dev>
 ### Before Submitting
 
 1. ✅ Tests pass: `pytest`
-2. ✅ Code is formatted: `black .`
+2. ✅ Code is formatted: `ruff format .`
 3. ✅ Linting passes: `ruff check .`
 4. ✅ Type checking passes: `mypy stratifyai`
 5. ✅ Documentation is updated
@@ -422,7 +422,7 @@ Brief description of changes
 
 ## Checklist
 - [ ] Tests pass
-- [ ] Code is formatted (black)
+- [ ] Code is formatted (ruff format)
 - [ ] Linting passes (ruff)
 - [ ] Type checking passes (mypy)
 - [ ] Documentation updated

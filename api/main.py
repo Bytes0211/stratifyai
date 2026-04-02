@@ -549,9 +549,9 @@ async def chat_completion(
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
                 # Combine with existing user message
-                messages[-1].content = (
-                    f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
-                )
+                messages[
+                    -1
+                ].content = f"{messages[-1].content}\n\n[File: {safe_file_name}]\n\n{file_content_to_use}"
             else:
                 # Create new user message with file content
                 messages.append(
@@ -929,9 +929,9 @@ async def chat_stream(websocket: WebSocket):
 
             # Append file content to last user message or create new message
             if messages and messages[-1].role == "user":
-                messages[-1].content = (
-                    f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
-                )
+                messages[
+                    -1
+                ].content = f"{messages[-1].content}\n\n[File: {file_name}]\n\n{file_content_to_use}"
             else:
                 messages.append(
                     Message(

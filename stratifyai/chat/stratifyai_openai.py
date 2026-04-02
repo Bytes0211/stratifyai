@@ -183,15 +183,17 @@ def chat_sync(
     **kwargs,
 ) -> ChatResponse:
     """Synchronous wrapper for chat(). Model is required."""
-    return run_sync(chat(
-        prompt,
-        model=model,
-        system=system,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stream=False,
-        **kwargs,
-    ))
+    return run_sync(
+        chat(
+            prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=False,
+            **kwargs,
+        )
+    )
 
 
 if __name__ == "__main__":
@@ -199,11 +201,15 @@ if __name__ == "__main__":
     print("OpenAI Chat Module")
     print("\nSending test prompt...\n")
 
-    response = chat_sync("Hello! Please respond with a brief greeting.", model="gpt-4.1-mini")
+    response = chat_sync(
+        "Hello! Please respond with a brief greeting.", model="gpt-4.1-mini"
+    )
 
     print(f"Response: {response.content}")
     print(f"\nModel: {response.model}")
-    print(f"Tokens: {response.usage.total_tokens} (prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens})")
+    print(
+        f"Tokens: {response.usage.total_tokens} (prompt: {response.usage.prompt_tokens}, completion: {response.usage.completion_tokens})"
+    )
     print(f"Cost: ${response.usage.cost_usd:.6f}")
     if response.latency_ms:
         print(f"Latency: {response.latency_ms:.0f}ms")

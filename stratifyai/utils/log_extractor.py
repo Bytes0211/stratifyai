@@ -14,6 +14,7 @@ from typing import Any
 @dataclass
 class LogEntry:
     """A single log entry."""
+
     timestamp: str | None
     level: str  # ERROR, WARN, INFO, DEBUG, etc.
     message: str
@@ -23,6 +24,7 @@ class LogEntry:
 @dataclass
 class LogSummary:
     """Summary of log file analysis."""
+
     file_path: str
     total_lines: int
     errors: list[LogEntry]
@@ -45,18 +47,24 @@ class LogSummary:
         ]
 
         if self.timestamp_range:
-            lines.append(f"Time Range: {self.timestamp_range[0]} to {self.timestamp_range[1]}")
+            lines.append(
+                f"Time Range: {self.timestamp_range[0]} to {self.timestamp_range[1]}"
+            )
 
         # Error patterns
         if self.error_patterns:
             lines.append("\nTop Error Patterns:")
-            for pattern, count in sorted(self.error_patterns.items(), key=lambda x: -x[1])[:10]:
+            for pattern, count in sorted(
+                self.error_patterns.items(), key=lambda x: -x[1]
+            )[:10]:
                 lines.append(f"  [{count}×] {pattern}")
 
         # Warning patterns
         if self.warning_patterns:
             lines.append("\nTop Warning Patterns:")
-            for pattern, count in sorted(self.warning_patterns.items(), key=lambda x: -x[1])[:10]:
+            for pattern, count in sorted(
+                self.warning_patterns.items(), key=lambda x: -x[1]
+            )[:10]:
                 lines.append(f"  [{count}×] {pattern}")
 
         # Recent errors (last 5)
@@ -64,30 +72,34 @@ class LogSummary:
             lines.append("\nRecent Errors:")
             for entry in self.errors[-5:]:
                 ts = entry.timestamp or "??:??:??"
-                lines.append(f"  [Line {entry.line_number}] {ts} - {entry.message[:100]}")
+                lines.append(
+                    f"  [Line {entry.line_number}] {ts} - {entry.message[:100]}"
+                )
 
         # Recent warnings (last 5)
         if self.warnings:
             lines.append("\nRecent Warnings:")
             for entry in self.warnings[-5:]:
                 ts = entry.timestamp or "??:??:??"
-                lines.append(f"  [Line {entry.line_number}] {ts} - {entry.message[:100]}")
+                lines.append(
+                    f"  [Line {entry.line_number}] {ts} - {entry.message[:100]}"
+                )
 
         return "\n".join(lines)
 
 
 # Common log patterns
 LOG_LEVEL_PATTERNS = [
-    (r'\b(ERROR|FATAL|CRITICAL)\b', 'ERROR'),
-    (r'\b(WARN|WARNING)\b', 'WARN'),
-    (r'\b(INFO|INFORMATION)\b', 'INFO'),
-    (r'\b(DEBUG|TRACE)\b', 'DEBUG'),
+    (r"\b(ERROR|FATAL|CRITICAL)\b", "ERROR"),
+    (r"\b(WARN|WARNING)\b", "WARN"),
+    (r"\b(INFO|INFORMATION)\b", "INFO"),
+    (r"\b(DEBUG|TRACE)\b", "DEBUG"),
 ]
 
 TIMESTAMP_PATTERNS = [
-    r'\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}',  # ISO format
-    r'\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}',     # US format
-    r'\d{2}:\d{2}:\d{2}',                         # Time only
+    r"\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}",  # ISO format
+    r"\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}",  # US format
+    r"\d{2}:\d{2}:\d{2}",  # Time only
 ]
 
 
@@ -132,21 +144,21 @@ def extract_error_pattern(message: str) -> str:
         Pattern string with variables replaced
     """
     # Remove numbers
-    pattern = re.sub(r'\b\d+\b', '<NUM>', message)
+    pattern = re.sub(r"\b\d+\b", "<NUM>", message)
 
     # Remove hex addresses
-    pattern = re.sub(r'0x[0-9a-fA-F]+', '<ADDR>', pattern)
+    pattern = re.sub(r"0x[0-9a-fA-F]+", "<ADDR>", pattern)
 
     # Remove quoted strings
-    pattern = re.sub(r'"[^"]*"', '<STR>', pattern)
-    pattern = re.sub(r"'[^']*'", '<STR>', pattern)
+    pattern = re.sub(r'"[^"]*"', "<STR>", pattern)
+    pattern = re.sub(r"'[^']*'", "<STR>", pattern)
 
     # Remove file paths
-    pattern = re.sub(r'(/[\w/.-]+|[A-Z]:\\[\w\\.-]+)', '<PATH>', pattern)
+    pattern = re.sub(r"(/[\w/.-]+|[A-Z]:\\[\w\\.-]+)", "<PATH>", pattern)
 
     # Remove timestamps
     for ts_pattern in TIMESTAMP_PATTERNS:
-        pattern = re.sub(ts_pattern, '<TIME>', pattern)
+        pattern = re.sub(ts_pattern, "<TIME>", pattern)
 
     return pattern[:200]  # Truncate long patterns
 
@@ -155,7 +167,7 @@ def analyze_log_file(
     file_path: Path,
     max_lines: int | None = None,
     max_errors: int = 100,
-    max_warnings: int = 100
+    max_warnings: int = 100,
 ) -> LogSummary:
     """Analyze a log file and extract errors/warnings.
 
@@ -182,7 +194,7 @@ def analyze_log_file(
 
     total_lines = 0
 
-    with open(file_path, encoding='utf-8', errors='ignore') as f:
+    with open(file_path, encoding="utf-8", errors="ignore") as f:
         for line_num, line in enumerate(f, 1):
             if max_lines and line_num > max_lines:
                 break
@@ -200,24 +212,28 @@ def analyze_log_file(
             # Extract log level
             level = extract_log_level(line)
 
-            if level == 'ERROR':
+            if level == "ERROR":
                 if len(errors) < max_errors:
-                    errors.append(LogEntry(
-                        timestamp=timestamp,
-                        level='ERROR',
-                        message=line,
-                        line_number=line_num
-                    ))
+                    errors.append(
+                        LogEntry(
+                            timestamp=timestamp,
+                            level="ERROR",
+                            message=line,
+                            line_number=line_num,
+                        )
+                    )
                 error_messages.append(line)
 
-            elif level == 'WARN':
+            elif level == "WARN":
                 if len(warnings) < max_warnings:
-                    warnings.append(LogEntry(
-                        timestamp=timestamp,
-                        level='WARN',
-                        message=line,
-                        line_number=line_num
-                    ))
+                    warnings.append(
+                        LogEntry(
+                            timestamp=timestamp,
+                            level="WARN",
+                            message=line,
+                            line_number=line_num,
+                        )
+                    )
                 warning_messages.append(line)
 
     # Extract patterns
@@ -236,7 +252,7 @@ def analyze_log_file(
         warnings=warnings,
         error_patterns=dict(error_patterns.most_common(10)),
         warning_patterns=dict(warning_patterns.most_common(10)),
-        timestamp_range=timestamp_range
+        timestamp_range=timestamp_range,
     )
 
 
@@ -257,10 +273,12 @@ def extract_log_summary(file_path: Path) -> dict[str, Any]:
     summary_size = len(summary_text)
 
     return {
-        'summary': summary,
-        'summary_text': summary_text,
-        'original_size_bytes': original_size,
-        'summary_size_bytes': summary_size,
-        'token_reduction_pct': ((original_size - summary_size) / original_size * 100) if original_size > 0 else 0.0,
-        'recommended_action': 'Use summary for LLM analysis instead of full log file'
+        "summary": summary,
+        "summary_text": summary_text,
+        "original_size_bytes": original_size,
+        "summary_size_bytes": summary_size,
+        "token_reduction_pct": ((original_size - summary_size) / original_size * 100)
+        if original_size > 0
+        else 0.0,
+        "recommended_action": "Use summary for LLM analysis instead of full log file",
     }

@@ -60,7 +60,7 @@ A dedicated section tracks usage in real time:
 - Total cost  
 - Button to open the **Model Catalog**
 
-This makes StratifyAI feel like a professional tool — not a black box.
+This makes StratifyAI feel like a professional tool — not an opaque system.
 
 ## 1.4 Chat Interface
 

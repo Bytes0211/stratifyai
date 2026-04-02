@@ -12,7 +12,7 @@
 - [x] Add GitHub Actions workflow to run full test suite on PR/push
 - [x] Add linting step to CI (Ruff)
 - [x] Add type checking step to CI (Mypy)
-- [x] Add code formatting check to CI (Black --check)
+- [x] Add code formatting check to CI (Ruff format --check)
 - [x] Add integration test suite with real provider calls (gated behind `integration` marker + secrets)
 - [x] Remove committed frontend build artifacts from `api/static/dist/` — build in CI instead
 - [x] Add test coverage reporting (pytest-cov) with minimum threshold

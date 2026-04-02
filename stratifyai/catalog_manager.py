@@ -65,7 +65,7 @@ def load_catalog(force_reload: bool = False) -> dict[str, Any]:
             raise FileNotFoundError(f"Model catalog not found at {catalog_path}")
 
         try:
-            with open(catalog_path, encoding='utf-8') as f:
+            with open(catalog_path, encoding="utf-8") as f:
                 catalog = json.load(f)
 
             # Validate basic structure
@@ -175,7 +175,8 @@ def list_all_models(include_deprecated: bool = False) -> dict[str, list]:
             result[provider] = list(models.keys())
         else:
             result[provider] = [
-                model_id for model_id, metadata in models.items()
+                model_id
+                for model_id, metadata in models.items()
                 if not metadata.get("deprecated", False)
             ]
 

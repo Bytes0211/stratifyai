@@ -119,7 +119,9 @@ class ModelsResponse(BaseModel):
 
 def create_error_event(code: str, message: str) -> str:
     """Create a formatted SSE error event."""
-    return f"data: {json.dumps({'type': 'error', 'code': code, 'message': message})}\n\n"
+    return (
+        f"data: {json.dumps({'type': 'error', 'code': code, 'message': message})}\n\n"
+    )
 
 
 def create_chunk_event(content: str, model: str, provider: str) -> str:
