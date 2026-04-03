@@ -10,7 +10,7 @@ from __future__ import annotations
 import builtins
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from stratifyai.profiles.models import (
     PARAMETER_DEFINITIONS,
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Directories
 _BUILTIN_PATH = Path(__file__).parent / "profiles.yaml"
 _USER_DIR = Path.home() / ".stratifyai" / "profiles"
+ProfileSource = Literal["builtin", "user"]
 
 
 class ProfileRegistry:
@@ -86,9 +87,9 @@ class ProfileRegistry:
                 continue
 
             # Walk the chain collecting ancestors (child → parent order)
-            chain: list[str] = []
+            chain: builtins.list[str] = []
             visited: set[str] = set()
-            current = name
+            current: str | None = name
 
             while current is not None:
                 if current in visited:
@@ -125,7 +126,7 @@ class ProfileRegistry:
     # Directory loading
     # ------------------------------------------------------------------
 
-    def load_directory(self, path: Path, source: str = "user") -> int:
+    def load_directory(self, path: Path, source: ProfileSource = "user") -> int:
         """Load all YAML profile files from a directory.
 
         Args:
@@ -199,7 +200,7 @@ class ProfileRegistry:
             List of matching profiles, sorted by name.
         """
         self._ensure_loaded()
-        profiles = list(self._profiles.values())
+        profiles = builtins.list(self._profiles.values())
 
         if tag:
             profiles = [p for p in profiles if tag in p.tags]
@@ -231,7 +232,7 @@ class ProfileRegistry:
             effective = merge_parameters(effective, overrides)
 
         # Validate merged result
-        for key, value in list(effective.items()):
+        for key, value in builtins.list(effective.items()):
             param_def = PARAMETER_DEFINITIONS.get(key)
             if param_def is not None:
                 effective[key] = param_def.validate(value)
@@ -263,7 +264,7 @@ class ProfileRegistry:
 
         profile = self.get(name)
         params = profile.parameters
-        errors: list[str] = []
+        errors: builtins.list[str] = []
 
         metadata = get_model_metadata(provider, model)
 
@@ -332,8 +333,8 @@ class ProfileRegistry:
 
 def _load_yaml_profiles(
     path: Path,
-    source: str = "user",
-) -> list[Profile]:
+    source: ProfileSource = "user",
+) -> builtins.list[Profile]:
     """Load profiles from a single YAML file.
 
     Supports the multi-profile format used by ``profiles.yaml``::
@@ -358,7 +359,7 @@ def _load_yaml_profiles(
         ValueError: If the YAML structure is invalid.
     """
     try:
-        import yaml
+        import yaml  # type: ignore[import-untyped]
     except ImportError as e:
         raise ImportError(
             "PyYAML is required to load YAML profiles. "
@@ -381,7 +382,7 @@ def _load_yaml_profiles(
             )
         raw_profiles = [data]
 
-    profiles: list[Profile] = []
+    profiles: builtins.list[Profile] = []
     for entry in raw_profiles:
         if not isinstance(entry, dict) or "name" not in entry:
             logger.warning(
@@ -403,3 +404,27 @@ def _load_yaml_profiles(
         profiles.append(profile)
 
     return profiles
+
+
+registry = ProfileRegistry()
+
+
+def get(name: str) -> Profile:
+    """Module-level access to the singleton profile registry."""
+    return registry.get(name)
+
+
+def list(
+    tag: str | None = None,
+    source: str | None = None,
+) -> builtins.list[Profile]:
+    """Module-level access to the singleton profile registry."""
+    return registry.list(tag=tag, source=source)
+
+
+def render(
+    name: str,
+    overrides: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Module-level access to the singleton profile registry."""
+    return registry.render(name, overrides=overrides)

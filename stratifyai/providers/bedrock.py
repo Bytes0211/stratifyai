@@ -5,6 +5,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 try:
     import aioboto3
@@ -144,7 +145,7 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -216,7 +217,7 @@ class BedrockProvider(BaseProvider):
                     self.provider_name,
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -234,7 +235,7 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -307,9 +308,9 @@ class BedrockProvider(BaseProvider):
                     self.provider_name,
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
-    def _build_request_body(self, request: ChatRequest) -> dict:
+    def _build_request_body(self, request: ChatRequest) -> dict[str, Any]:
         """
         Build request body based on model family.
 
@@ -357,11 +358,11 @@ class BedrockProvider(BaseProvider):
                 f"Unknown model family for {model_id}", self.provider_name
             )
 
-    def _build_anthropic_request(self, request: ChatRequest) -> dict:
+    def _build_anthropic_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Anthropic Claude models."""
         # Separate system message from conversation
-        system_message = None
-        messages = []
+        system_message: str | None = None
+        messages: list[dict[str, Any]] = []
 
         for msg in request.messages:
             if msg.role == "system":
@@ -373,7 +374,7 @@ class BedrockProvider(BaseProvider):
                     text_content, image_data = msg.parse_vision_content()
 
                     # Build content array for vision (Anthropic format)
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
 
@@ -395,7 +396,7 @@ class BedrockProvider(BaseProvider):
                 else:
                     messages.append({"role": msg.role, "content": msg.content})
 
-        body = {
+        body: dict[str, Any] = {
             "anthropic_version": "bedrock-2023-05-31",
             "messages": messages,
             "max_tokens": request.max_tokens or 4096,
@@ -413,7 +414,7 @@ class BedrockProvider(BaseProvider):
 
         return body
 
-    def _build_llama_request(self, request: ChatRequest) -> dict:
+    def _build_llama_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Meta Llama models."""
         # Llama uses a prompt-based format
         prompt = self._messages_to_prompt(request.messages)
@@ -425,7 +426,7 @@ class BedrockProvider(BaseProvider):
             "top_p": request.top_p,
         }
 
-    def _build_mistral_request(self, request: ChatRequest) -> dict:
+    def _build_mistral_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Mistral models."""
         # Convert to prompt format
         prompt = self._messages_to_prompt(request.messages)
@@ -437,12 +438,12 @@ class BedrockProvider(BaseProvider):
             "top_p": request.top_p,
         }
 
-    def _build_cohere_request(self, request: ChatRequest) -> dict:
+    def _build_cohere_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Cohere models."""
         # Cohere Bedrock uses USER/CHATBOT roles and requires specific format
         # Extract user message (last message should be from user)
         user_message = ""
-        chat_history = []
+        chat_history: list[dict[str, str]] = []
 
         for i, msg in enumerate(request.messages):
             # Skip system messages - Cohere handles them differently
@@ -468,11 +469,11 @@ class BedrockProvider(BaseProvider):
             "p": top_p,
         }
 
-    def _build_nova_request(self, request: ChatRequest) -> dict:
+    def _build_nova_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Amazon Nova models."""
         # Nova uses messages API similar to Claude
-        system_message = None
-        messages = []
+        system_message: str | None = None
+        messages: list[dict[str, Any]] = []
 
         for msg in request.messages:
             if msg.role == "system":
@@ -481,10 +482,17 @@ class BedrockProvider(BaseProvider):
                 # Check if message contains an image
                 if msg.has_image():
                     # Parse vision content
-                    text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                    text_content, image_data = msg.parse_vision_content()
+                    if image_data is None:
+                        messages.append(
+                            {"role": msg.role, "content": [{"text": text_content}]}
+                        )
+                        continue
+
+                    mime_type, base64_data = image_data
 
                     # Build content array for vision (Nova format)
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"text": text_content})
 
@@ -508,7 +516,7 @@ class BedrockProvider(BaseProvider):
                         {"role": msg.role, "content": [{"text": msg.content}]}
                     )
 
-        body = {
+        body: dict[str, Any] = {
             "messages": messages,
             "inferenceConfig": {
                 "max_new_tokens": request.max_tokens or 4096,
@@ -528,7 +536,7 @@ class BedrockProvider(BaseProvider):
 
         return body
 
-    def _build_titan_request(self, request: ChatRequest) -> dict:
+    def _build_titan_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Amazon Titan models."""
         # Titan uses inputText format
         prompt = self._messages_to_prompt(request.messages)
@@ -543,7 +551,7 @@ class BedrockProvider(BaseProvider):
             },
         }
 
-    def _messages_to_prompt(self, messages: list) -> str:
+    def _messages_to_prompt(self, messages: list[Any]) -> str:
         """
         Convert message list to a single prompt string.
 
@@ -564,7 +572,11 @@ class BedrockProvider(BaseProvider):
 
         return "\n\n".join(prompt_parts) + "\n\nAssistant:"
 
-    def _normalize_response(self, raw_response: dict, model: str) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert Bedrock response to unified format.
 
@@ -576,6 +588,12 @@ class BedrockProvider(BaseProvider):
             Normalized ChatResponse with cost
         """
         # Parse response based on model family
+        if model is None:
+            raise ProviderAPIError(
+                "Bedrock response normalization requires a model id",
+                self.provider_name,
+            )
+
         if model.startswith("anthropic.claude"):
             content = self._parse_anthropic_response(raw_response)
             usage = self._extract_anthropic_usage(raw_response)

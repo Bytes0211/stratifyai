@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from dotenv import load_dotenv
@@ -26,6 +27,7 @@ from stratifyai.exceptions import (
 )
 from stratifyai.summarization import summarize_file
 from stratifyai.utils.file_analyzer import analyze_file
+from stratifyai.utils.sync_helpers import run_sync
 
 # Load environment variables from .env file
 load_dotenv()
@@ -349,7 +351,7 @@ def _chat_impl(
 
         # Check if model has fixed temperature
         if temperature is None:
-            model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+            model_info = MODEL_CATALOG.get(provider or "", {}).get(model, {})
             fixed_temp = model_info.get("fixed_temperature")
 
             if fixed_temp is not None:
@@ -454,7 +456,7 @@ def _chat_impl(
                     break
 
         # Load content from file if provided
-        file_content = None
+        file_content: str | None = None
         if file:
             try:
                 # Check if file is an image
@@ -463,8 +465,8 @@ def _chat_impl(
 
                 if is_image:
                     # For image files, check if model supports vision
-                    model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
-                    supports_vision = model_info.get("supports_vision", False)
+                    model_info = MODEL_CATALOG.get(provider or "", {}).get(model, {})
+                    supports_vision = bool(model_info.get("supports_vision", False))
 
                     if not supports_vision:
                         console.print(
@@ -485,7 +487,7 @@ def _chat_impl(
                             "stratifyai",
                             "chat",
                             "--provider",
-                            provider,
+                            provider or "",
                             "--file",
                             str(file),
                         ]
@@ -512,8 +514,8 @@ def _chat_impl(
                     # Read image as base64
                     import base64
 
-                    with open(file, "rb") as f:
-                        image_data = base64.b64encode(f.read()).decode("utf-8")
+                    with open(file, "rb") as image_file:
+                        image_data = base64.b64encode(image_file.read()).decode("utf-8")
 
                     # Get file size
                     file_size = file.stat().st_size
@@ -542,8 +544,8 @@ def _chat_impl(
                     file_content = f"[IMAGE:{mime_type}]\n{image_data}"
                 else:
                     # Read text file
-                    with open(file, encoding="utf-8") as f:
-                        file_content = f.read()
+                    with open(file, encoding="utf-8") as text_file:
+                        file_content = text_file.read()
 
                     # Get file size for display
                     if isinstance(file, Path) and file.exists():
@@ -565,7 +567,7 @@ def _chat_impl(
                         # Analyze file if chunking enabled
                         if chunked:
                             analysis = analyze_file(
-                                str(file), provider or "openai", model or "gpt-4o"
+                                file, provider or "openai", model or "gpt-4o"
                             )
                             console.print("[cyan]File Analysis:[/cyan]")
                             console.print(f"  Type: {analysis.file_type.value}")
@@ -574,8 +576,10 @@ def _chat_impl(
                                 f"  Recommendation: {analysis.recommendation}"
                             )
 
-                            if analysis.warning:
-                                console.print(f"[yellow]⚠ {analysis.warning}[/yellow]")
+                            if analysis.exceeds_threshold:
+                                console.print(
+                                    f"[yellow]⚠ {analysis.recommendation}[/yellow]"
+                                )
             except Exception as e:
                 console.print(f"[red]Error reading file {file}: {e}[/red]")
                 raise typer.Exit(1) from e
@@ -695,7 +699,7 @@ def _chat_impl(
             else:
                 messages.append(Message(role="user", content=content))
         else:
-            messages.append(Message(role="user", content=message))
+            messages.append(Message(role="user", content=message or ""))
 
         # Create client and request
         client = LLMClient(provider=provider)
@@ -710,10 +714,18 @@ def _chat_impl(
         response_content = ""
 
         # Get model info for context window
-        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        model_info = MODEL_CATALOG.get(provider or "", {}).get(model, {})
         context_window = model_info.get("context", "N/A")
 
         if stream:
+
+            async def _stream_and_collect() -> str:
+                collected = ""
+                async for chunk in client.chat_completion_stream(request):
+                    print(chunk.content, end="", flush=True)
+                    collected += chunk.content
+                return collected
+
             # Display metadata before streaming
             console.print(
                 f"\n[bold]Provider:[/bold] [cyan]{provider}[/cyan] | [bold]Model:[/bold] [cyan]{model}[/cyan]"
@@ -721,9 +733,7 @@ def _chat_impl(
             console.print(f"[dim]Context: {context_window:,} tokens[/dim]")
             console.print()  # Newline before streaming
 
-            for chunk in client.chat_completion_stream(request):
-                print(chunk.content, end="", flush=True)
-                response_content += chunk.content
+            response_content = run_sync(_stream_and_collect())
             print()  # Final newline
         else:
             # Show spinner while waiting for response
@@ -789,21 +799,21 @@ def _chat_impl(
                 filename += ".md"
 
             try:
-                with open(filename, "w") as f:
-                    f.write("# LLM Response\n\n")
-                    f.write(f"**Provider:** {provider}\n")
-                    f.write(f"**Model:** {model}\n")
-                    f.write(
+                with open(filename, "w", encoding="utf-8") as output_file:
+                    output_file.write("# LLM Response\n\n")
+                    output_file.write(f"**Provider:** {provider}\n")
+                    output_file.write(f"**Model:** {model}\n")
+                    output_file.write(
                         f"**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                     )
-                    f.write("## Conversation\n\n")
+                    output_file.write("## Conversation\n\n")
 
                     # Write full conversation history
                     for msg in messages:
                         if msg.role == "user":
-                            f.write(f"**You:** {msg.content}\n\n")
+                            output_file.write(f"**You:** {msg.content}\n\n")
                         elif msg.role == "assistant":
-                            f.write(f"**Assistant:** {msg.content}\n\n")
+                            output_file.write(f"**Assistant:** {msg.content}\n\n")
 
                 console.print(f"[green]✓ Saved to {filename}[/green]")
             except Exception as e:
@@ -1041,12 +1051,15 @@ def route(
             console.print(f"Required: [magenta]{', '.join(capability)}[/magenta]")
         console.print(f"Complexity: [yellow]{complexity:.3f}[/yellow]")
         console.print(f"Selected: [green]{provider}/{model}[/green]")
-        if model_info.capabilities:
+        if model_info and model_info.capabilities:
             console.print(
                 f"Capabilities: [magenta]{', '.join(model_info.capabilities)}[/magenta]"
             )
-        console.print(f"Quality: [yellow]{model_info.quality_score:.2f}[/yellow]")
-        console.print(f"Latency: [yellow]{model_info.avg_latency_ms:.0f}ms[/yellow]")
+        if model_info is not None:
+            console.print(f"Quality: [yellow]{model_info.quality_score:.2f}[/yellow]")
+            console.print(
+                f"Latency: [yellow]{model_info.avg_latency_ms:.0f}ms[/yellow]"
+            )
 
         # Execute if requested
         if execute or Confirm.ask("\nExecute with this model?", default=True):
@@ -1099,6 +1112,8 @@ def interactive(
     MAX_FILE_SIZE_MB = 5
     MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
     LARGE_FILE_THRESHOLD_KB = 500
+    client: LLMClient | None = None
+    temperature: float | None = None
 
     try:
         # Helper function to load file with size validation and intelligent extraction
@@ -1128,8 +1143,10 @@ def interactive(
                 if is_image:
                     # For image files, check if model supports vision
                     if check_vision:
-                        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
-                        supports_vision = model_info.get("supports_vision", False)
+                        model_info = MODEL_CATALOG.get(provider or "", {}).get(
+                            model or "", {}
+                        )
+                        supports_vision = bool(model_info.get("supports_vision", False))
 
                         if not supports_vision:
                             console.print(
@@ -1147,6 +1164,9 @@ def interactive(
                             )
 
                             if choice == "1":
+                                if provider is None:
+                                    return None
+
                                 # Show vision-capable models for current provider (like chat mode)
                                 from stratifyai.utils.provider_validator import (
                                     get_validated_interactive_models,
@@ -1414,16 +1434,17 @@ def interactive(
                                 extract_log_summary,
                             )
 
+                            result: Any
                             if extension == ".csv":
                                 result = analyze_csv_file(file_path)
-                                content = result["schema_text"]
+                                content: str = result["schema_text"]
                                 reduction = result["token_reduction_pct"]
                                 console.print(
                                     f"[green]✓ Extracted CSV schema[/green] [dim]({reduction:.1f}% token reduction)[/dim]"
                                 )
                             elif extension == ".json":
                                 result = analyze_json_file(file_path)
-                                content = result.get("schema_text", str(result))
+                                content = str(result.get("schema_text", str(result)))
                                 reduction = result.get("token_reduction_pct", 0)
                                 console.print(
                                     f"[green]✓ Extracted JSON schema[/green] [dim]({reduction:.1f}% token reduction)[/dim]"
@@ -1447,13 +1468,13 @@ def interactive(
                                 )
                             else:
                                 # Fallback to raw content
-                                with open(file_path, encoding="utf-8") as f:
-                                    content = f.read()
+                                with open(file_path, encoding="utf-8") as text_file:
+                                    content = text_file.read()
                                 console.print(
                                     f"[green]✓ Loaded {file_path.name}[/green] [dim]({file_size_kb:.1f} KB, {len(content):,} chars)[/dim]"
                                 )
 
-                            return content
+                            return str(content)
                         except Exception as e:
                             console.print(f"[yellow]⚠ Extraction failed: {e}[/yellow]")
                             console.print(
@@ -1475,8 +1496,8 @@ def interactive(
                         return None
 
                 # Read file content normally
-                with open(file_path, encoding="utf-8") as f:
-                    content = f.read()
+                with open(file_path, encoding="utf-8") as text_file:
+                    content = text_file.read()
 
                 # Display success message
                 if file_size_kb < 1:
@@ -1489,7 +1510,7 @@ def interactive(
                 console.print(
                     f"[green]✓ Loaded {file_path.name}[/green] [dim]({size_str}, {len(content):,} chars)[/dim]"
                 )
-                return content
+                return str(content)
 
             except UnicodeDecodeError:
                 console.print(
@@ -1554,6 +1575,9 @@ def interactive(
                         provider = "openai"
 
         if not model:
+            if provider is None:
+                raise typer.Exit(1)
+
             # Validate and display curated models for all providers
             from stratifyai.utils.provider_validator import (
                 get_validated_interactive_models,
@@ -1616,7 +1640,7 @@ def interactive(
                 "bedrock": INTERACTIVE_BEDROCK_MODELS,
             }
 
-            fallback_config = interactive_configs.get(provider, {})
+            fallback_config = interactive_configs.get(provider or "", {})
 
             # Use validated models, or fall back to interactive config
             if validated_models:
@@ -1679,7 +1703,7 @@ def interactive(
                 raise typer.Exit(1)
 
         # Check if model has fixed temperature and prompt only when model was not preselected.
-        model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+        model_info = MODEL_CATALOG.get(provider or "", {}).get(model, {})
         fixed_temp = model_info.get("fixed_temperature")
 
         if fixed_temp is not None:
@@ -2500,6 +2524,7 @@ def analyze(
         console.print(f"\n[bold cyan]Analyzing File:[/bold cyan] {file}\n")
 
         try:
+            result: Any
             if extension == ".csv":
                 result = analyze_csv_file(file)
                 console.print("[bold green]CSV Schema Analysis[/bold green]\n")
@@ -2513,8 +2538,9 @@ def analyze(
 
             elif extension == ".json":
                 result = analyze_json_file(file)
+                json_text = str(result)
                 console.print("[bold green]JSON Schema Analysis[/bold green]\n")
-                console.print(result)
+                console.print(json_text)
                 console.print(
                     f"\n[bold]Token Reduction:[/bold] {result.get('token_reduction_pct', 0):.1f}%"
                 )

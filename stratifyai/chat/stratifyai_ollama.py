@@ -1,3 +1,5 @@
+from typing import cast
+
 """Ollama chat interface for StratifyAI.
 
 Provides convenient functions for Ollama local model chat completions.
@@ -169,14 +171,17 @@ async def chat_stream(
         >>> async for chunk in ollama.chat_stream("Tell me a story", model="llama3.2"):
         ...     print(chunk.content, end="", flush=True)
     """
-    return await chat(
-        prompt,
-        model=model,
-        system=system,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stream=True,
-        **kwargs,
+    return cast(
+        AsyncIterator[ChatResponse],
+        await chat(
+            prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+            **kwargs,
+        ),
     )
 
 
@@ -190,14 +195,17 @@ def chat_sync(
     **kwargs,
 ):
     """Synchronous wrapper for chat()."""
-    return run_sync(
-        chat(
-            prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            **kwargs,
-        )
+    return cast(
+        ChatResponse,
+        run_sync(
+            chat(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                **kwargs,
+            )
+        ),
     )

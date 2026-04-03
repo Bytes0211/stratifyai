@@ -6,10 +6,7 @@ from stratifyai.profiles.models import (
     ProfileParameter,
     merge_parameters,
 )
-from stratifyai.profiles.registry import ProfileRegistry
-
-# Singleton registry instance
-registry = ProfileRegistry()
+from stratifyai.profiles.registry import ProfileRegistry, registry
 
 __all__ = [
     "PARAMETER_DEFINITIONS",

@@ -6,6 +6,7 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from enum import Enum
+from typing import Any, cast
 
 from .api_key_helper import APIKeyHelper
 from .config import MODEL_CATALOG
@@ -97,7 +98,7 @@ class LLMClient:
         self,
         provider: str | None = None,
         api_key: str | None = None,
-        config: dict = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize unified LLM client.
@@ -114,7 +115,7 @@ class LLMClient:
         self.provider_name = provider
         self.api_key = api_key
         self.config = config or {}
-        self._provider_instance = None
+        self._provider_instance: BaseProvider | None = None
         self._providers: dict[str, BaseProvider] = {}
         self._retry_config = self._build_retry_config()
 
@@ -151,9 +152,12 @@ class LLMClient:
 
         is_valid, error_message = APIKeyHelper.validate_api_key(provider, self.api_key)
         if not is_valid:
-            raise AuthenticationError(provider, error_message)
+            raise AuthenticationError(
+                provider,
+                error_message or f"Missing or invalid API key for {provider}.",
+            )
 
-    def _build_provider_config(self, provider: str) -> dict:
+    def _build_provider_config(self, provider: str) -> dict[str, Any]:
         """Build provider-specific config with optional per-provider overrides."""
         provider_config = dict(self.config)
         providers_cfg = provider_config.pop("providers", None)
@@ -206,7 +210,7 @@ class LLMClient:
         else:
             provider_class = self._provider_registry[provider]
             provider_instance = provider_class(
-                api_key=self.api_key,
+                api_key=self.api_key or "",
                 config=self._build_provider_config(provider),
             )
             _provider_pool[key] = provider_instance
@@ -249,7 +253,7 @@ class LLMClient:
         """
         for provider_name, models in MODEL_CATALOG.items():
             if model in models:
-                return provider_name
+                return str(provider_name)
 
         raise InvalidModelError(model, "any provider")
 
@@ -356,7 +360,7 @@ class LLMClient:
                 return await provider.chat_completion(request)
 
             start_time = time.perf_counter()
-            response = await _chat_call()
+            response = cast(ChatResponse, await _chat_call())
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             return response
 
@@ -389,7 +393,7 @@ class LLMClient:
 
         # Capture timing
         start_time = time.perf_counter()
-        response = await _completion_call()
+        response = cast(ChatResponse, await _completion_call())
         latency_ms = (time.perf_counter() - start_time) * 1000
 
         # Add latency to response
@@ -493,15 +497,18 @@ class LLMClient:
         Returns:
             Chat completion response
         """
-        return run_sync(
-            self.chat(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False,
-                **kwargs,
-            )
+        return cast(
+            ChatResponse,
+            run_sync(
+                self.chat(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                    **kwargs,
+                )
+            ),
         )
 
     def chat_completion_sync(self, request: ChatRequest) -> ChatResponse:
@@ -514,7 +521,7 @@ class LLMClient:
         Returns:
             Chat completion response
         """
-        return run_sync(self.chat_completion(request))
+        return cast(ChatResponse, run_sync(self.chat_completion(request)))
 
     def close(self) -> None:
         """Release this client's provider from the shared pool."""
@@ -555,7 +562,7 @@ class LLMClient:
             return list(MODEL_CATALOG.get(provider, {}).keys())
 
         # Return all models from all providers
-        all_models = []
+        all_models: list[str] = []
         for models in MODEL_CATALOG.values():
             all_models.extend(models.keys())
         return all_models

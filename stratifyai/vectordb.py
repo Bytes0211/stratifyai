@@ -7,7 +7,7 @@ using ChromaDB (with potential support for other vector databases).
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 try:
     import chromadb
@@ -226,8 +226,11 @@ class VectorDBClient:
         query_embedding = await self.embedding_provider.generate_embedding(query_text)
 
         # Query collection
-        results = collection.query(
-            query_embeddings=[query_embedding], n_results=n_results, where=where
+        results = cast(
+            dict[str, Any],
+            collection.query(
+                query_embeddings=[query_embedding], n_results=n_results, where=where
+            ),
         )
 
         # Parse results
@@ -259,7 +262,7 @@ class VectorDBClient:
             Number of documents
         """
         collection = self.get_collection(collection_name)
-        return collection.count()
+        return int(collection.count())
 
     def delete_documents(self, collection_name: str, ids: list[str]) -> None:
         """Delete documents from a collection by ID.
@@ -288,7 +291,7 @@ class VectorDBClient:
         """
         collection = self.get_collection(collection_name)
 
-        update_kwargs = {"ids": ids}
+        update_kwargs: dict[str, Any] = {"ids": ids}
 
         if documents is not None:
             # Generate new embeddings
@@ -311,7 +314,7 @@ class VectorDBClient:
         metadatas: list[dict[str, Any]] | None = None,
     ) -> None:
         """Synchronous wrapper for update_documents()."""
-        return run_sync(
+        run_sync(
             self.update_documents(
                 collection_name=collection_name,
                 ids=ids,
@@ -328,13 +331,16 @@ class VectorDBClient:
         ids: list[str] | None = None,
     ) -> list[str]:
         """Synchronous wrapper for add_documents()."""
-        return run_sync(
-            self.add_documents(
-                collection_name=collection_name,
-                documents=documents,
-                metadatas=metadatas,
-                ids=ids,
-            )
+        return cast(
+            list[str],
+            run_sync(
+                self.add_documents(
+                    collection_name=collection_name,
+                    documents=documents,
+                    metadatas=metadatas,
+                    ids=ids,
+                )
+            ),
         )
 
     def query_sync(
@@ -345,13 +351,16 @@ class VectorDBClient:
         where: dict[str, Any] | None = None,
     ) -> list[SearchResult]:
         """Synchronous wrapper for query()."""
-        return run_sync(
-            self.query(
-                collection_name=collection_name,
-                query_text=query_text,
-                n_results=n_results,
-                where=where,
-            )
+        return cast(
+            list[SearchResult],
+            run_sync(
+                self.query(
+                    collection_name=collection_name,
+                    query_text=query_text,
+                    n_results=n_results,
+                    where=where,
+                )
+            ),
         )
 
     def get_documents(
@@ -374,7 +383,7 @@ class VectorDBClient:
         """
         collection = self.get_collection(collection_name)
 
-        get_kwargs = {}
+        get_kwargs: dict[str, Any] = {}
         if ids is not None:
             get_kwargs["ids"] = ids
         if where is not None:
@@ -382,7 +391,7 @@ class VectorDBClient:
         if limit is not None:
             get_kwargs["limit"] = limit
 
-        results = collection.get(**get_kwargs)
+        results = cast(dict[str, Any], collection.get(**get_kwargs))
 
         # Format results
         documents = []

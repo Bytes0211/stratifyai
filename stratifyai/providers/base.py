@@ -3,6 +3,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from typing import Any, cast
 
 from ..config import PROVIDER_TIMEOUTS
 from ..exceptions import ValidationError
@@ -13,7 +14,7 @@ from ..utils.sync_helpers import run_sync
 class BaseProvider(ABC):
     """Abstract base class that all LLM providers must implement."""
 
-    def __init__(self, api_key: str, config: dict = None):
+    def __init__(self, api_key: str, config: dict[str, Any] | None = None):
         """
         Initialize provider with API key and optional configuration.
 
@@ -23,7 +24,7 @@ class BaseProvider(ABC):
         """
         self.api_key = api_key
         self.config = config or {}
-        self._client = None
+        self._client: Any = None
         provider_default_timeout = PROVIDER_TIMEOUTS.get(self.provider_name, 60.0)
         self.timeout_seconds = float(
             self.config.get("timeout_seconds", provider_default_timeout)
@@ -62,11 +63,17 @@ class BaseProvider(ABC):
         pass
 
     @abstractmethod
-    async def chat_completion_stream(
+    def chat_completion_stream(
         self, request: ChatRequest
     ) -> AsyncIterator[ChatResponse]:
         """
         Execute a streaming chat completion request.
+
+        The returned async iterator **must** be fully consumed or explicitly
+        closed via ``aclose()``.  When concurrency limits are enabled, the
+        provider holds a semaphore slot for the lifetime of the generator;
+        abandoning it without closing will leak the slot until GC finalises
+        the object.  Using ``async for`` handles this automatically.
 
         Args:
             request: Unified chat request with stream=True
@@ -90,10 +97,14 @@ class BaseProvider(ABC):
         Returns:
             Unified chat response
         """
-        return run_sync(self.chat_completion(request))
+        return cast(ChatResponse, run_sync(self.chat_completion(request)))
 
     @abstractmethod
-    def _normalize_response(self, raw_response: dict) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert provider-specific response to unified format.
 
@@ -206,25 +217,40 @@ class BaseProvider(ABC):
                           None disables the limit (default behavior).
         """
         self._concurrency_limit = max_concurrent
-        # Reset semaphore so it gets lazily recreated in the correct event loop
+        # Reset semaphore so it gets lazily recreated in the correct event loop.
+        # In-flight requests that already acquired the old semaphore hold their
+        # own reference and will release it correctly via _release_concurrency_slot.
         self._concurrency_semaphore = None
 
-    async def _acquire_concurrency_slot(self) -> None:
+    async def _acquire_concurrency_slot(self) -> asyncio.Semaphore | None:
         """Acquire a concurrency slot, blocking if limit is reached.
 
         The semaphore is created lazily on first use so it binds to the
         running event loop rather than the loop (or lack thereof) that was
         active when ``set_concurrency_limit`` was called.
+
+        Returns:
+            The semaphore that was acquired, or None if no limit is set.
+            Callers must pass this to ``_release_concurrency_slot`` so that
+            the release targets the same semaphore even if the limit is
+            changed mid-flight.
         """
         if self._concurrency_limit is not None:
             if self._concurrency_semaphore is None:
                 self._concurrency_semaphore = asyncio.Semaphore(self._concurrency_limit)
-            await self._concurrency_semaphore.acquire()
+            sem = self._concurrency_semaphore
+            await sem.acquire()
+            return sem
+        return None
 
-    def _release_concurrency_slot(self) -> None:
-        """Release a concurrency slot."""
-        if self._concurrency_semaphore is not None:
-            self._concurrency_semaphore.release()
+    def _release_concurrency_slot(self, sem: asyncio.Semaphore | None) -> None:
+        """Release a concurrency slot.
+
+        Args:
+            sem: The semaphore returned by ``_acquire_concurrency_slot``.
+        """
+        if sem is not None:
+            sem.release()
 
     def get_concurrency_limit(self) -> int | None:
         """Get the current concurrency limit for this provider."""

@@ -35,7 +35,7 @@ def validate_bedrock_models(
     """
     import os
 
-    result = {
+    result: dict[str, Any] = {
         "valid_models": [],
         "invalid_models": [],
         "validation_time_ms": 0,

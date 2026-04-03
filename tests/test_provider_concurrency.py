@@ -38,7 +38,7 @@ class MockProvider(BaseProvider):
 
     async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """Execute chat completion with concurrency tracking."""
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             async with self._tracking_lock:
                 self.call_count += 1
@@ -69,7 +69,7 @@ class MockProvider(BaseProvider):
                 raw_response={},
             )
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(self, request: ChatRequest):
         """Not implemented for tests."""
@@ -144,11 +144,11 @@ class TestProviderConcurrencyLimit:
 
         async def failing_call():
             """Call that raises exception."""
-            await provider._acquire_concurrency_slot()
+            sem = await provider._acquire_concurrency_slot()
             try:
                 raise ValueError("Test error")
             finally:
-                provider._release_concurrency_slot()
+                provider._release_concurrency_slot(sem)
 
         # First call raises
         with pytest.raises(ValueError):
@@ -157,12 +157,12 @@ class TestProviderConcurrencyLimit:
         # Check that semaphore still has a slot available
         # We can acquire it without waiting
         start = time.time()
-        await provider._acquire_concurrency_slot()
+        sem = await provider._acquire_concurrency_slot()
         elapsed = time.time() - start
 
         # Should be fast (not blocked waiting for timeout)
         assert elapsed < 1.0
-        provider._release_concurrency_slot()
+        provider._release_concurrency_slot(sem)
 
     @pytest.mark.asyncio
     async def test_no_limit_allows_unlimited_concurrent(self):

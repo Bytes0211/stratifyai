@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 from anthropic import AsyncAnthropic
 
@@ -16,7 +17,11 @@ from .base import BaseProvider
 class AnthropicProvider(BaseProvider):
     """Anthropic provider implementation with Messages API."""
 
-    def __init__(self, api_key: str | None = None, config: dict = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        config: dict[str, Any] | None = None,
+    ):
         """
         Initialize Anthropic provider.
 
@@ -55,9 +60,9 @@ class AnthropicProvider(BaseProvider):
     def supports_caching(self, model: str) -> bool:
         """Check if model supports prompt caching."""
         model_info = ANTHROPIC_MODELS.get(model, {})
-        return model_info.get("supports_caching", False)
+        return bool(model_info.get("supports_caching", False))
 
-    def _build_sampling_params(self, request: ChatRequest) -> dict:
+    def _build_sampling_params(self, request: ChatRequest) -> dict[str, float]:
         """Build temperature/top_p params respecting Anthropic's mutual exclusivity."""
         if request.temperature != 0.7:
             return {"temperature": request.temperature}
@@ -79,7 +84,7 @@ class AnthropicProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -94,8 +99,8 @@ class AnthropicProvider(BaseProvider):
 
             # Convert messages to Anthropic format
             # Anthropic requires system message separate from messages array
-            system_message = None
-            messages = []
+            system_message: str | None = None
+            messages: list[dict[str, Any]] = []
 
             for msg in request.messages:
                 if msg.role == "system":
@@ -107,7 +112,7 @@ class AnthropicProvider(BaseProvider):
                         text_content, image_data = msg.parse_vision_content()
 
                         # Build vision message content array
-                        content_parts = []
+                        content_parts: list[dict[str, Any]] = []
                         if text_content:
                             content_parts.append({"type": "text", "text": text_content})
 
@@ -125,7 +130,10 @@ class AnthropicProvider(BaseProvider):
                                 }
                             )
 
-                        message_dict = {"role": msg.role, "content": content_parts}
+                        message_dict: dict[str, Any] = {
+                            "role": msg.role,
+                            "content": content_parts,
+                        }
                     else:
                         # Regular text message
                         message_dict = {"role": msg.role, "content": msg.content}
@@ -136,7 +144,7 @@ class AnthropicProvider(BaseProvider):
                     messages.append(message_dict)
 
             # Build Anthropic-specific request parameters
-            anthropic_params = {
+            anthropic_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
                 "max_tokens": request.max_tokens
@@ -178,7 +186,7 @@ class AnthropicProvider(BaseProvider):
                     f"Chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -196,7 +204,7 @@ class AnthropicProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -210,8 +218,8 @@ class AnthropicProvider(BaseProvider):
             )
 
             # Convert messages to Anthropic format with vision support
-            system_message = None
-            messages = []
+            system_message: str | None = None
+            messages: list[dict[str, Any]] = []
 
             for msg in request.messages:
                 if msg.role == "system":
@@ -220,7 +228,7 @@ class AnthropicProvider(BaseProvider):
                     if msg.has_image():
                         # Parse and format vision content
                         text_content, image_data = msg.parse_vision_content()
-                        content_parts = []
+                        content_parts: list[dict[str, Any]] = []
                         if text_content:
                             content_parts.append({"type": "text", "text": text_content})
                         if image_data:
@@ -240,7 +248,7 @@ class AnthropicProvider(BaseProvider):
                         messages.append({"role": msg.role, "content": msg.content})
 
             # Build request parameters
-            anthropic_params = {
+            anthropic_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
                 "max_tokens": request.max_tokens or 4096,
@@ -270,9 +278,13 @@ class AnthropicProvider(BaseProvider):
                     f"Streaming chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
-    def _normalize_response(self, raw_response: dict) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert Anthropic response to unified format.
 
@@ -351,8 +363,8 @@ class AnthropicProvider(BaseProvider):
             Cost in USD
         """
         model_info = ANTHROPIC_MODELS.get(model, {})
-        cost_input = model_info.get("cost_input", 0.0)
-        cost_output = model_info.get("cost_output", 0.0)
+        cost_input = float(model_info.get("cost_input", 0.0))
+        cost_output = float(model_info.get("cost_output", 0.0))
 
         # Calculate non-cached prompt tokens
         non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
@@ -361,7 +373,7 @@ class AnthropicProvider(BaseProvider):
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input
         output_cost = (usage.completion_tokens / 1_000_000) * cost_output
 
-        return input_cost + output_cost
+        return float(input_cost + output_cost)
 
     def _calculate_cache_cost(
         self, cache_creation_tokens: int, cache_read_tokens: int, model: str
@@ -383,11 +395,11 @@ class AnthropicProvider(BaseProvider):
         if not model_info.get("supports_caching", False):
             return 0.0
 
-        cost_cache_write = model_info.get("cost_cache_write", 0.0)
-        cost_cache_read = model_info.get("cost_cache_read", 0.0)
+        cost_cache_write = float(model_info.get("cost_cache_write", 0.0))
+        cost_cache_read = float(model_info.get("cost_cache_read", 0.0))
 
         # Costs are per 1M tokens
         write_cost = (cache_creation_tokens / 1_000_000) * cost_cache_write
         read_cost = (cache_read_tokens / 1_000_000) * cost_cache_read
 
-        return write_cost + read_cost
+        return float(write_cost + read_cost)

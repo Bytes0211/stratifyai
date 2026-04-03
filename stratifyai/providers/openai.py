@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 from openai import AsyncOpenAI
 
@@ -15,7 +16,11 @@ from .base import BaseProvider
 class OpenAIProvider(BaseProvider):
     """OpenAI provider implementation with cost tracking."""
 
-    def __init__(self, api_key: str | None = None, config: dict = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        config: dict[str, Any] | None = None,
+    ):
         """
         Initialize OpenAI provider.
 
@@ -56,7 +61,7 @@ class OpenAIProvider(BaseProvider):
     def supports_caching(self, model: str) -> bool:
         """Check if model supports prompt caching."""
         model_info = OPENAI_MODELS.get(model, {})
-        return model_info.get("supports_caching", False)
+        return bool(model_info.get("supports_caching", False))
 
     async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """
@@ -72,7 +77,7 @@ class OpenAIProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -86,7 +91,7 @@ class OpenAIProvider(BaseProvider):
             )
 
             # Build OpenAI-specific request parameters
-            messages = []
+            messages: list[dict[str, Any]] = []
             for msg in request.messages:
                 # Check if message contains image data
                 if msg.has_image():
@@ -94,7 +99,7 @@ class OpenAIProvider(BaseProvider):
                     text_content, image_data = msg.parse_vision_content()
 
                     # Build vision message content array
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
 
@@ -106,7 +111,10 @@ class OpenAIProvider(BaseProvider):
                             {"type": "image_url", "image_url": {"url": image_url}}
                         )
 
-                    message_dict = {"role": msg.role, "content": content_parts}
+                    message_dict: dict[str, Any] = {
+                        "role": msg.role,
+                        "content": content_parts,
+                    }
                 else:
                     # Regular text message
                     message_dict = {"role": msg.role, "content": msg.content}
@@ -116,7 +124,7 @@ class OpenAIProvider(BaseProvider):
                     message_dict["cache_control"] = msg.cache_control
                 messages.append(message_dict)
 
-            openai_params = {
+            openai_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
             }
@@ -187,7 +195,7 @@ class OpenAIProvider(BaseProvider):
                     f"Chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -205,18 +213,18 @@ class OpenAIProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
 
             # Build request parameters with vision support
-            messages = []
+            messages: list[dict[str, Any]] = []
             for msg in request.messages:
                 if msg.has_image():
                     # Parse and format vision content
                     text_content, image_data = msg.parse_vision_content()
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
                     if image_data:
@@ -229,7 +237,7 @@ class OpenAIProvider(BaseProvider):
                 else:
                     messages.append({"role": msg.role, "content": msg.content})
 
-            openai_params = {
+            openai_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
                 "stream": True,
@@ -284,9 +292,13 @@ class OpenAIProvider(BaseProvider):
                     f"Streaming chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
-    def _normalize_response(self, raw_response: dict) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert OpenAI response to unified format.
 
@@ -367,8 +379,8 @@ class OpenAIProvider(BaseProvider):
             Cost in USD
         """
         model_info = OPENAI_MODELS.get(model, {})
-        cost_input = model_info.get("cost_input", 0.0)
-        cost_output = model_info.get("cost_output", 0.0)
+        cost_input = float(model_info.get("cost_input", 0.0))
+        cost_output = float(model_info.get("cost_output", 0.0))
 
         # Calculate non-cached prompt tokens
         non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
@@ -377,7 +389,7 @@ class OpenAIProvider(BaseProvider):
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input
         output_cost = (usage.completion_tokens / 1_000_000) * cost_output
 
-        return input_cost + output_cost
+        return float(input_cost + output_cost)
 
     def _calculate_cache_cost(
         self, cache_creation_tokens: int, cache_read_tokens: int, model: str
@@ -399,11 +411,11 @@ class OpenAIProvider(BaseProvider):
         if not model_info.get("supports_caching", False):
             return 0.0
 
-        cost_cache_write = model_info.get("cost_cache_write", 0.0)
-        cost_cache_read = model_info.get("cost_cache_read", 0.0)
+        cost_cache_write = float(model_info.get("cost_cache_write", 0.0))
+        cost_cache_read = float(model_info.get("cost_cache_read", 0.0))
 
         # Costs are per 1M tokens
         write_cost = (cache_creation_tokens / 1_000_000) * cost_cache_write
         read_cost = (cache_read_tokens / 1_000_000) * cost_cache_read
 
-        return write_cost + read_cost
+        return float(write_cost + read_cost)

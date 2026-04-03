@@ -294,12 +294,16 @@ def get_api_key_or_error(provider: str, api_key: str | None = None) -> str:
     if not is_valid:
         # Add suggestion for alternative providers
         suggestion = APIKeyHelper.suggest_alternative_providers(provider)
+        final_error = error_message or f"Missing or invalid API key for {provider}."
         if suggestion:
-            error_message += suggestion
+            final_error += suggestion
 
-        raise AuthenticationError(provider, error_message)
+        raise AuthenticationError(provider, final_error)
 
-    return APIKeyHelper.get_api_key(provider, api_key)
+    resolved_key = APIKeyHelper.get_api_key(provider, api_key)
+    if resolved_key is None:
+        raise AuthenticationError(provider, f"No API key found for {provider}.")
+    return resolved_key
 
 
 def print_setup_instructions() -> None:

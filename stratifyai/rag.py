@@ -185,7 +185,7 @@ class RAGClient:
             file_patterns = ["*.txt", "*.md", "*.py", "*.js", "*.java", "*.cpp"]
 
         # Find all matching files
-        files = []
+        files: list[Path] = []
         for pattern in file_patterns:
             files.extend(dir_path.rglob(pattern))
 

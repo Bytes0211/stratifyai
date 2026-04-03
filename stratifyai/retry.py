@@ -12,6 +12,20 @@ from .exceptions import (
     RateLimitError,
 )
 
+# 4xx status codes that indicate permanent failures — retrying will never help.
+# 429 (rate limit) is intentionally excluded; it's handled by RateLimitError.
+_NON_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({400, 401, 403, 404, 405, 422})
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Return False for ProviderAPIErrors with a permanent 4xx status code."""
+    if (
+        isinstance(exc, ProviderAPIError)
+        and exc.status_code in _NON_RETRYABLE_STATUS_CODES
+    ):
+        return False
+    return True
+
 
 @dataclass
 class RetryConfig:
@@ -60,6 +74,11 @@ def with_retry(
                 except config.retry_on_exceptions as e:
                     last_exception = e
 
+                    # Don't retry permanent 4xx errors — they won't be resolved
+                    # by retrying (e.g. IP restrictions, auth failures, bad requests).
+                    if not _is_retryable(e):
+                        raise
+
                     if attempt == config.max_retries:
                         # Try fallbacks if configured
                         if fallback_models or fallback_provider:
@@ -95,6 +114,8 @@ def with_retry(
                     await asyncio.sleep(delay)
 
             # Should never reach here, but just in case
+            if last_exception is None:
+                raise RuntimeError("Retry loop exited without capturing an exception")
             raise last_exception
 
         return async_wrapper

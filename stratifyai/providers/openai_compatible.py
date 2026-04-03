@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 from openai import APIError, APIStatusError, AsyncOpenAI
 
@@ -28,8 +29,8 @@ class OpenAICompatibleProvider(BaseProvider):
         self,
         api_key: str,
         base_url: str,
-        model_catalog: dict,
-        config: dict | None = None,
+        model_catalog: dict[str, Any],
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize OpenAI-compatible provider.
@@ -82,7 +83,7 @@ class OpenAICompatibleProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -96,7 +97,7 @@ class OpenAICompatibleProvider(BaseProvider):
             )
 
             # Build OpenAI-compatible request parameters
-            messages = []
+            messages: list[dict[str, Any]] = []
             for msg in request.messages:
                 # Check if message contains an image
                 if msg.has_image():
@@ -104,7 +105,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     text_content, image_data = msg.parse_vision_content()
 
                     # Build content array for vision
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
 
@@ -120,7 +121,10 @@ class OpenAICompatibleProvider(BaseProvider):
                             }
                         )
 
-                    message_dict = {"role": msg.role, "content": content_parts}
+                    message_dict: dict[str, Any] = {
+                        "role": msg.role,
+                        "content": content_parts,
+                    }
                 else:
                     message_dict = {"role": msg.role, "content": msg.content}
 
@@ -129,7 +133,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     message_dict["cache_control"] = msg.cache_control
                 messages.append(message_dict)
 
-            openai_params = {
+            openai_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
             }
@@ -213,7 +217,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -231,7 +235,7 @@ class OpenAICompatibleProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        await self._acquire_concurrency_slot()
+        sem = await self._acquire_concurrency_slot()
         try:
             if not self.validate_model(request.model):
                 raise InvalidModelError(request.model, self.provider_name)
@@ -245,7 +249,7 @@ class OpenAICompatibleProvider(BaseProvider):
             )
 
             # Build request parameters
-            messages = []
+            messages: list[dict[str, Any]] = []
             for msg in request.messages:
                 # Check if message contains an image
                 if msg.has_image():
@@ -253,7 +257,7 @@ class OpenAICompatibleProvider(BaseProvider):
                     text_content, image_data = msg.parse_vision_content()
 
                     # Build content array for vision
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
                     if image_data:
@@ -272,7 +276,7 @@ class OpenAICompatibleProvider(BaseProvider):
                 else:
                     messages.append({"role": msg.role, "content": msg.content})
 
-            openai_params = {
+            openai_params: dict[str, Any] = {
                 "model": request.model,
                 "messages": messages,
                 "stream": True,
@@ -345,9 +349,13 @@ class OpenAICompatibleProvider(BaseProvider):
                     f"Streaming chat completion failed: {error_str}", self.provider_name
                 ) from e
         finally:
-            self._release_concurrency_slot()
+            self._release_concurrency_slot(sem)
 
-    def _normalize_response(self, raw_response: dict) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert OpenAI-compatible response to unified format.
 
