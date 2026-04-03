@@ -6,6 +6,7 @@ Thank you for your interest in contributing to StratifyAI! This document provide
 
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
+- [Security Runbook](#security-runbook)
 - [Development Setup](#development-setup)
 - [Project Structure](#project-structure)
 - [Development Workflow](#development-workflow)
@@ -80,6 +81,17 @@ We are committed to providing a welcoming and inclusive environment for all cont
    stratifyai check-keys
    pytest
    ```
+
+---
+
+## Security Runbook
+
+Before deploying or modifying security-sensitive code paths, review:
+
+- `developer/runbook/phase15-security-runbook.md`
+
+Use it for threat model assumptions, staging/production environment settings,
+verification commands, and incident response steps.
 
 ---
 

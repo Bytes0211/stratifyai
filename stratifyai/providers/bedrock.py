@@ -119,7 +119,8 @@ class BedrockProvider(BaseProvider):
             ) from e
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize AWS Bedrock session: {str(e)}", "bedrock"
+                f"Failed to initialize AWS Bedrock session: {sanitize_error(str(e), self.api_key)}",
+                "bedrock",
             ) from e
 
     @property

@@ -56,7 +56,7 @@ class OpenAICompatibleProvider(BaseProvider):
             )
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize {self.provider_name} client: {str(e)}",
+                f"Failed to initialize {self.provider_name} client: {sanitize_error(str(e), self.api_key)}",
                 self.provider_name,
             ) from e
 

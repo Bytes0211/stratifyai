@@ -17,6 +17,12 @@ StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, G
 - ⚡ **Production Ready**: Retry logic, caching, error handling
 - 🎯 **Type Safe**: Full type hints throughout
 
+## Security Runbook
+
+For security hardening operations and deployment guidance, see:
+
+- `developer/runbook/phase15-security-runbook.md`
+
 ---
 
 ## Table of Contents

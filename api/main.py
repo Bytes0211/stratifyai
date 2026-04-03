@@ -1,6 +1,7 @@
 """FastAPI application for StratifyAI."""
 
 import asyncio
+import hashlib
 import hmac
 import logging
 import os
@@ -25,10 +26,9 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from stratifyai import ChatRequest, LLMClient, Message
 from stratifyai.api_key_helper import APIKeyHelper
@@ -48,6 +48,7 @@ from stratifyai.utils.reasoning_detector import (
     get_temperature_for_model,
     is_reasoning_model,
 )
+from stratifyai.utils.sanitizer import sanitize_error
 
 # Load environment variables from .env file
 load_dotenv()
@@ -97,6 +98,39 @@ def get_tracked_client(provider: str) -> TrackedLLMClient:
     return TrackedLLMClient(client=get_client(provider), cost_tracker=cost_tracker)
 
 
+def _extract_bearer_token(authorization: str | None) -> str | None:
+    """Extract bearer token from Authorization header."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[7:].strip()
+    return token or None
+
+
+def _hash_token(token: str) -> str:
+    """Return a short stable hash for a token without exposing raw values."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+
+
+def _rate_limit_key(request: Request) -> str:
+    """Use API key hash for rate limiting, fallback to client IP when absent."""
+    token = _extract_bearer_token(request.headers.get("Authorization"))
+    if token:
+        return f"key:{_hash_token(token)}"
+    client = request.client.host if request.client else "unknown"
+    return f"ip:{client}"
+
+
+def _sanitize_error_payload(value: Any) -> Any:
+    """Recursively sanitize error payloads before logging or returning to clients."""
+    if isinstance(value, str):
+        return sanitize_error(value)
+    if isinstance(value, dict):
+        return {k: _sanitize_error_payload(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_error_payload(item) for item in value]
+    return value
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: emit startup warnings."""
@@ -114,7 +148,7 @@ app = FastAPI(
     version=API_VERSION,
     lifespan=lifespan,
 )
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=_rate_limit_key)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -178,31 +212,55 @@ async def tracing_middleware(request: Request, call_next):
     return response
 
 
-# Configure CORS (BUG-004: Wildcard + credentials is invalid per CORS spec)
-# Read allowed origins from env var or use permissive defaults for development
-_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*")
-if _cors_origins == "*":
-    # Wildcard mode: don't allow credentials (spec compliant)
+# Configure CORS with safer defaults.
+# - In development, localhost origins are allowed by default.
+# - Wildcard mode requires explicit CORS_ALLOW_ALL=true.
+_default_local_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS")
+_cors_allow_all = os.getenv("CORS_ALLOW_ALL", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+if _cors_allow_all:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
     )
 else:
-    # Specific origins: credentials allowed
-    _allowed_origins = [origin.strip() for origin in _cors_origins.split(",")]
+    _allowed_origins = (
+        [origin.strip() for origin in _cors_origins.split(",") if origin.strip()]
+        if _cors_origins
+        else _default_local_origins
+    )
+    if os.getenv("STRATIFYAI_API_KEY") and not _cors_origins:
+        logger.warning(
+            "CORS_ALLOWED_ORIGINS not set while STRATIFYAI_API_KEY is enabled. "
+            "Using localhost-only defaults. Set CORS_ALLOWED_ORIGINS for production."
+        )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
     )
 
 # Global cost tracker
 cost_tracker = CostTracker()
+
+# Upper bound for inbound websocket payload size (raw JSON text length)
+_WS_MAX_PAYLOAD_CHARS = 2_000_000
 
 # WebSocket rate limiting with TTL eviction.
 # Each key is a client IP mapping to a deque of request timestamps.
@@ -250,9 +308,10 @@ def verify_api_key(authorization: str | None = Header(default=None)) -> None:
     expected = os.getenv("STRATIFYAI_API_KEY")
     if not expected:
         return
-    if not authorization or not authorization.startswith("Bearer "):
+    token = _extract_bearer_token(authorization)
+    if not token:
         raise HTTPException(status_code=401, detail="Missing API key")
-    if not hmac.compare_digest(authorization[7:], expected):
+    if not hmac.compare_digest(token, expected):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
@@ -308,7 +367,31 @@ class ChatCompletionRequest(BaseModel):
     file_content: str | None = None  # Base64 encoded file content or plain text
     file_name: str | None = None  # Original filename for type detection
     chunked: bool = False  # Enable smart chunking and summarization
-    chunk_size: int = 50000  # Chunk size in characters
+    chunk_size: int = Field(default=50000, ge=1000, le=100000)
+
+
+class StreamMessage(BaseModel):
+    """Validated message payload for WebSocket and HTTP requests."""
+
+    role: str
+    content: str = Field(min_length=1, max_length=1_000_000)
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: str) -> str:
+        allowed = {"system", "user", "assistant"}
+        if value not in allowed:
+            raise ValueError("role must be one of: system, user, assistant")
+        return value
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        # Block null bytes and most control chars in inbound payload.
+        for char in value:
+            if ord(char) < 32 and char not in "\n\r\t":
+                raise ValueError("content contains invalid control characters")
+        return value
 
 
 class ChatCompletionResponse(BaseModel):
@@ -448,7 +531,11 @@ async def list_models(provider: str, _: None = Depends(verify_api_key)):
 
     # Log validation result
     if validation_result["error"]:
-        logger.warning(f"Model validation for {provider}: {validation_result['error']}")
+        logger.warning(
+            "Model validation for %s: %s",
+            provider,
+            sanitize_error(str(validation_result["error"])),
+        )
     else:
         logger.info(
             f"Model validation for {provider}: {len(validated_models)} models in {validation_result['validation_time_ms']}ms"
@@ -543,10 +630,10 @@ async def chat_completion(
                 route="/api/chat",
             ),
         )
-        # Convert messages to Message objects
+        # Validate and convert messages to Message objects
         messages = [
-            Message(role=msg["role"], content=msg["content"])
-            for msg in payload.messages
+            Message(role=msg.role, content=msg.content)
+            for msg in (StreamMessage.model_validate(msg) for msg in payload.messages)
         ]
         _enforce_budget()
 
@@ -777,7 +864,8 @@ async def chat_completion(
         raise
     except Exception as e:
         error_msg = str(e)
-        logger.error(f"Chat completion error: {error_msg}")
+        sanitized_error = sanitize_error(error_msg)
+        logger.error("Chat completion error: %s", sanitized_error)
 
         # Determine error type and status code
         status_code = 500
@@ -829,7 +917,7 @@ async def chat_completion(
 
         detail = {
             "error": error_type,
-            "detail": error_msg,
+            "detail": sanitized_error,
             "provider": payload.provider,
             "model": payload.model,
         }
@@ -858,6 +946,16 @@ async def chat_stream(websocket: WebSocket):
     try:
         # Receive request
         data = await websocket.receive_text()
+        if len(data) > _WS_MAX_PAYLOAD_CHARS:
+            await websocket.send_json(
+                {
+                    "error": "request_too_large",
+                    "detail": "WebSocket payload exceeds maximum allowed size",
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
+            return
 
         # --- Authentication (WebSocket-safe) --------------------------------
         auth_header = websocket.headers.get("authorization")
@@ -876,9 +974,12 @@ async def chat_stream(websocket: WebSocket):
 
         # --- Rate limiting with TTL eviction --------------------------------
         _evict_stale_ws_entries()
+        auth_header = websocket.headers.get("authorization")
+        auth_token = _extract_bearer_token(auth_header)
         client_ip = websocket.client.host if websocket.client else "unknown"
+        ws_key = f"key:{_hash_token(auth_token)}" if auth_token else f"ip:{client_ip}"
         now = time.time()
-        window = _ws_rate_limit[client_ip]
+        window = _ws_rate_limit[ws_key]
         # Per-IP window cleanup (fast path — global eviction already ran)
         while window and now - window[0] > _WS_RATE_LIMIT_WINDOW_SECS:
             window.popleft()
@@ -899,12 +1000,49 @@ async def chat_stream(websocket: WebSocket):
 
         provider = request_obj.provider
         model = request_obj.model
-        metrics_registry.record_stream_request(provider, model)
         messages_data = request_obj.messages
         requested_temperature = request_obj.temperature
         max_tokens = request_obj.max_tokens
         file_content = request_obj.file_content
         file_name = _sanitize_file_name(request_obj.file_name)
+
+        # --- Provider/model validation (WebSocket-safe) ---------------------
+        if provider not in MODEL_CATALOG:
+            await websocket.send_json(
+                {
+                    "error": "invalid_provider",
+                    "detail": f"Unknown provider: {provider}",
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
+            return
+        if model not in MODEL_CATALOG[provider]:
+            await websocket.send_json(
+                {
+                    "error": "invalid_model",
+                    "detail": f"Unknown model '{model}' for provider '{provider}'",
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
+            return
+
+        # --- Temperature bounds check (WebSocket-safe) ----------------------
+        if requested_temperature is not None and not (
+            0.0 <= requested_temperature <= 2.0
+        ):
+            await websocket.send_json(
+                {
+                    "error": "invalid_temperature",
+                    "detail": f"Temperature must be between 0.0 and 2.0, got {requested_temperature}",
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
+            return
+
+        metrics_registry.record_stream_request(provider, model)
 
         # Debug logging
         logger.info(
@@ -940,7 +1078,8 @@ async def chat_stream(websocket: WebSocket):
 
         # Convert messages
         messages = [
-            Message(role=msg["role"], content=msg["content"]) for msg in messages_data
+            Message(role=msg.role, content=msg.content)
+            for msg in (StreamMessage.model_validate(msg) for msg in messages_data)
         ]
 
         # Process file if provided (text files only - images are handled in message content by frontend)
@@ -1177,9 +1316,11 @@ async def chat_stream(websocket: WebSocket):
     except ValidationError as e:
         metrics_registry.record_stream_error()
         try:
+            safe_error = _sanitize_error_payload(e.errors())
             await websocket.send_json(
                 {
-                    "error": str(e),
+                    "error": "validation_error",
+                    "detail": safe_error,
                     "correlation_id": correlation_id,
                     "done": True,
                 }
@@ -1190,14 +1331,15 @@ async def chat_stream(websocket: WebSocket):
         metrics_registry.record_stream_error()
         # Catch any remaining HTTPException raised inside the handler
         # (e.g. from _sanitize_file_name) and surface as clean JSON.
+        safe_detail = _sanitize_error_payload(http_exc.detail)
         logger.warning(
-            f"WebSocket HTTPException: {http_exc.status_code} {http_exc.detail}"
+            "WebSocket HTTPException: %s %s", http_exc.status_code, safe_detail
         )
         try:
             await websocket.send_json(
                 {
                     "error": "request_error",
-                    "detail": str(http_exc.detail),
+                    "detail": safe_detail,
                     "status_code": http_exc.status_code,
                     "correlation_id": correlation_id,
                     "done": True,
@@ -1207,11 +1349,12 @@ async def chat_stream(websocket: WebSocket):
             pass
     except Exception as e:
         metrics_registry.record_stream_error()
-        logger.error(f"WebSocket error: {str(e)}")
+        safe_error = sanitize_error(str(e))
+        logger.error("WebSocket error: %s", safe_error)
         try:
             await websocket.send_json(
                 {
-                    "error": str(e),
+                    "error": safe_error,
                     "correlation_id": correlation_id,
                     "done": True,
                 }
@@ -1431,7 +1574,7 @@ async def get_template(
         template = registry.get(name)
         return template.to_dict()
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise HTTPException(status_code=404, detail=sanitize_error(str(e))) from e
 
 
 class TemplateRenderRequest(BaseModel):
@@ -1465,9 +1608,9 @@ async def render_template(
         messages = template.render(**request.params)
         return [{"role": m.role, "content": m.content} for m in messages]
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise HTTPException(status_code=404, detail=sanitize_error(str(e))) from e
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+        raise HTTPException(status_code=422, detail=sanitize_error(str(e))) from e
 
 
 @app.get("/api/health")

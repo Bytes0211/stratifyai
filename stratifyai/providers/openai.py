@@ -46,7 +46,8 @@ class OpenAIProvider(BaseProvider):
             )
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize OpenAI client: {str(e)}", "openai"
+                f"Failed to initialize OpenAI client: {sanitize_error(str(e), self.api_key)}",
+                "openai",
             ) from e
 
     @property

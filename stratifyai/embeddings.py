@@ -12,6 +12,7 @@ from typing import cast
 from openai import AsyncOpenAI
 
 from .exceptions import AuthenticationError, ProviderAPIError
+from .utils.sanitizer import sanitize_error
 from .utils.sync_helpers import run_sync
 
 
@@ -171,7 +172,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             )
 
         except Exception as e:
-            error_msg = str(e)
+            error_msg = sanitize_error(str(e), self.api_key)
             if "authentication" in error_msg.lower() or "api key" in error_msg.lower():
                 raise AuthenticationError(
                     "openai", f"OpenAI authentication failed: {error_msg}"

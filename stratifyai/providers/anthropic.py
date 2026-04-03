@@ -45,7 +45,8 @@ class AnthropicProvider(BaseProvider):
             )
         except Exception as e:
             raise ProviderAPIError(
-                f"Failed to initialize Anthropic client: {str(e)}", "anthropic"
+                f"Failed to initialize Anthropic client: {sanitize_error(str(e), self.api_key)}",
+                "anthropic",
             ) from e
 
     @property
