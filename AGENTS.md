@@ -366,10 +366,10 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** MCP Implementation Planning (post-Phase 15)
-**Progress:** Phases 1-15 complete; all PR review fixes applied; MCP technical approach finalized
-**Latest Updates:** PR review fixes (cache safety, concurrency deadlock, CI audit, WebSocket validation); 6 vulnerable deps updated; pre-commit + VS Code ruff configured
-**Test Suite:** 536 passed, 4 skipped (69% coverage)
+**Current Phase:** MCP Server Implementation (Phases 1-5 complete, Phase 7 pending)
+**Progress:** Phases 1-15 complete; MCP server core delivered (8 tools, 5 resources, 13+ prompts)
+**Latest Updates:** MCP server scaffold, tools, resources, prompts, and docs implemented (Apr 3, 2026)
+**Test Suite:** 553 passed, 4 skipped (69% coverage)
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -598,12 +598,19 @@ stratifyai check-keys
   - All 22+ critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality, PR review fixes)
   - See `developer/developer-journal.md` + `developer/TODO.md` for detailed summary
 
+- ✅ MCP Server Core (Phases 1-5, 8) - Apr 3, 2026
+  - FastMCP server scaffold with `stratifyai-mcp` CLI entry
+  - 8 tools: chat_completion, chat_with_routing, list_providers, list_models, get_model_info, get_cost_summary, validate_provider, estimate_cost
+  - 5 resources: catalog, catalog/{provider}, providers, costs, router/strategies
+  - 3 named prompts + dynamic registry template exposure
+  - Pydantic schemas for all inputs/outputs; centralized error mapping with sanitization
+  - Docs: MCP-QUICKSTART.md, MCP-TOOLS-REFERENCE.md, MCP-CLIENT-CONFIG.md
+  - SDK: `mcp[cli]>=1.25,<2` (pinned below v2 for stability)
+  - Historical snapshot at phase completion: **553 total tests passing**, 0 regressions
+
 ### In Progress
 
-- 🔧 MCP Server Implementation Planning and Sequencing
-  - Technical approach finalized with phased rollout and acceptance criteria
-  - Tool/resource/prompt contract surfaces defined
-  - Packaging, test, and rollout gates documented
+- 🔧 MCP Phase 7: Tests and CI gates for `stratifyai/mcp_server/`
 
 ### Future Enhancements
 
@@ -636,8 +643,12 @@ See **developer/TODO.md** for detailed task breakdowns per phase.
 - **docs/CHANGELOG.md** — Version history
 - **docs/CONTRIBUTING.md** — Contribution guidelines
 - **docs/project-status.md** — Current phase, milestones, and next steps
-- **developer/TODO.md** — Prioritized roadmap (Phases 10–15)
+- **developer/TODO.md** — Prioritized roadmap (Phases 10–15 + MCP)
 - **developer/PRD-MCP-implemenation.md** — MCP technical approach and implementation phases
+- **developer/MCP-IMPLEMENTATION-PLAN.md** — MCP detailed implementation plan with code patterns
+- **docs/MCP-QUICKSTART.md** — MCP server install, configure, first tool call
+- **docs/MCP-TOOLS-REFERENCE.md** — All MCP tools, resources, and prompts with schemas
+- **docs/MCP-CLIENT-CONFIG.md** — Client config for Claude Desktop, Claude Code, Cursor, VS Code
 - **AGENTS.md** — This file (AI agent guidance)
 
 ## Troubleshooting

@@ -30,7 +30,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --extra dev --group dev
+        run: uv sync --extra dev --extra mcp --group dev
 
       - name: Dependency vulnerability scan (pip-audit)
         run: |
@@ -125,7 +125,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --extra dev --group dev
+        run: uv sync --extra dev --extra mcp --group dev
 
       - name: Run integration tests
         env:

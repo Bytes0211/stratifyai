@@ -88,8 +88,11 @@ web = [
 rag = [
     "chromadb>=0.5.0",
 ]
+mcp = [
+    "mcp[cli]>=1.25,<2",
+]
 all = [
-    "stratifyai[dev,cli,web,rag]",
+    "stratifyai[dev,cli,web,rag,mcp]",
 ]
 
 [project.urls]
@@ -100,9 +103,10 @@ Documentation = "https://github.com/Bytes0211/stratifyai#readme"
 
 [project.scripts]
 stratifyai = "cli.stratifyai_cli:main"
+stratifyai-mcp = "stratifyai.mcp_server.__main__:main"
 
 [tool.setuptools]
-packages = ["stratifyai", "stratifyai.chat", "stratifyai.providers", "stratifyai.utils", "cli", "api"]
+packages = ["stratifyai", "stratifyai.chat", "stratifyai.providers", "stratifyai.utils", "stratifyai.mcp_server", "cli", "api"]
 
 [tool.setuptools.package-data]
 stratifyai = ["py.typed"]
