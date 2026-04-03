@@ -974,7 +974,6 @@ async def chat_stream(websocket: WebSocket):
 
         # --- Rate limiting with TTL eviction --------------------------------
         _evict_stale_ws_entries()
-        auth_header = websocket.headers.get("authorization")
         auth_token = _extract_bearer_token(auth_header)
         client_ip = websocket.client.host if websocket.client else "unknown"
         ws_key = f"key:{_hash_token(auth_token)}" if auth_token else f"ip:{client_ip}"
