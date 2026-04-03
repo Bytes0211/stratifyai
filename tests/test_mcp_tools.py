@@ -1,10 +1,23 @@
 """Tests for MCP tools — uses mocked LLMClient/Router."""
 
 import json
+from datetime import datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
+from stratifyai.mcp_server import tools as mcp_tools
 from stratifyai.mcp_server.server import mcp
+from stratifyai.models import ChatResponse, Usage
+
+
+@pytest.fixture(autouse=True)
+def reset_mcp_cost_tracker():
+    """Reset the shared MCP cost tracker between tests."""
+    mcp_tools._mcp_cost_tracker.reset()
+    yield
+    mcp_tools._mcp_cost_tracker.reset()
 
 
 def _get_tool(name: str):
@@ -149,6 +162,78 @@ class TestGetCostSummary:
         assert result["mcp_schema_version"] == 1
         assert isinstance(result["total_cost_usd"], float)
         assert isinstance(result["total_calls"], int)
+
+    @pytest.mark.asyncio
+    async def test_summary_updates_after_chat_completion(self, monkeypatch):
+        mock_response = ChatResponse(
+            id="req-123",
+            model="gpt-4.1-mini",
+            content="Hello back",
+            finish_reason="stop",
+            usage=Usage(
+                prompt_tokens=10,
+                completion_tokens=5,
+                total_tokens=15,
+                cost_usd=0.0015,
+            ),
+            provider="openai",
+            created_at=datetime.now(),
+            raw_response={},
+            latency_ms=12.0,
+        )
+        mock_client = SimpleNamespace(
+            chat_completion=AsyncMock(return_value=mock_response)
+        )
+
+        monkeypatch.setattr(mcp_tools, "LLMClient", lambda provider: mock_client)
+
+        await _get_tool("chat_completion")(
+            provider="openai",
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": "hello"}],
+        )
+
+        summary = await _get_tool("get_cost_summary")()
+        assert summary["total_calls"] == 1
+        assert summary["total_tokens"] == 15
+        assert summary["total_cost_usd"] == pytest.approx(0.0015)
+        assert summary["by_provider"]["openai"] == pytest.approx(0.0015)
+        assert summary["by_model"]["gpt-4.1-mini"] == pytest.approx(0.0015)
+
+    @pytest.mark.asyncio
+    async def test_summary_filters_by_provider_and_model(self):
+        mcp_tools._mcp_cost_tracker.add_entry(
+            provider="openai",
+            model="gpt-4.1-mini",
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            cost_usd=0.0015,
+            request_id="req-1",
+        )
+        mcp_tools._mcp_cost_tracker.add_entry(
+            provider="anthropic",
+            model="claude-3-5-haiku-20241022",
+            prompt_tokens=20,
+            completion_tokens=10,
+            total_tokens=30,
+            cost_usd=0.003,
+            request_id="req-2",
+        )
+
+        openai_summary = await _get_tool("get_cost_summary")(provider="openai")
+        assert openai_summary["total_calls"] == 1
+        assert openai_summary["total_tokens"] == 15
+        assert openai_summary["by_provider"] == {"openai": pytest.approx(0.0015)}
+
+        model_summary = await _get_tool("get_cost_summary")(
+            model="claude-3-5-haiku-20241022"
+        )
+        assert model_summary["total_calls"] == 1
+        assert model_summary["total_tokens"] == 30
+        assert model_summary["by_model"] == {
+            "claude-3-5-haiku-20241022": pytest.approx(0.003)
+        }
 
 
 class TestToolRegistration:

@@ -32,6 +32,51 @@ from .schemas import (
 _mcp_cost_tracker = CostTracker()
 
 
+def _track_response_cost(response: Any) -> None:
+    """Record response usage in the shared MCP session tracker."""
+    usage = response.usage
+    _mcp_cost_tracker.add_entry(
+        provider=response.provider,
+        model=response.model,
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        cost_usd=usage.cost_usd,
+        request_id=response.id,
+        cached_tokens=usage.cached_tokens,
+        cache_creation_tokens=usage.cache_creation_tokens,
+        cache_read_tokens=usage.cache_read_tokens,
+    )
+
+
+def _build_cost_summary(
+    provider: str | None = None,
+    model: str | None = None,
+) -> CostSummaryOutput:
+    """Build a filtered cost summary from tracked MCP session entries."""
+    entries = _mcp_cost_tracker.get_entries(provider=provider, model=model)
+
+    total_cost_usd = sum(entry.cost_usd for entry in entries)
+    total_tokens = sum(entry.total_tokens for entry in entries)
+    total_calls = len(entries)
+
+    by_provider: dict[str, float] = {}
+    by_model: dict[str, float] = {}
+    for entry in entries:
+        by_provider[entry.provider] = (
+            by_provider.get(entry.provider, 0.0) + entry.cost_usd
+        )
+        by_model[entry.model] = by_model.get(entry.model, 0.0) + entry.cost_usd
+
+    return CostSummaryOutput(
+        total_cost_usd=total_cost_usd,
+        total_calls=total_calls,
+        total_tokens=total_tokens,
+        by_provider=by_provider,
+        by_model=by_model,
+    )
+
+
 def _is_configured(provider: str) -> bool:
     """Check if a provider has an API key configured."""
     env_key = APIKeyHelper.PROVIDER_ENV_KEYS.get(provider)
@@ -83,6 +128,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 max_tokens=max_tokens,
             )
             response = await client.chat_completion(request)
+            _track_response_cost(response)
 
             cost = 0.0
             if response.usage and response.usage.cost_usd is not None:
@@ -142,6 +188,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 temperature=0.7,
             )
             response = await client.chat_completion(request)
+            _track_response_cost(response)
 
             cost = 0.0
             if response.usage and response.usage.cost_usd is not None:
@@ -248,14 +295,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Optionally filter by provider or model.
         """
         try:
-            summary = _mcp_cost_tracker.get_summary()
-            output = CostSummaryOutput(
-                total_cost_usd=float(summary.get("total_cost_usd", 0.0)),
-                total_calls=int(summary.get("total_calls", 0)),
-                total_tokens=int(summary.get("total_tokens", 0)),
-                by_provider=summary.get("by_provider", {}),
-                by_model=summary.get("by_model", {}),
-            )
+            output = _build_cost_summary(provider=provider, model=model)
             return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider, model)
@@ -265,6 +305,18 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     async def validate_provider(provider: str) -> dict[str, Any]:
         """Validate that a provider is configured and accessible."""
         try:
+            if provider not in MODEL_CATALOG:
+                output = ValidateProviderOutput(
+                    provider=provider,
+                    configured=False,
+                    models_available=[],
+                    validation_errors=[
+                        f"Unknown provider: {provider}",
+                        f"No models found in catalog for provider '{provider}'",
+                    ],
+                )
+                return dict(output.model_dump())
+
             configured = _is_configured(provider)
             models = list(MODEL_CATALOG.get(provider, {}).keys())
             errors: list[str] = []

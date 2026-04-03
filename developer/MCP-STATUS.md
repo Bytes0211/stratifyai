@@ -16,8 +16,8 @@ Project Board: https://github.com/users/Bytes0211/projects/4
 |---|---|---|---|---|---|
 | 0 | Contract Freeze | https://github.com/Bytes0211/stratifyai/issues/19 | Done | - | 2026-04-03 | Contract and plan docs finalized |
 | 1 | Bootstrap | https://github.com/Bytes0211/stratifyai/issues/20 | Done | - | 2026-04-03 | MCP server scaffold, entrypoint, schemas, and errors verified |
-| 2 | Core Tools | https://github.com/Bytes0211/stratifyai/issues/21 | Planned | - | 2026-04-03 | Phase field assigned in project |
-| 3 | Cost Tools | https://github.com/Bytes0211/stratifyai/issues/22 | Planned | - | 2026-04-03 | Phase field assigned in project |
+| 2 | Core Tools | https://github.com/Bytes0211/stratifyai/issues/21 | Done | - | 2026-04-03 | Core MCP execution and model lookup tools verified in tools.py |
+| 3 | Cost Tools | https://github.com/Bytes0211/stratifyai/issues/22 | Done | - | 2026-04-03 | Session cost tracking, summary filters, and validation tooling verified |
 | 4 | Resources | https://github.com/Bytes0211/stratifyai/issues/23 | Planned | - | 2026-04-03 | Phase field assigned in project |
 | 5 | Prompts | https://github.com/Bytes0211/stratifyai/issues/24 | Planned | - | 2026-04-03 | Phase field assigned in project |
 | 6 | HTTP Transport | https://github.com/Bytes0211/stratifyai/issues/25 | Planned | - | 2026-04-03 | Phase field assigned in project |
@@ -51,21 +51,21 @@ Use this section for fine-grained execution status. Update step status as work m
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P2-S1 | Implement chat_completion tool with schema output | Planned | 2026-04-03 | Issue 21 |
-| P2-S2 | Implement chat_with_routing tool with route metadata | Planned | 2026-04-03 | Issue 21 |
-| P2-S3 | Implement list_providers and list_models tools | Planned | 2026-04-03 | Issue 21 |
-| P2-S4 | Implement get_model_info tool with catalog metadata | Planned | 2026-04-03 | Issue 21 |
-| P2-S5 | Validate structured errors for invalid provider/model | Planned | 2026-04-03 | Issue 21 |
+| P2-S1 | Implement chat_completion tool with schema output | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P2-S2 | Implement chat_with_routing tool with route metadata | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P2-S3 | Implement list_providers and list_models tools | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P2-S4 | Implement get_model_info tool with catalog metadata | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P2-S5 | Validate structured errors for invalid provider/model | Done | 2026-04-03 | tests/test_mcp_tools.py |
 
 ### Phase 3 - Cost and Validation Tools
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P3-S1 | Add mcp session cost tracker wiring in tools module | Planned | 2026-04-03 | Issue 22 |
-| P3-S2 | Implement get_cost_summary tool and filters | Planned | 2026-04-03 | Issue 22 |
-| P3-S3 | Implement validate_provider tool | Planned | 2026-04-03 | Issue 22 |
-| P3-S4 | Implement estimate_cost tool using token counter | Planned | 2026-04-03 | Issue 22 |
-| P3-S5 | Verify cost totals update after chat tool calls | Planned | 2026-04-03 | Issue 22 |
+| P3-S1 | Add mcp session cost tracker wiring in tools module | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P3-S2 | Implement get_cost_summary tool and filters | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P3-S3 | Implement validate_provider tool | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P3-S4 | Implement estimate_cost tool using token counter | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
+| P3-S5 | Verify cost totals update after chat tool calls | Done | 2026-04-03 | tests/test_mcp_tools.py |
 
 ### Phase 4 - Resources
 
