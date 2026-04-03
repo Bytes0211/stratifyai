@@ -1,13 +1,14 @@
 """Unit tests for CLI chat command and _chat_impl function."""
 
-import pytest
-from unittest.mock import MagicMock, patch, mock_open, call
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 from typer.testing import CliRunner
 
-from cli.stratifyai_cli import app, _chat_impl
-from stratifyai.models import Message, ChatRequest, ChatResponse, Usage
+from cli.stratifyai_cli import _chat_impl, app
+from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 
 @pytest.fixture

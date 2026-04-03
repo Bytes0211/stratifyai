@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 

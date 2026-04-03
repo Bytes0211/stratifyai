@@ -1,6 +1,7 @@
 """Unified client for accessing multiple LLM providers."""
 
 import asyncio
+import hashlib
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -55,9 +56,15 @@ _provider_pool: dict[str, BaseProvider] = {}
 
 
 def _pool_key(provider: str, api_key: str | None) -> str:
-    """Build a deterministic key for the provider pool."""
-    # Use a short hash of the api_key so different keys get different clients
-    key_part = str(hash(api_key))[:12] if api_key else "env"
+    """Build a deterministic key for the provider pool.
+
+    Uses SHA-256 (stable across processes) instead of Python's hash()
+    which is randomized per process via PYTHONHASHSEED.
+    """
+    if api_key:
+        key_part = hashlib.sha256(api_key.encode()).hexdigest()[:12]
+    else:
+        key_part = "env"
     return f"{provider}:{key_part}"
 
 
@@ -246,6 +253,55 @@ class LLMClient:
 
         raise InvalidModelError(model, "any provider")
 
+    def set_provider_concurrency_limit(
+        self, provider: str, max_concurrent: int | None
+    ) -> None:
+        """
+        Set maximum concurrent requests for a specific provider.
+
+        Args:
+            provider: Provider name (e.g., 'openai', 'anthropic')
+            max_concurrent: Maximum number of concurrent requests.
+                          None removes the limit (default behavior).
+
+        Raises:
+            InvalidProviderError: If provider is not supported
+        """
+        if provider not in self._provider_registry:
+            raise InvalidProviderError(f"Provider '{provider}' is not supported")
+
+        # Initialize provider if not already done
+        if provider not in self._providers:
+            self._initialize_provider(provider)
+
+        # Set limit on the provider instance
+        self._providers[provider].set_concurrency_limit(max_concurrent)
+        logger.debug(
+            "Set concurrency limit for %s: %s", provider, max_concurrent or "unlimited"
+        )
+
+    def get_provider_concurrency_limit(self, provider: str) -> int | None:
+        """
+        Get the current concurrency limit for a provider.
+
+        Args:
+            provider: Provider name
+
+        Returns:
+            Current limit, or None if no limit is set
+
+        Raises:
+            InvalidProviderError: If provider is not supported
+        """
+        if provider not in self._provider_registry:
+            raise InvalidProviderError(f"Provider '{provider}' is not supported")
+
+        if provider not in self._providers:
+            # Provider not yet initialized, no limit set
+            return None
+
+        return self._providers[provider].get_concurrency_limit()
+
     async def chat(
         self,
         model: str,
@@ -412,6 +468,9 @@ class LLMClient:
                     str(exc),
                 )
                 await asyncio.sleep(delay)
+            except Exception:
+                # Non-retryable exceptions must propagate immediately
+                raise
 
     def chat_sync(
         self,

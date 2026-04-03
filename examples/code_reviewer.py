@@ -17,13 +17,14 @@ Usage:
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any
+
+from dotenv import load_dotenv
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.markdown import Markdown
-from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -32,8 +33,8 @@ load_dotenv()
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from stratifyai import LLMClient, Router, RoutingStrategy
-from stratifyai.models import Message, ChatRequest
 from stratifyai.exceptions import LLMAbstractionError
+from stratifyai.models import ChatRequest, Message
 
 console = Console()
 
@@ -63,7 +64,7 @@ class CodeReviewer:
             Tuple of (code_content, language)
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 code = f.read()
 
             # Detect language from extension
@@ -89,7 +90,7 @@ class CodeReviewer:
 
     def create_review_prompt(
         self, code: str, language: str, focus: str = "all"
-    ) -> List[Message]:
+    ) -> list[Message]:
         """Create review prompt based on focus area.
 
         Args:
@@ -133,7 +134,7 @@ Provide a detailed code review."""
 
     def review(
         self, code: str, language: str, focus: str = "all", model: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Review code with specified model or auto-routing.
 
         Args:
@@ -182,7 +183,7 @@ Provide a detailed code review."""
 
     def compare_models(
         self, code: str, language: str, focus: str = "all"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Compare reviews from multiple models.
 
         Args:
@@ -209,7 +210,7 @@ Provide a detailed code review."""
 
         return results
 
-    def display_review(self, result: Dict[str, Any], code: str, language: str):
+    def display_review(self, result: dict[str, Any], code: str, language: str):
         """Display code review with Rich formatting.
 
         Args:
@@ -251,7 +252,7 @@ Provide a detailed code review."""
             f"[dim]Tokens: {result['tokens']:,} | Cost: ${result['cost']:.4f}[/dim]"
         )
 
-    def display_comparison(self, results: List[Dict[str, Any]]):
+    def display_comparison(self, results: list[dict[str, Any]]):
         """Display comparison of multiple reviews.
 
         Args:
@@ -319,7 +320,7 @@ def main():
     reviewer = CodeReviewer(use_streaming=args.stream)
 
     # Load code
-    console.print(f"\n[bold]Code Reviewer[/bold]")
+    console.print("\n[bold]Code Reviewer[/bold]")
     console.print(f"File: {args.file}")
     console.print(f"Focus: {args.focus}\n")
 

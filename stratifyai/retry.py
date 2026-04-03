@@ -74,7 +74,7 @@ def with_retry(
                                 fallback_provider,
                                 last_exception,
                             )
-                        raise MaxRetriesExceededError(config.max_retries, e)
+                        raise MaxRetriesExceededError(config.max_retries, e) from e
 
                     # Calculate delay with exponential backoff
                     delay = min(

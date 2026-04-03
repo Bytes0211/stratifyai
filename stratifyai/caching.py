@@ -13,6 +13,9 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 
+import cachetools
+from readerwriterlock.rwlock import RWLockFair
+
 from .models import ChatResponse, Usage
 from .observability import build_log_extra
 
@@ -59,7 +62,11 @@ class CacheEntry:
 
 
 class ResponseCache:
-    """Thread-safe in-memory cache for LLM responses."""
+    """Thread-safe in-memory cache for LLM responses with O(1) eviction.
+
+    Uses cachetools.LRUCache for automatic LRU eviction and RWLockFair
+    for concurrent read support.
+    """
 
     def __init__(self, ttl: int = 3600, max_size: int = 1000):
         """
@@ -71,14 +78,16 @@ class ResponseCache:
         """
         self.ttl = ttl
         self.max_size = max_size
-        self._cache: dict[str, CacheEntry] = {}
-        self._lock = threading.Lock()
+        self._cache: cachetools.LRUCache[str, CacheEntry] = cachetools.LRUCache(
+            maxsize=max_size
+        )
+        self._lock = RWLockFair()  # Read-write lock for concurrent access
         self._total_misses: int = 0
         self._total_cost_saved: float = 0.0
 
     def get(self, key: str) -> ChatResponse | None:
         """
-        Get response from cache.
+        Get response from cache (read operation - allows concurrent access).
 
         Args:
             key: Cache key
@@ -86,69 +95,101 @@ class ResponseCache:
         Returns:
             Cached response if found and not expired, None otherwise
         """
-        with self._lock:
+        # Phase 1: Read lock — check existence and expiry, capture data
+        found = False
+        expired = False
+        response = None
+        cost = 0.0
+
+        with self._lock.gen_rlock():
+            if key in self._cache:
+                found = True
+                entry = self._cache[key]
+                if time.time() - entry.timestamp > self.ttl:
+                    expired = True
+                else:
+                    response = entry.response
+                    cost = 0.0
+                    if (
+                        hasattr(response, "usage")
+                        and hasattr(response.usage, "cost_usd")
+                        and response.usage.cost_usd is not None
+                    ):
+                        cost = response.usage.cost_usd
+
+        # Phase 2: Write lock — mutate stats or evict
+        # (read lock is fully released before acquiring write lock)
+        if found and not expired and response is not None:
+            # Cache hit — update stats under write lock, return response
+            ttl_remaining = 0
+            with self._lock.gen_wlock():
+                if key in self._cache:
+                    self._cache[key].hits += 1
+                    self._cache[key].cost_saved += cost
+                    self._total_cost_saved += cost
+                    ttl_remaining = max(
+                        0, int(self.ttl - (time.time() - self._cache[key].timestamp))
+                    )
+
+            _log_cache_event(
+                "hit",
+                key=key,
+                model=response.model,
+                ttl_remaining=ttl_remaining,
+                backend="memory",
+            )
+            return response
+
+        # Key not found or expired — take write lock for mutation
+        with self._lock.gen_wlock():
             if key not in self._cache:
                 self._total_misses += 1
                 return None
 
             entry = self._cache[key]
-
-            # Check if expired
             if time.time() - entry.timestamp > self.ttl:
+                model = entry.response.model
                 del self._cache[key]
                 self._total_misses += 1
                 _log_cache_event(
                     "expired",
                     key=key,
-                    model=entry.response.model,
+                    model=model,
                     ttl_remaining=0,
                     backend="memory",
                 )
                 return None
 
-            # Update hit count and cost saved
+            # Entry is valid (race: another thread refreshed it between our rlock and wlock)
             entry.hits += 1
-            if hasattr(entry.response, "usage") and hasattr(
-                entry.response.usage, "cost_usd"
+            resp_cost = 0.0
+            if (
+                hasattr(entry.response, "usage")
+                and hasattr(entry.response.usage, "cost_usd")
+                and entry.response.usage.cost_usd is not None
             ):
-                cost = entry.response.usage.cost_usd
-                entry.cost_saved += cost
-                self._total_cost_saved += cost
-
-            ttl_remaining = max(0, int(self.ttl - (time.time() - entry.timestamp)))
-            _log_cache_event(
-                "hit",
-                key=key,
-                model=entry.response.model,
-                ttl_remaining=ttl_remaining,
-                backend="memory",
-            )
-
+                resp_cost = entry.response.usage.cost_usd
+            entry.cost_saved += resp_cost
+            self._total_cost_saved += resp_cost
             return entry.response
 
     def set(self, key: str, response: ChatResponse) -> None:
         """
-        Store response in cache.
+        Store response in cache (write operation).
 
         Args:
             key: Cache key
             response: Response to cache
         """
-        with self._lock:
-            # Evict oldest entry if cache is full
-            if len(self._cache) >= self.max_size:
-                oldest_key = min(
-                    self._cache.keys(), key=lambda k: self._cache[k].timestamp
-                )
-                del self._cache[oldest_key]
-
+        with self._lock.gen_wlock():
+            # LRUCache automatically evicts oldest entry when max size is reached
             self._cache[key] = CacheEntry(
                 response=response, timestamp=time.time(), hits=0
             )
 
     def clear(self) -> None:
         """Clear all cache entries."""
-        with self._lock:
+        with self._lock.gen_wlock():
             self._cache.clear()
             self._total_misses = 0
             self._total_cost_saved = 0.0
@@ -160,7 +201,7 @@ class ResponseCache:
         Returns:
             Dictionary with cache stats including hits, misses, and cost savings
         """
-        with self._lock:
+        with self._lock.gen_rlock():
             total_hits = sum(entry.hits for entry in self._cache.values())
             total_requests = total_hits + self._total_misses
             hit_rate = (
@@ -185,7 +226,7 @@ class ResponseCache:
         Returns:
             List of cache entry details
         """
-        with self._lock:
+        with self._lock.gen_rlock():
             entries = []
             for key, entry in self._cache.items():
                 age = time.time() - entry.timestamp
@@ -244,7 +285,18 @@ class PersistentResponseCache:
     # ---- DB helpers -------------------------------------------------------
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._db_path)
+        """Create a SQLite connection with WAL mode and thread safety enabled."""
+        conn = sqlite3.connect(
+            self._db_path,
+            timeout=5.0,  # 5-second timeout for locks
+            check_same_thread=False,  # Allow use across threads with our own locking
+        )
+        # Enable WAL mode for better concurrent read support
+        conn.execute("PRAGMA journal_mode=WAL")
+        # Set reasonable SQLite parameters for performance
+        conn.execute("PRAGMA synchronous=NORMAL")  # Balance safety/speed
+        conn.execute("PRAGMA cache_size=-64000")  # 64MB cache
+        return conn
 
     def _init_db(self) -> None:
         with self._connect() as conn:
@@ -521,16 +573,23 @@ def cache_response(
         async def async_wrapper(*args, **kwargs) -> ChatResponse:
             # Extract request parameters
             # Handle both ChatRequest object and individual parameters
+            request_obj = None
             if args and hasattr(args[0], "model"):
-                request = args[0]
+                request_obj = args[0]
                 cache_key = generate_cache_key(
-                    model=request.model,
-                    messages=request.messages,
-                    temperature=request.temperature,
-                    max_tokens=request.max_tokens,
+                    model=request_obj.model,
+                    messages=request_obj.messages,
+                    temperature=request_obj.temperature,
+                    max_tokens=request_obj.max_tokens,
                 )
             else:
                 cache_key = generate_cache_key(**kwargs)
+
+            model = (
+                request_obj.model
+                if request_obj is not None
+                else kwargs.get("model", "unknown")
+            )
 
             # --- Persistent backend path (PersistentResponseCache) ---
             if backend is not None:
@@ -538,11 +597,6 @@ def cache_response(
                 if cached is not None:
                     return cached
 
-                model = (
-                    request.model
-                    if args and hasattr(args[0], "model")
-                    else kwargs.get("model", "unknown")
-                )
                 _log_cache_event(
                     "miss",
                     key=cache_key,
@@ -561,11 +615,6 @@ def cache_response(
             if cached is not None:
                 return cached
 
-            model = (
-                request.model
-                if args and hasattr(args[0], "model")
-                else kwargs.get("model", "unknown")
-            )
             _log_cache_event(
                 "miss",
                 key=cache_key,

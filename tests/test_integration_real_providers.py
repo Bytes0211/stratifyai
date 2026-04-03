@@ -13,7 +13,6 @@ from stratifyai.client import LLMClient
 from stratifyai.exceptions import ProviderAPIError
 from stratifyai.models import ChatRequest, Message
 
-
 pytestmark = [pytest.mark.integration]
 
 

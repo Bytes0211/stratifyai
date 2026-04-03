@@ -1,6 +1,5 @@
 """Unit tests for Router extraction routing functionality."""
 
-import pytest
 from stratifyai.router import Router, RoutingStrategy
 from stratifyai.utils.file_analyzer import FileType
 

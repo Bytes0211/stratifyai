@@ -8,6 +8,7 @@ This example demonstrates how to:
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -91,16 +92,16 @@ def greet(name):
         model="gpt-4o-mini",
     )
 
-    print(f"\n💬 Response:")
+    print("\n💬 Response:")
     print(f"{response.content}\n")
 
-    print(f"📊 Stats:")
+    print("📊 Stats:")
     print(f"   • Chunks retrieved: {response.num_chunks_retrieved}")
     print(f"   • Cost: ${response.total_cost:.6f}")
     print(f"   • Model: {response.model}")
 
     if response.sources:
-        print(f"\n📖 Sources:")
+        print("\n📖 Sources:")
         for source in response.sources:
             print(
                 f"   • {source['file']} (chunk {source['chunk_idx']}, similarity: {source['similarity']:.2%})"
@@ -109,7 +110,7 @@ def greet(name):
     # Cleanup
     rag.delete_collection("python_docs")
     os.remove(sample_doc_path)
-    print(f"\n✓ Cleaned up collection and sample file")
+    print("\n✓ Cleaned up collection and sample file")
 
 
 def example_directory_indexing():
@@ -138,7 +139,7 @@ Machine learning applications include image recognition, natural language proces
 recommendation systems, and autonomous vehicles.
     """)
 
-    print(f"\n✓ Created sample directory with 3 files")
+    print("\n✓ Created sample directory with 3 files")
 
     # Initialize RAG client
     rag = RAGClient()
@@ -161,12 +162,12 @@ recommendation systems, and autonomous vehicles.
         collection_name="ml_docs", query="What are neural networks?", n_results=3
     )
 
-    print(f"\n💬 Response:")
+    print("\n💬 Response:")
     print(f"{response.content}\n")
 
     # Get collection stats
     stats = rag.get_collection_stats("ml_docs")
-    print(f"📊 Collection Stats:")
+    print("📊 Collection Stats:")
     print(f"   • Total chunks: {stats['num_chunks']}")
     print(f"   • Files indexed: {stats['num_files']}")
     print(f"   • Sample files: {', '.join(stats['sample_files'])}")
@@ -176,7 +177,7 @@ recommendation systems, and autonomous vehicles.
     for file in temp_dir.glob("*.txt"):
         file.unlink()
     temp_dir.rmdir()
-    print(f"\n✓ Cleaned up collection and temp directory")
+    print("\n✓ Cleaned up collection and temp directory")
 
 
 def example_retrieval_only():
@@ -196,7 +197,7 @@ Kubernetes is a container orchestration platform. It manages deployment, scaling
 Terraform is an infrastructure as code tool. It allows you to define and provision infrastructure using declarative config files.
         """)
 
-    print(f"\n✓ Created sample document")
+    print("\n✓ Created sample document")
 
     # Initialize and index
     rag = RAGClient()

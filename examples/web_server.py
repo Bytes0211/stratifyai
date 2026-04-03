@@ -26,25 +26,25 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, field_validator
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from stratifyai import LLMClient
-from stratifyai.models import Message, ChatRequest as LLMChatRequest
 from stratifyai.exceptions import (
-    RateLimitError,
     AuthenticationError,
     InvalidModelError,
     InvalidProviderError,
     ProviderError,
+    RateLimitError,
 )
+from stratifyai.models import ChatRequest as LLMChatRequest
+from stratifyai.models import Message
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -76,8 +76,8 @@ class ChatRequest(BaseModel):
     model: str
     messages: list[dict]
     temperature: float = 0.7
-    max_tokens: Optional[int] = None
-    provider: Optional[str] = None
+    max_tokens: int | None = None
+    provider: str | None = None
 
     @field_validator("temperature")
     @classmethod
@@ -149,10 +149,10 @@ async def root():
         <title>StratifyAI Demo</title>
         <style>
             * { box-sizing: border-box; }
-            body { 
+            body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                max-width: 800px; 
-                margin: 0 auto; 
+                max-width: 800px;
+                margin: 0 auto;
                 padding: 20px;
                 background: #1a1a2e;
                 color: #eee;
@@ -216,7 +216,7 @@ async def root():
             <div id="output"></div>
             <div id="usage"></div>
         </div>
-        
+
         <script>
             async function sendMessage() {
                 const model = document.getElementById('model').value;
@@ -224,12 +224,12 @@ async def root():
                 const output = document.getElementById('output');
                 const usage = document.getElementById('usage');
                 const sendBtn = document.getElementById('send');
-                
+
                 output.textContent = '';
                 output.classList.add('streaming');
                 usage.textContent = '';
                 sendBtn.disabled = true;
-                
+
                 try {
                     const response = await fetch('/chat/stream', {
                         method: 'POST',
@@ -239,30 +239,30 @@ async def root():
                             messages: [{ role: 'user', content: prompt }]
                         })
                     });
-                    
+
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let buffer = '';
-                    
+
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
+
                         buffer += decoder.decode(value, { stream: true });
                         const lines = buffer.split('\\n\\n');
                         buffer = lines.pop() || '';
-                        
+
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 const event = JSON.parse(line.slice(6));
-                                
+
                                 if (event.type === 'chunk') {
                                     output.textContent += event.content;
                                 } else if (event.type === 'done') {
                                     usage.innerHTML = `
-                                        <strong>Model:</strong> ${event.usage.model || model} | 
-                                        <strong>Provider:</strong> ${event.usage.provider || 'unknown'} | 
-                                        <strong>Tokens:</strong> ${event.usage.total_tokens} | 
+                                        <strong>Model:</strong> ${event.usage.model || model} |
+                                        <strong>Provider:</strong> ${event.usage.provider || 'unknown'} |
+                                        <strong>Tokens:</strong> ${event.usage.total_tokens} |
                                         <strong>Cost:</strong> $${event.usage.cost_usd.toFixed(6)}
                                     `;
                                 } else if (event.type === 'error') {
@@ -278,7 +278,7 @@ async def root():
                     sendBtn.disabled = false;
                 }
             }
-            
+
             // Send on Enter key
             document.getElementById('prompt').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendMessage();
@@ -335,17 +335,17 @@ async def chat(request: ChatRequest):
         )
 
     except InvalidModelError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except InvalidProviderError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except AuthenticationError as e:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail="Invalid API key") from e
     except RateLimitError as e:
-        raise HTTPException(status_code=429, detail=str(e))
+        raise HTTPException(status_code=429, detail=str(e)) from e
     except ProviderError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/chat/stream")

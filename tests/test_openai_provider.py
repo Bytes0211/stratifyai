@@ -1,6 +1,5 @@
 """Unit tests for OpenAI provider."""
 
-import asyncio
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,7 +8,6 @@ import pytest
 from stratifyai.exceptions import (
     AuthenticationError,
     InvalidModelError,
-    ProviderAPIError,
 )
 from stratifyai.models import ChatRequest, Message
 from stratifyai.providers.openai import OpenAIProvider

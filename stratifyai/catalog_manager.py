@@ -81,7 +81,7 @@ def load_catalog(force_reload: bool = False) -> dict[str, Any]:
 
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in catalog: {e}")
-            raise ValueError(f"Failed to parse catalog JSON: {e}")
+            raise ValueError(f"Failed to parse catalog JSON: {e}") from e
         except Exception as e:
             logger.error(f"Error loading catalog: {e}")
             raise

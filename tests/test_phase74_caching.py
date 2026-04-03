@@ -1,16 +1,15 @@
 """Unit tests for Phase 7.4: Enhanced Caching UI."""
 
-import pytest
 import time
+from datetime import datetime
+
 from stratifyai.caching import (
     ResponseCache,
-    CacheEntry,
-    get_cache_stats,
-    get_cache_entries,
     clear_cache,
+    get_cache_entries,
+    get_cache_stats,
 )
 from stratifyai.models import ChatResponse, Usage
-from datetime import datetime
 
 
 class TestEnhancedCaching:

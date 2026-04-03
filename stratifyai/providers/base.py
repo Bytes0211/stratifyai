@@ -1,5 +1,6 @@
 """Abstract base class for LLM providers."""
 
+import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 
@@ -33,6 +34,10 @@ class BaseProvider(ABC):
                 min(10.0, self.timeout_seconds),
             )
         )
+        # Concurrency limiter: limits simultaneous requests to this provider
+        # Default: no limit (None). Set via set_concurrency_limit()
+        self._concurrency_semaphore: asyncio.Semaphore | None = None
+        self._concurrency_limit: int | None = None
 
     @abstractmethod
     def _initialize_client(self) -> None:
@@ -191,3 +196,36 @@ class BaseProvider(ABC):
                 f"{self.provider_name} temperature must be between {min_temp} and {max_temp}, "
                 f"got {temperature}"
             )
+
+    def set_concurrency_limit(self, max_concurrent: int | None) -> None:
+        """
+        Set maximum concurrent requests for this provider.
+
+        Args:
+            max_concurrent: Maximum number of concurrent requests allowed.
+                          None disables the limit (default behavior).
+        """
+        self._concurrency_limit = max_concurrent
+        # Reset semaphore so it gets lazily recreated in the correct event loop
+        self._concurrency_semaphore = None
+
+    async def _acquire_concurrency_slot(self) -> None:
+        """Acquire a concurrency slot, blocking if limit is reached.
+
+        The semaphore is created lazily on first use so it binds to the
+        running event loop rather than the loop (or lack thereof) that was
+        active when ``set_concurrency_limit`` was called.
+        """
+        if self._concurrency_limit is not None:
+            if self._concurrency_semaphore is None:
+                self._concurrency_semaphore = asyncio.Semaphore(self._concurrency_limit)
+            await self._concurrency_semaphore.acquire()
+
+    def _release_concurrency_slot(self) -> None:
+        """Release a concurrency slot."""
+        if self._concurrency_semaphore is not None:
+            self._concurrency_semaphore.release()
+
+    def get_concurrency_limit(self) -> int | None:
+        """Get the current concurrency limit for this provider."""
+        return self._concurrency_limit

@@ -58,10 +58,10 @@ class ProfileParameter:
         if self.type == "number":
             try:
                 value = float(value)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"Parameter '{self.name}' must be a number, got: {value!r}"
-                )
+                ) from e
             if self.min_value is not None and value < self.min_value:
                 raise ValueError(
                     f"Parameter '{self.name}' must be >= {self.min_value}, got: {value}"
@@ -74,10 +74,10 @@ class ProfileParameter:
         elif self.type == "integer":
             try:
                 value = int(value)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"Parameter '{self.name}' must be an integer, got: {value!r}"
-                )
+                ) from e
             if self.min_value is not None and value < self.min_value:
                 raise ValueError(
                     f"Parameter '{self.name}' must be >= {int(self.min_value)}, "

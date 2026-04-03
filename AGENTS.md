@@ -268,7 +268,7 @@ stratifyai/                             # Project root
 
 ### Running Tests
 ```bash
-# Run all tests (408+ total)
+# Run all tests (530+ total)
 pytest
 
 # Run with verbose output
@@ -366,10 +366,10 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** Phase 11 - Error Handling & Validation Hardening (In Progress)
-**Progress:** Phases 1-10 complete; Phase 11 active
-**Latest Updates:** Phase 10 CI/CD and testing infrastructure completed; docs/status alignment refresh (Apr 2026)
-**Test Suite:** 408+ tests
+**Current Phase:** Phase 14 - Developer Experience (Next)
+**Progress:** Phases 1-13 complete; Phase 13 bug fix pass applied
+**Latest Updates:** Phase 13 bug fix pass (Apr 2, 2026) — concurrency coverage, cache RWLock, streaming retry, pool key stability
+**Test Suite:** 531 tests
 
 ### Completed Phases
 - ✅ Phase 1: Core Implementation (100%)
@@ -548,25 +548,62 @@ stratifyai check-keys
   - Coverage reporting with minimum threshold
   - Frontend build artifacts removed from source control and built in CI
 
-### In Progress
-
-- 🔧 Phase 11: Error Handling & Validation Hardening
+- ✅ Phase 11: Error Handling & Validation Hardening (100%) - Feb 2026
   - Fail-fast API key validation at client initialization
   - Client-level reasoning model temperature validation
   - Retry consistency across all request paths
   - Provider-specific timeout controls
   - Cancellation support for long-running async operations
+  - 498 tests passing, 69% coverage maintained
+
+- ✅ Phase 12: Observability & Streaming Telemetry (100%) - Apr 1, 2026
+  - Correlation ID context management across requests
+  - HTTP tracing middleware with request/response latency
+  - Provider health endpoints: `/health/providers`, `/api/health/providers`
+  - Structured metrics export: `/api/metrics`
+  - Streaming telemetry: correlation ID, first-token latency, total latency
+  - Cache hit/miss/expired logging with TTL tracking
+  - TrackedLLMClient middleware for pre/post-request observability
+  - 515 tests passing, 69% coverage maintained
+
+- ✅ Phase 13: Performance & Scalability (100%) - Apr 2, 2026
+  - **Objective 1: O(1) Cache Backend** - LRUCache + RWLockFair
+    - Replaced O(n) min() eviction with O(1) doubly-linked list (cachetools.LRUCache)
+    - RWLock: multiple concurrent readers, exclusive writers (readerwriterlock)
+    - All mutations (hits, cost_saved, misses) under write lock only
+    - SQLite WAL mode: PRAGMA journal_mode=WAL for concurrent reader support
+    - 17 new tests (9 LRU + 8 WAL) — all passing
+  - **Objective 2: Provider Concurrency Limits** - Per-provider semaphores
+    - Lazy asyncio.Semaphore creation (binds to correct event loop)
+    - All 9 providers implement acquire/try/finally/release pattern
+    - LLMClient API: `set_provider_concurrency_limit("openai", 5)`
+    - 10 new tests — semaphore, queueing, parallelism
+  - **Objective 3: Load Profile Benchmarking** - 4 profiles
+    - `BASELINE`, `CONCURRENT_LIGHT`, `CONCURRENT_HEAVY`, `MIXED_COMPLEXITY`
+    - CLI: `python examples/performance_benchmark.py --profile concurrent-heavy`
+  - **Bug fix pass** (Apr 2, 2026):
+    - Fixed RWLock violation: writes inside read lock caused data corruption
+    - Fixed NameError in cache_response() decorator
+    - Fixed silent exception swallowing in streaming retry
+    - Replaced hash()-based pool key with SHA-256 (stable across processes)
+    - Removed exception-swallowing in tests, generous timing thresholds
+  - **526 total tests passing**, 69% coverage, **no regressions**
+  - All 22 critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality)
+  - See `developer/developer-journal.md` + `developer/TODO.md` for detailed summary
+
+### In Progress
+
+- 🔧 Phase 14: Developer Experience Polish
+  - Enhanced error messages and debugging capabilities
+  - Performance optimization in non-critical paths
+  - Documentation and examples expansion
+  - User workflow improvements
 
 ### Future Enhancements
 
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
-- 📝 Phase 8: PyPI package publishing
-- 📝 Phase 11: Error Handling & Validation Hardening (HIGH PRIORITY)
-- 📝 Phase 12: Observability & Streaming (MEDIUM PRIORITY)
-- 📝 Phase 13: Performance & Scalability (MEDIUM PRIORITY)
-- 📝 Phase 14: Developer Experience (LOW PRIORITY)
-- 📝 Phase 15: Security Audit (LOW PRIORITY)
+- 📝 Phase 15: Security Audit & Hardening
 - 📝 MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
 - 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
 - 📝 MCP Client (deferred — tool orchestration loop)

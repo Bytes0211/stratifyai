@@ -8,7 +8,6 @@ import pytest
 from stratifyai.client import LLMClient, _provider_pool, close_all_providers
 from stratifyai.models import ChatResponse, Usage
 
-
 # ---------- 8.3.7 Provider connection pooling ----------
 
 
@@ -53,7 +52,7 @@ class TestProviderPool:
     @pytest.mark.asyncio
     async def test_async_context_manager(self, mock_openai):
         """LLMClient can be used as async context manager."""
-        async with LLMClient(provider="openai", api_key="key-a") as c:
+        async with LLMClient(provider="openai", api_key="key-a"):
             assert len(_provider_pool) == 1
         # After exiting context, pool entry removed
         assert len(_provider_pool) == 0

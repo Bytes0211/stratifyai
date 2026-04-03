@@ -1,18 +1,16 @@
 """Tests for AWS Bedrock provider."""
 
-import asyncio
 import json
-import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import AsyncMock, Mock, patch
 
-from stratifyai.providers.bedrock import BedrockProvider
-from stratifyai.models import ChatRequest, Message, Usage
+import pytest
+
 from stratifyai.exceptions import (
-    AuthenticationError,
     InvalidModelError,
     ProviderAPIError,
 )
+from stratifyai.models import ChatRequest, Message, Usage
+from stratifyai.providers.bedrock import BedrockProvider
 
 
 class TestBedrockProviderInitialization:
@@ -310,7 +308,7 @@ class TestBedrockProviderChatCompletion:
             ],
         )
 
-        response = await provider.chat_completion(request)
+        await provider.chat_completion(request)
 
 
 class TestBedrockProviderStreaming:

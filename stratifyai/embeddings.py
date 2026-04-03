@@ -165,9 +165,13 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         except Exception as e:
             error_msg = str(e)
             if "authentication" in error_msg.lower() or "api key" in error_msg.lower():
-                raise AuthenticationError(f"OpenAI authentication failed: {error_msg}")
+                raise AuthenticationError(
+                    f"OpenAI authentication failed: {error_msg}"
+                ) from e
             else:
-                raise ProviderAPIError(f"OpenAI embedding request failed: {error_msg}")
+                raise ProviderAPIError(
+                    f"OpenAI embedding request failed: {error_msg}"
+                ) from e
 
     async def generate_embedding(
         self, text: str, model: str | None = None

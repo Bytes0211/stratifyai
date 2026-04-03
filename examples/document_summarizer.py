@@ -17,11 +17,12 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn
-from rich.table import Table
+from typing import Any
+
 from dotenv import load_dotenv
+from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -29,10 +30,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Load environment variables
 load_dotenv()
 
-from stratifyai import LLMClient, Router, RoutingStrategy, CostTracker
-from stratifyai.models import Message
+from stratifyai import CostTracker, LLMClient, Router, RoutingStrategy
 from stratifyai.exceptions import LLMAbstractionError
-from stratifyai.caching import cache_response
+from stratifyai.models import Message
 
 console = Console()
 
@@ -74,7 +74,7 @@ class DocumentSummarizer:
             Document content as string
         """
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             console.print(f"[red]Error loading {file_path}: {e}[/red]")
@@ -82,7 +82,7 @@ class DocumentSummarizer:
 
     def summarize_one(
         self, content: str, max_length: int = 200, style: str = "bullet_points"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Summarize a single document.
 
         Args:
@@ -165,10 +165,10 @@ Document:
 
     def summarize_batch(
         self,
-        file_paths: List[Path],
+        file_paths: list[Path],
         max_length: int = 200,
         style: str = "bullet_points",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Summarize multiple documents with progress tracking.
 
         Args:
@@ -221,7 +221,7 @@ Document:
 
         return results
 
-    def print_summary_table(self, results: List[Dict[str, Any]]):
+    def print_summary_table(self, results: list[dict[str, Any]]):
         """Print summary results as a Rich table.
 
         Args:
@@ -311,7 +311,7 @@ def main():
         return 1
 
     # Create summarizer
-    console.print(f"\n[bold]Document Summarizer[/bold]")
+    console.print("\n[bold]Document Summarizer[/bold]")
     console.print(f"Files: {len(file_paths)}")
     console.print(f"Budget: ${args.budget:.2f}")
     console.print(f"Style: {args.style}")

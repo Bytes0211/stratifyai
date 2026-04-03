@@ -1,8 +1,8 @@
 """Examples demonstrating prompt caching functionality in StratifyAI."""
 
-import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -180,7 +180,7 @@ def example_4_cache_management():
 
     # Check cache stats
     stats = get_cache_stats()
-    print(f"\n2. Cache Statistics:")
+    print("\n2. Cache Statistics:")
     print(f"   - Cache size: {stats['size']} entries")
     print(f"   - Max size: {stats['max_size']}")
     print(f"   - Total hits: {stats['total_hits']}")

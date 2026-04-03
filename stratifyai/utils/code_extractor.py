@@ -155,7 +155,7 @@ class PythonASTVisitor(ast.NodeVisitor):
             if arg.annotation:
                 try:
                     param_name += f": {ast.unparse(arg.annotation)}"
-                except:
+                except Exception:
                     pass
             params.append(param_name)
 
@@ -164,7 +164,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         if node.returns:
             try:
                 returns = ast.unparse(node.returns)
-            except:
+            except Exception:
                 pass
 
         # Extract docstring
@@ -177,7 +177,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         for decorator in node.decorator_list:
             try:
                 decorators.append(ast.unparse(decorator))
-            except:
+            except Exception:
                 decorators.append("@decorator")
 
         func_info = FunctionInfo(
@@ -207,7 +207,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         for base in node.bases:
             try:
                 bases.append(ast.unparse(base))
-            except:
+            except Exception:
                 bases.append("BaseClass")
 
         # Extract docstring
@@ -220,7 +220,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         for decorator in node.decorator_list:
             try:
                 decorators.append(ast.unparse(decorator))
-            except:
+            except Exception:
                 decorators.append("@decorator")
 
         class_info = ClassInfo(
@@ -265,7 +265,7 @@ def extract_python_structure(file_path: Path) -> CodeStructure:
     try:
         tree = ast.parse(source_code, filename=str(file_path))
     except SyntaxError as e:
-        raise SyntaxError(f"Failed to parse {file_path}: {e}")
+        raise SyntaxError(f"Failed to parse {file_path}: {e}") from e
 
     # Extract module docstring
     docstring = ast.get_docstring(tree)

@@ -100,8 +100,8 @@ class VectorDBClient:
             if "already exists" in str(e).lower():
                 raise LLMAbstractionError(
                     f"Collection '{name}' already exists. Use get_collection() or delete it first."
-                )
-            raise LLMAbstractionError(f"Failed to create collection: {str(e)}")
+                ) from e
+            raise LLMAbstractionError(f"Failed to create collection: {str(e)}") from e
 
     def get_collection(self, name: str):
         """Get an existing collection.
@@ -117,10 +117,10 @@ class VectorDBClient:
         """
         try:
             return self.client.get_collection(name=name)
-        except Exception:
+        except Exception as e:
             raise LLMAbstractionError(
                 f"Collection '{name}' not found. Create it with create_collection()."
-            )
+            ) from e
 
     def get_or_create_collection(self, name: str):
         """Get existing collection or create if it doesn't exist.
@@ -151,7 +151,7 @@ class VectorDBClient:
         try:
             self.client.delete_collection(name=name)
         except Exception as e:
-            raise LLMAbstractionError(f"Failed to delete collection: {str(e)}")
+            raise LLMAbstractionError(f"Failed to delete collection: {str(e)}") from e
 
     async def add_documents(
         self,

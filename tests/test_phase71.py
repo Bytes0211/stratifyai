@@ -1,15 +1,17 @@
 """Unit tests for Phase 7.1: Token Estimation & Chunking."""
 
-import pytest
 from pathlib import Path
-from stratifyai.utils.token_counter import (
-    estimate_tokens,
-    count_tokens_for_messages,
-    get_context_window,
-    check_token_limit,
-)
-from stratifyai.utils.file_analyzer import detect_file_type, analyze_file, FileType
+
+import pytest
+
 from stratifyai.chunking import chunk_content, get_chunk_metadata
+from stratifyai.utils.file_analyzer import FileType, analyze_file, detect_file_type
+from stratifyai.utils.token_counter import (
+    check_token_limit,
+    count_tokens_for_messages,
+    estimate_tokens,
+    get_context_window,
+)
 
 
 class TestTokenCounter:

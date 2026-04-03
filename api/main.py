@@ -1113,10 +1113,10 @@ async def chat_stream(websocket: WebSocket):
         latency_ms = (time.perf_counter() - start_time) * 1000
         tracked_metrics = tracked.get_last_stream_metrics()
         tracked_first_token = tracked_metrics.get("first_token_latency_ms")
-        if isinstance(tracked_first_token, (int, float)):
+        if isinstance(tracked_first_token, int | float):
             first_token_latency_ms = float(tracked_first_token)
         total_latency_value = tracked_metrics.get("total_latency_ms")
-        if isinstance(total_latency_value, (int, float)):
+        if isinstance(total_latency_value, int | float):
             latency_ms = float(total_latency_value)
         metrics_registry.record_stream_completion(first_token_latency_ms, latency_ms)
 

@@ -359,11 +359,11 @@ def _load_yaml_profiles(
     """
     try:
         import yaml
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "PyYAML is required to load YAML profiles. "
             "Install it with: pip install pyyaml"
-        )
+        ) from e
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)

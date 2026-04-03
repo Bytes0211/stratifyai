@@ -144,74 +144,79 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints for Bedrock (0.0 to 1.0)
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Build request body based on model family
-        body = self._build_request_body(request)
-
+        await self._acquire_concurrency_slot()
         try:
-            # Create async client and invoke Bedrock model
-            async with self._session.client(
-                "bedrock-runtime",
-                config=BotoConfig(
-                    connect_timeout=self.connect_timeout_seconds,
-                    read_timeout=self.timeout_seconds,
-                ),
-            ) as client:
-                response = await client.invoke_model(
-                    modelId=request.model,
-                    contentType="application/json",
-                    accept="application/json",
-                    body=json.dumps(body),
-                )
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-                # Parse response - aioboto3 returns StreamingBody
-                response_body_bytes = await response["body"].read()
-                response_body = json.loads(response_body_bytes)
+            # Validate temperature constraints for Bedrock (0.0 to 1.0)
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
 
-                # Normalize response based on model family
-                return self._normalize_response(response_body, request.model)
+            # Build request body based on model family
+            body = self._build_request_body(request)
 
-        except ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            error_message = e.response["Error"]["Message"]
+            try:
+                # Create async client and invoke Bedrock model
+                async with self._session.client(
+                    "bedrock-runtime",
+                    config=BotoConfig(
+                        connect_timeout=self.connect_timeout_seconds,
+                        read_timeout=self.timeout_seconds,
+                    ),
+                ) as client:
+                    response = await client.invoke_model(
+                        modelId=request.model,
+                        contentType="application/json",
+                        accept="application/json",
+                        body=json.dumps(body),
+                    )
 
-            # Parse and provide user-friendly error messages
-            if error_code == "ValidationException":
-                # Extract specific validation issues
-                if (
-                    "is not less or equal to" in error_message
-                    and "/p:" in error_message
-                ):
-                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
-                elif (
-                    "is not a valid enum value" in error_message
-                    and "role" in error_message
-                ):
-                    friendly_msg = "Model configuration error: Invalid message role format for this model."
-                else:
-                    friendly_msg = f"Request validation failed: {error_message}"
+                    # Parse response - aioboto3 returns StreamingBody
+                    response_body_bytes = await response["body"].read()
+                    response_body = json.loads(response_body_bytes)
+
+                    # Normalize response based on model family
+                    return self._normalize_response(response_body, request.model)
+
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                error_message = e.response["Error"]["Message"]
+
+                # Parse and provide user-friendly error messages
+                if error_code == "ValidationException":
+                    # Extract specific validation issues
+                    if (
+                        "is not less or equal to" in error_message
+                        and "/p:" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                    elif (
+                        "is not a valid enum value" in error_message
+                        and "role" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: Invalid message role format for this model."
+                    else:
+                        friendly_msg = f"Request validation failed: {error_message}"
+                    raise ProviderAPIError(
+                        f"[bedrock] {friendly_msg}", self.provider_name
+                    ) from e
+
                 raise ProviderAPIError(
-                    f"[bedrock] {friendly_msg}", self.provider_name
+                    f"Bedrock API error ({error_code}): {error_message}",
+                    self.provider_name,
                 ) from e
-
-            raise ProviderAPIError(
-                f"Bedrock API error ({error_code}): {error_message}", self.provider_name
-            ) from e
-        except Exception as e:
-            raise ProviderAPIError(
-                f"Chat completion failed: {sanitize_error(str(e), self.api_key)}",
-                self.provider_name,
-            ) from e
+            except Exception as e:
+                raise ProviderAPIError(
+                    f"Chat completion failed: {sanitize_error(str(e), self.api_key)}",
+                    self.provider_name,
+                ) from e
+        finally:
+            self._release_concurrency_slot()
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -229,76 +234,80 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Build request body
-        body = self._build_request_body(request)
-
+        await self._acquire_concurrency_slot()
         try:
-            # Create async client and invoke Bedrock model with streaming
-            async with self._session.client(
-                "bedrock-runtime",
-                config=BotoConfig(
-                    connect_timeout=self.connect_timeout_seconds,
-                    read_timeout=self.timeout_seconds,
-                ),
-            ) as client:
-                response = await client.invoke_model_with_response_stream(
-                    modelId=request.model,
-                    contentType="application/json",
-                    accept="application/json",
-                    body=json.dumps(body),
-                )
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-                # Process streaming response
-                stream = response.get("body")
-                if stream:
-                    async for event in stream:
-                        chunk_data = event.get("chunk")
-                        if chunk_data:
-                            chunk = json.loads(chunk_data["bytes"].decode())
-                            yield self._normalize_stream_chunk(chunk, request.model)
+            # Validate temperature constraints
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
 
-        except ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            error_message = e.response["Error"]["Message"]
+            # Build request body
+            body = self._build_request_body(request)
 
-            # Parse and provide user-friendly error messages
-            if error_code == "ValidationException":
-                if (
-                    "is not less or equal to" in error_message
-                    and "/p:" in error_message
-                ):
-                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
-                elif (
-                    "is not a valid enum value" in error_message
-                    and "role" in error_message
-                ):
-                    friendly_msg = "Model configuration error: Invalid message role format for this model."
-                else:
-                    friendly_msg = f"Request validation failed: {error_message}"
+            try:
+                # Create async client and invoke Bedrock model with streaming
+                async with self._session.client(
+                    "bedrock-runtime",
+                    config=BotoConfig(
+                        connect_timeout=self.connect_timeout_seconds,
+                        read_timeout=self.timeout_seconds,
+                    ),
+                ) as client:
+                    response = await client.invoke_model_with_response_stream(
+                        modelId=request.model,
+                        contentType="application/json",
+                        accept="application/json",
+                        body=json.dumps(body),
+                    )
+
+                    # Process streaming response
+                    stream = response.get("body")
+                    if stream:
+                        async for event in stream:
+                            chunk_data = event.get("chunk")
+                            if chunk_data:
+                                chunk = json.loads(chunk_data["bytes"].decode())
+                                yield self._normalize_stream_chunk(chunk, request.model)
+
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                error_message = e.response["Error"]["Message"]
+
+                # Parse and provide user-friendly error messages
+                if error_code == "ValidationException":
+                    if (
+                        "is not less or equal to" in error_message
+                        and "/p:" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                    elif (
+                        "is not a valid enum value" in error_message
+                        and "role" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: Invalid message role format for this model."
+                    else:
+                        friendly_msg = f"Request validation failed: {error_message}"
+                    raise ProviderAPIError(
+                        f"[bedrock] {friendly_msg}", self.provider_name
+                    ) from e
+
                 raise ProviderAPIError(
-                    f"[bedrock] {friendly_msg}", self.provider_name
+                    f"Bedrock streaming error ({error_code}): {error_message}",
+                    self.provider_name,
                 ) from e
-
-            raise ProviderAPIError(
-                f"Bedrock streaming error ({error_code}): {error_message}",
-                self.provider_name,
-            ) from e
-        except Exception as e:
-            raise ProviderAPIError(
-                f"Streaming chat completion failed: {sanitize_error(str(e), self.api_key)}",
-                self.provider_name,
-            ) from e
+            except Exception as e:
+                raise ProviderAPIError(
+                    f"Streaming chat completion failed: {sanitize_error(str(e), self.api_key)}",
+                    self.provider_name,
+                ) from e
+        finally:
+            self._release_concurrency_slot()
 
     def _build_request_body(self, request: ChatRequest) -> dict:
         """

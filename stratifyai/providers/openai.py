@@ -72,116 +72,122 @@ class OpenAIProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
+        await self._acquire_concurrency_slot()
+        try:
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-        # Validate temperature constraints for OpenAI (0.0 to 2.0)
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 2.0),
-        )
-
-        # Build OpenAI-specific request parameters
-        messages = []
-        for msg in request.messages:
-            # Check if message contains image data
-            if msg.has_image():
-                # Parse vision content
-                text_content, image_data = msg.parse_vision_content()
-
-                # Build vision message content array
-                content_parts = []
-                if text_content:
-                    content_parts.append({"type": "text", "text": text_content})
-
-                if image_data:
-                    mime_type, base64_data = image_data
-                    # OpenAI expects data URL format
-                    image_url = f"data:{mime_type};base64,{base64_data}"
-                    content_parts.append(
-                        {"type": "image_url", "image_url": {"url": image_url}}
-                    )
-
-                message_dict = {"role": msg.role, "content": content_parts}
-            else:
-                # Regular text message
-                message_dict = {"role": msg.role, "content": msg.content}
-
-            # Add cache_control if present and model supports caching
-            if msg.cache_control and self.supports_caching(request.model):
-                message_dict["cache_control"] = msg.cache_control
-            messages.append(message_dict)
-
-        openai_params = {
-            "model": request.model,
-            "messages": messages,
-        }
-
-        # Check if model is a reasoning model (o-series)
-        model_info = OPENAI_MODELS.get(request.model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
-
-        # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
-        # This catches variants like o1-preview, o1-2024-12-17, o3-mini, gpt-5, etc.
-        if not is_reasoning_model and request.model:
-            model_lower = request.model.lower()
-            # Match: o1*, o3*, gpt-5*, "reasoning", or o followed by digit
-            is_reasoning_model = (
-                model_lower.startswith("o1")
-                or model_lower.startswith("o3")
-                or model_lower.startswith("gpt-5")
-                or "reasoning" in model_lower
-                or (
-                    model_lower.startswith("o")
-                    and len(model_lower) > 1
-                    and model_lower[1].isdigit()
-                )
+            # Validate temperature constraints for OpenAI (0.0 to 2.0)
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 2.0),
             )
 
-        # Only add these parameters for non-reasoning models
-        # Reasoning models like o1, o1-mini, o3-mini don't support temperature/top_p/penalties
-        if not is_reasoning_model:
-            openai_params["temperature"] = request.temperature
-            openai_params["top_p"] = request.top_p
-            openai_params["frequency_penalty"] = request.frequency_penalty
-            openai_params["presence_penalty"] = request.presence_penalty
+            # Build OpenAI-specific request parameters
+            messages = []
+            for msg in request.messages:
+                # Check if message contains image data
+                if msg.has_image():
+                    # Parse vision content
+                    text_content, image_data = msg.parse_vision_content()
 
-        # Add optional parameters
-        if request.max_tokens:
-            openai_params["max_tokens"] = request.max_tokens
-        if request.stop:
-            openai_params["stop"] = request.stop
+                    # Build vision message content array
+                    content_parts = []
+                    if text_content:
+                        content_parts.append({"type": "text", "text": text_content})
 
-        # Add reasoning_effort for o-series models
-        if request.reasoning_effort and "o" in request.model:
-            openai_params["reasoning_effort"] = request.reasoning_effort
+                    if image_data:
+                        mime_type, base64_data = image_data
+                        # OpenAI expects data URL format
+                        image_url = f"data:{mime_type};base64,{base64_data}"
+                        content_parts.append(
+                            {"type": "image_url", "image_url": {"url": image_url}}
+                        )
 
-        # Add any extra params
-        if request.extra_params:
-            openai_params.update(request.extra_params)
+                    message_dict = {"role": msg.role, "content": content_parts}
+                else:
+                    # Regular text message
+                    message_dict = {"role": msg.role, "content": msg.content}
 
-        try:
-            # Make API request
-            raw_response = await self._client.chat.completions.create(**openai_params)
-            # Normalize and return
-            return self._normalize_response(raw_response.model_dump())
-        except Exception as e:
-            error_str = sanitize_error(str(e), self.api_key)
-            # Check for vision-related errors
-            if (
-                "image_url is only supported by certain models" in error_str
-                or "Invalid content type" in error_str
-            ):
+                # Add cache_control if present and model supports caching
+                if msg.cache_control and self.supports_caching(request.model):
+                    message_dict["cache_control"] = msg.cache_control
+                messages.append(message_dict)
+
+            openai_params = {
+                "model": request.model,
+                "messages": messages,
+            }
+
+            # Check if model is a reasoning model (o-series)
+            model_info = OPENAI_MODELS.get(request.model, {})
+            is_reasoning_model = model_info.get("reasoning_model", False)
+
+            # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
+            # This catches variants like o1-preview, o1-2024-12-17, o3-mini, gpt-5, etc.
+            if not is_reasoning_model and request.model:
+                model_lower = request.model.lower()
+                # Match: o1*, o3*, gpt-5*, "reasoning", or o followed by digit
+                is_reasoning_model = (
+                    model_lower.startswith("o1")
+                    or model_lower.startswith("o3")
+                    or model_lower.startswith("gpt-5")
+                    or "reasoning" in model_lower
+                    or (
+                        model_lower.startswith("o")
+                        and len(model_lower) > 1
+                        and model_lower[1].isdigit()
+                    )
+                )
+
+            # Only add these parameters for non-reasoning models
+            # Reasoning models like o1, o1-mini, o3-mini don't support temperature/top_p/penalties
+            if not is_reasoning_model:
+                openai_params["temperature"] = request.temperature
+                openai_params["top_p"] = request.top_p
+                openai_params["frequency_penalty"] = request.frequency_penalty
+                openai_params["presence_penalty"] = request.presence_penalty
+
+            # Add optional parameters
+            if request.max_tokens:
+                openai_params["max_tokens"] = request.max_tokens
+            if request.stop:
+                openai_params["stop"] = request.stop
+
+            # Add reasoning_effort for o-series models
+            if request.reasoning_effort and "o" in request.model:
+                openai_params["reasoning_effort"] = request.reasoning_effort
+
+            # Add any extra params
+            if request.extra_params:
+                openai_params.update(request.extra_params)
+
+            try:
+                # Make API request
+                raw_response = await self._client.chat.completions.create(
+                    **openai_params
+                )
+                # Normalize and return
+                return self._normalize_response(raw_response.model_dump())
+            except Exception as e:
+                error_str = sanitize_error(str(e), self.api_key)
+                # Check for vision-related errors
+                if (
+                    "image_url is only supported by certain models" in error_str
+                    or "Invalid content type" in error_str
+                ):
+                    raise ProviderAPIError(
+                        f"Vision not supported: The model '{request.model}' cannot process images. "
+                        f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
+                        self.provider_name,
+                    ) from e
                 raise ProviderAPIError(
-                    f"Vision not supported: The model '{request.model}' cannot process images. "
-                    f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
-                    self.provider_name,
+                    f"Chat completion failed: {error_str}", self.provider_name
                 ) from e
-            raise ProviderAPIError(
-                f"Chat completion failed: {error_str}", self.provider_name
-            ) from e
+        finally:
+            self._release_concurrency_slot()
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -199,82 +205,86 @@ class OpenAIProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Build request parameters with vision support
-        messages = []
-        for msg in request.messages:
-            if msg.has_image():
-                # Parse and format vision content
-                text_content, image_data = msg.parse_vision_content()
-                content_parts = []
-                if text_content:
-                    content_parts.append({"type": "text", "text": text_content})
-                if image_data:
-                    mime_type, base64_data = image_data
-                    image_url = f"data:{mime_type};base64,{base64_data}"
-                    content_parts.append(
-                        {"type": "image_url", "image_url": {"url": image_url}}
-                    )
-                messages.append({"role": msg.role, "content": content_parts})
-            else:
-                messages.append({"role": msg.role, "content": msg.content})
-
-        openai_params = {
-            "model": request.model,
-            "messages": messages,
-            "stream": True,
-        }
-
-        # Check if model is a reasoning model
-        model_info = OPENAI_MODELS.get(request.model, {})
-        is_reasoning_model = model_info.get("reasoning_model", False)
-
-        # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
-        if not is_reasoning_model and request.model:
-            model_lower = request.model.lower()
-            is_reasoning_model = (
-                model_lower.startswith("o1")
-                or model_lower.startswith("o3")
-                or model_lower.startswith("gpt-5")
-                or "reasoning" in model_lower
-                or (
-                    model_lower.startswith("o")
-                    and len(model_lower) > 1
-                    and model_lower[1].isdigit()
-                )
-            )
-
-        # Only add temperature for non-reasoning models
-        if not is_reasoning_model:
-            openai_params["temperature"] = request.temperature
-
-        if request.max_tokens:
-            openai_params["max_tokens"] = request.max_tokens
-
+        await self._acquire_concurrency_slot()
         try:
-            stream = await self._client.chat.completions.create(**openai_params)
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-            async for chunk in stream:
-                chunk_dict = chunk.model_dump()
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield self._normalize_stream_chunk(chunk_dict)
-        except Exception as e:
-            error_str = sanitize_error(str(e), self.api_key)
-            # Check for vision-related errors
-            if (
-                "image_url is only supported by certain models" in error_str
-                or "Invalid content type" in error_str
-            ):
+            # Build request parameters with vision support
+            messages = []
+            for msg in request.messages:
+                if msg.has_image():
+                    # Parse and format vision content
+                    text_content, image_data = msg.parse_vision_content()
+                    content_parts = []
+                    if text_content:
+                        content_parts.append({"type": "text", "text": text_content})
+                    if image_data:
+                        mime_type, base64_data = image_data
+                        image_url = f"data:{mime_type};base64,{base64_data}"
+                        content_parts.append(
+                            {"type": "image_url", "image_url": {"url": image_url}}
+                        )
+                    messages.append({"role": msg.role, "content": content_parts})
+                else:
+                    messages.append({"role": msg.role, "content": msg.content})
+
+            openai_params = {
+                "model": request.model,
+                "messages": messages,
+                "stream": True,
+            }
+
+            # Check if model is a reasoning model
+            model_info = OPENAI_MODELS.get(request.model, {})
+            is_reasoning_model = model_info.get("reasoning_model", False)
+
+            # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
+            if not is_reasoning_model and request.model:
+                model_lower = request.model.lower()
+                is_reasoning_model = (
+                    model_lower.startswith("o1")
+                    or model_lower.startswith("o3")
+                    or model_lower.startswith("gpt-5")
+                    or "reasoning" in model_lower
+                    or (
+                        model_lower.startswith("o")
+                        and len(model_lower) > 1
+                        and model_lower[1].isdigit()
+                    )
+                )
+
+            # Only add temperature for non-reasoning models
+            if not is_reasoning_model:
+                openai_params["temperature"] = request.temperature
+
+            if request.max_tokens:
+                openai_params["max_tokens"] = request.max_tokens
+
+            try:
+                stream = await self._client.chat.completions.create(**openai_params)
+
+                async for chunk in stream:
+                    chunk_dict = chunk.model_dump()
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        yield self._normalize_stream_chunk(chunk_dict)
+            except Exception as e:
+                error_str = sanitize_error(str(e), self.api_key)
+                # Check for vision-related errors
+                if (
+                    "image_url is only supported by certain models" in error_str
+                    or "Invalid content type" in error_str
+                ):
+                    raise ProviderAPIError(
+                        f"Vision not supported: The model '{request.model}' cannot process images. "
+                        f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
+                        self.provider_name,
+                    ) from e
                 raise ProviderAPIError(
-                    f"Vision not supported: The model '{request.model}' cannot process images. "
-                    f"Please use a vision-capable model like 'gpt-4o' or 'gpt-4o-mini'.",
-                    self.provider_name,
+                    f"Streaming chat completion failed: {error_str}", self.provider_name
                 ) from e
-            raise ProviderAPIError(
-                f"Streaming chat completion failed: {error_str}", self.provider_name
-            ) from e
+        finally:
+            self._release_concurrency_slot()
 
     def _normalize_response(self, raw_response: dict) -> ChatResponse:
         """

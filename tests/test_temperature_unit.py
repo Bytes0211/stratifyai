@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Unit test for temperature validation (no API keys required)."""
 
-import os
+from stratifyai.exceptions import ValidationError
 from stratifyai.providers.anthropic import AnthropicProvider
 from stratifyai.providers.openai import OpenAIProvider
-from stratifyai.exceptions import ValidationError
-from stratifyai.models import Message, ChatRequest
 
 
 def test_anthropic_temperature_validation():
