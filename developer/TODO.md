@@ -175,3 +175,24 @@
 
 1. P0 — WebSocket token-limit parity with REST path
 2. P1 — Per-decorator TTL behavior for `cache_response`
+
+---
+
+## MCP Server Implementation (IN PROGRESS)
+
+> MCP server exposing StratifyAI via standardized tool/resource/prompt primitives.
+> Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENTATION-PLAN.md`
+
+- [x] Phase 0 — Contract Freeze (PRD + implementation plan)
+- [x] Phase 1 — Server Bootstrap (FastMCP scaffold, `stratifyai-mcp` entrypoint, schemas, error mapping)
+- [x] Phase 2 — Core Tools (`chat_completion`, `chat_with_routing`, `list_providers`, `list_models`, `get_model_info`)
+- [x] Phase 3 — Cost & Validation Tools (`get_cost_summary`, `validate_provider`, `estimate_cost`)
+- [x] Phase 4 — Resource Layer (`stratifyai://catalog`, `providers`, `costs`, `router/strategies`)
+- [x] Phase 5 — Prompt Exposure (3 named prompts + dynamic registry template exposure)
+- [ ] Phase 6 — HTTP Transport (deferred, post-GA)
+- [ ] Phase 7 — Tests & CI Gates (unit, contract, integration tests; 80% coverage on `mcp_server/`)
+- [x] Phase 8 — Docs & Client Setup (quickstart, tools reference, client config guides)
+
+**Test Results:**
+- Existing suite: 553 passing, 4 skipped, 0 regressions
+- MCP-specific tests: Phase 7 (pending)

@@ -1,5 +1,48 @@
 # Developer Journal
 
+## April 3, 2026 - MCP Server Implementation (Phases 1-5, 8)
+
+Implemented the StratifyAI MCP server, delivering Phases 1-5 and Phase 8 from the implementation plan.
+
+### Changes
+
+- Created `stratifyai/mcp_server/` package (8 files):
+  - `server.py`: FastMCP app initialization with tool/resource/prompt composition
+  - `tools.py`: 8 tools — chat_completion, chat_with_routing, list_providers, list_models, get_model_info, get_cost_summary, validate_provider, estimate_cost
+  - `resources.py`: 5 resources — catalog, catalog/{provider}, providers, costs, router/strategies
+  - `prompts.py`: 3 named prompts (compare_models, recommend_model, analyze_costs) + dynamic registry template exposure
+  - `schemas.py`: Pydantic models for all tool inputs/outputs with `MCP_SCHEMA_VERSION = 1`
+  - `errors.py`: MCPErrorCode enum, exception-to-error mapping, sanitized error factory
+  - `__main__.py`: CLI entry with `--transport` flag (stdio, streamable-http)
+  - `__init__.py`: Package exports with `create_server()`
+- Updated `pyproject.toml`: optional `mcp` dep group (`mcp[cli]>=1.25,<2`), script entry `stratifyai-mcp`, setuptools packages
+- Created MCP documentation:
+  - `docs/MCP-QUICKSTART.md`: Install, configure, first tool call in <15 min
+  - `docs/MCP-TOOLS-REFERENCE.md`: All tools/resources/prompts with input/output schemas
+  - `docs/MCP-CLIENT-CONFIG.md`: Claude Desktop, Claude Code, Cursor, VS Code config examples
+
+### Design Decisions
+
+- Used FastMCP decorator pattern (`@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()`) for registration
+- Pinned SDK to `>=1.25,<2` — v2 is in pre-alpha with breaking changes (FastMCP -> McpServer)
+- Tools use inline parameters (not Pydantic input models) since FastMCP extracts schemas from function signatures
+- Module-level `_mcp_cost_tracker` shared across tool calls in a session
+- Error handling: all tools catch exceptions and re-raise as `ValueError(json.dumps(mcp_error(...)))` which FastMCP converts to structured tool errors
+
+### Validation Summary
+
+- Server creates successfully via `create_server()`
+- Ruff: all checks passed, 119 files formatted
+- Tests: 553 passed, 4 skipped, 0 regressions
+- MCP SDK 1.27.0 installed
+
+### Remaining
+
+- Phase 7: Unit and integration tests for MCP server package
+- Phase 6: Streamable HTTP transport (post-GA, optional)
+
+---
+
 ## April 2, 2026 - Code Quality, PR Review Fixes, and Dependency Updates
 
 Addressed ruff lint/format violations across the entire codebase, fixed PR review comments, and updated vulnerable dependencies.

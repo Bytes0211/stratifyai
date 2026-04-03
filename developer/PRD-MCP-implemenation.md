@@ -1,9 +1,16 @@
 # Technical Approach: StratifyAI MCP Server Implementation
 
-Version: 1.1  
-Date: 2026-04-02  
+Version: 1.2  
+Date: 2026-04-03  
 Owner: StratifyAI Core Team  
-Status: Implementation Blueprint
+Status: Implementation Blueprint (updated for MCP SDK v1.27+)
+
+## Implementation Status
+
+- Source of truth for scope/decisions: this PRD.
+- Execution tracking: [MCP Status Tracker](./MCP-STATUS.md).
+- GitHub project board: [StratifyAI MCP Implementation](https://github.com/users/Bytes0211/projects/4).
+- Last updated: 2026-04-03.
 
 ---
 
@@ -23,7 +30,7 @@ This technical approach will:
 
 ### 2.1 Engineering Goals
 
-- Deliver MCP server core with stdio transport first, then optional HTTP transport.
+- Deliver MCP server core using FastMCP (v3+) with stdio transport first, then optional Streamable HTTP transport.
 - Expose high-value tools for chat, routing, model lookup, validation, and cost insight.
 - Provide stable typed schemas and predictable error behavior.
 - Achieve test coverage across unit, contract, and integration layers.
@@ -109,6 +116,7 @@ stratifyai/
 
 ### 6.2 Design Principles
 
+- Use FastMCP decorator-based registration (`@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()`).
 - Thin wrapper layer around existing StratifyAI core modules.
 - No duplicated routing/cost/provider logic.
 - Strong schema contracts for MCP requests/responses.
@@ -203,10 +211,12 @@ Every tool failure returns structured error fields:
 ## 9. Packaging and Runtime
 
 Update `pyproject.toml`:
-- Add optional dependency group `mcp` with `mcp[cli]` minimum supported version.
+- Add optional dependency group `mcp`: `"mcp[cli]>=1.25,<2"` (pin below v2 to avoid breaking changes from planned SDK rewrite).
 - Extend `all` extras to include `mcp`.
 - Add script entrypoint:
   - `stratifyai-mcp = "stratifyai.mcp_server.__main__:main"`
+
+Note: MCP SDK v2 is in pre-alpha with breaking changes planned (FastMCP -> McpServer class migration). Pin to v1.x for stability; plan migration when v2 reaches GA.
 
 ---
 
@@ -236,14 +246,19 @@ Acceptance Criteria:
 ### Phase 1: Server Bootstrap and Entry Points
 
 Objective:
-- Create runnable MCP server scaffold with stdio transport.
+- Create runnable MCP server scaffold with stdio transport using FastMCP.
 
 Steps:
 1. Add `stratifyai/mcp_server/` package structure.
-2. Implement `server.py` with FastMCP app initialization.
-3. Implement `__main__.py` main() runner.
+2. Implement `server.py` with FastMCP app initialization:
+   ```python
+   from mcp.server.fastmcp import FastMCP
+   mcp = FastMCP("stratifyai")
+   ```
+3. Implement `__main__.py` with `mcp.run()` entrypoint (stdio by default).
 4. Add package exports in `__init__.py`.
-5. Add dependency and script wiring in `pyproject.toml`.
+5. Add dependency (`mcp[cli]>=1.25,<2`) and script wiring in `pyproject.toml`.
+6. Register tools/resources/prompts via `@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()` decorators.
 
 Deliverables:
 - `stratifyai-mcp` command starts server.
@@ -251,7 +266,8 @@ Deliverables:
 
 Acceptance Criteria:
 - Local manual run starts cleanly.
-- Claude Desktop test config can connect.
+- Claude Desktop and Claude Code test configs can connect.
+- MCP Inspector shows server with registered tools.
 
 ---
 
@@ -342,19 +358,18 @@ Acceptance Criteria:
 ### Phase 6: Transport Expansion (Optional for v1)
 
 Objective:
-- Add Streamable HTTP transport for remote integration scenarios.
+- Add Streamable HTTP transport for remote integration scenarios. SSE transport is deprecated; use Streamable HTTP only.
 
 Steps:
-1. Add transport abstraction in server bootstrap.
-2. Implement HTTP transport startup mode.
-3. Add runtime flags/env for transport selection.
-4. Add local auth guard guidance for non-stdio modes.
+1. Add transport selection in server bootstrap (`mcp.run(transport="streamable-http")`).
+2. Add runtime flags/env for transport selection (`--transport stdio|streamable-http`).
+3. Add local auth guard guidance for non-stdio modes.
 
 Deliverables:
 - Optional remote transport runtime.
 
 Acceptance Criteria:
-- Both stdio and HTTP modes pass integration tests.
+- Both stdio and Streamable HTTP modes pass integration tests.
 
 ---
 
@@ -430,14 +445,15 @@ Acceptance Criteria:
 
 ## 11. Risks and Mitigations
 
-1. MCP SDK/API evolution risk
-- Mitigation: isolate SDK-specific glue in `server.py`; avoid leaking SDK types into core modules.
+1. MCP SDK v2 breaking changes
+- Risk: FastMCP class will be replaced with McpServer in SDK v2 (pre-alpha, ETA unclear). Decorator API may change.
+- Mitigation: pin `mcp>=1.25,<2` in pyproject.toml; isolate SDK-specific glue in `server.py`; avoid leaking SDK types into core modules. Plan migration when v2 reaches stable.
 
 2. Tool schema drift risk
 - Mitigation: contract tests + schema versioning.
 
 3. Error leakage risk
-- Mitigation: centralized sanitizer in MCP error mapping.
+- Mitigation: centralized sanitizer in MCP error mapping (reuse existing `sanitize_error()`).
 
 4. Performance overhead risk
 - Mitigation: thin wrappers + existing connection pooling/client reuse.
@@ -448,8 +464,7 @@ Acceptance Criteria:
 
 1. Should MCP tool responses include optional raw provider payloads behind a debug flag?
 2. Should `chat_with_routing` support strict provider allow/deny lists in v1?
-3. Should Streamable HTTP be included in initial GA or remain post-GA extension?
-4. Should prompt exposure include all templates automatically or only an approved subset?
+3. Should prompt exposure include all templates automatically or only an approved subset?
 
 ---
 
