@@ -2,7 +2,7 @@
 
 **Created:** April 1, 2026
 **Last Updated:** April 2, 2026
-**Based on:** Full project assessment (Phases 1-12 complete) + Phase 13 code review
+**Based on:** Full project assessment (Phases 1-15 complete) + PR review fixes
 
 ---
 
@@ -92,20 +92,21 @@
 
 ## Phase 13: Performance & Scalability (✅ COMPLETE)
 
-> All core features implemented and 22 critical bugs fixed. Ready for merge to main.
+> All core features implemented and 22+ critical bugs fixed. Ready for merge to main.
 
-- [x] In-memory LRU cache with O(1) eviction — RWLock bug fixed, all mutations under write lock
+- [x] In-memory LRU cache with O(1) eviction — all operations under write lock (LRUCache mutates on read)
 - [x] SQLite WAL mode for persistent cache
 - [x] Configurable concurrency limits per provider — all 9 providers now covered
 - [x] Load profile benchmarking — async fix applied (proper await on concurrent tasks)
 - [ ] Evaluate persistent cache backend options (Redis, PostgreSQL) for concurrent workloads *(stretch goal - Phase 13.2)*
 - [ ] Profile memory usage with large file extraction pipeline *(stretch goal - Phase 13.2)*
 
-**Phase 13 Bug Fixes (22 total):**
+**Phase 13 Bug Fixes (22 total + PR review fixes):**
 - [x] Concurrency: Semaphore added to all 9 providers (was only OpenAI)
 - [x] Concurrency: Lazy semaphore creation (correct event loop binding)
 - [x] Concurrency: Finally blocks prevent slot leaks
-- [x] Cache: RWLock semantics fixed (no writes under read lock)
+- [x] Concurrency: Semaphore ref captured locally to prevent deadlock on mid-flight limit change (PR #17)
+- [x] Cache: LRUCache `get()` moved to write lock (LRUCache.__getitem__ mutates LRU order) (PR #17)
 - [x] Cache: NameError in decorator fixed
 - [x] Cache: Double-counted misses fixed
 - [x] Cache: cost_usd None guarding
@@ -118,8 +119,7 @@
 - [x] Tests: Data correctness validation added
 
 **Test Results:**
-- Phase 13 tests: 28/28 PASSING ✅
-- Total suite: 526/531 PASSING ✅
+- Total suite: 536 PASSING, 4 skipped ✅
 - Coverage: 69% ✅
 
 ---
@@ -136,15 +136,23 @@
 
 ---
 
-## Phase 15: Security Audit (LOW PRIORITY)
+## Phase 15: Security Audit (✅ COMPLETE)
 
-> No critical issues found, but worth hardening before public release.
+> Hardened for public release. All gaps identified and fixed.
 
 - [x] Audit all error paths for potential API key leakage (expand sanitizer coverage)
+  - Fixed: `_initialize_client()` in all 4 providers now sanitizes errors
+  - Fixed: `embeddings.py` error paths now use `sanitize_error()`
+  - Fixed: `retry.py` log messages now sanitized
 - [x] Add rate limiting per API key in FastAPI (currently global only)
 - [x] Add input validation/sanitization on WebSocket messages
+  - Fixed: Added provider/model validation against `MODEL_CATALOG`
+  - Fixed: Added temperature bounds check (0.0–2.0)
+  - Fixed: Removed redundant `auth_header` reassignment
 - [x] Review CORS configuration for production tightening
-- [x] Add dependency vulnerability scanning to CI (pip-audit or safety)
+- [x] Add dependency vulnerability scanning to CI (pip-audit)
+  - Fixed: CI now scans full resolved dependency graph via `uv export --all-extras`
+  - Fixed: All 6 vulnerable deps updated (aiohttp, requests, cryptography, protobuf, pyasn1, pygments)
 
 ---
 
@@ -152,15 +160,16 @@
 
 > Remaining gaps validated against current codebase after Phase 15.
 
-- [ ] **P0 — WebSocket token-limit parity with REST path**
-	- Current WebSocket flow supports file handling and chunking, but does not run the same pre-request token limit checks as `POST /api/chat`.
-	- Action: Extract shared token validation helper and invoke it in both REST and WebSocket request paths.
-	- Why P0: Prevents oversized streaming requests from bypassing safeguards already enforced in REST.
+- [x] **P0 — WebSocket token-limit parity with REST path**
+	- Extracted `_check_token_limits()` helper in `api/main.py`; called from both REST and WebSocket paths.
+	- WebSocket translates `HTTPException` into `{error, detail, estimated_tokens, done:True}` JSON message.
+	- 5 new tests in `tests/test_token_limit_and_ttl.py` covering all limit branches.
 
-- [ ] **P1 — Per-decorator TTL behavior for `cache_response`**
-	- The original global TTL mutation bug is fixed, but decorator-level `ttl` does not enforce per-entry expiry when sharing one cache instance.
-	- Action: Store effective TTL per cache entry (or support isolated cache policies) so different decorators can use different TTLs without interference.
-	- Why P1: Correctness gap is real but impact is narrower than request-size safety; mainly affects mixed-TTL caching behavior.
+- [x] **P1 — Per-decorator TTL behavior for `cache_response`**
+	- Added `ttl: int | None` field to `CacheEntry`; `ResponseCache.set()` / `PersistentResponseCache.set()` now accept and store per-entry TTL.
+	- `get()` uses `entry.ttl` (or `self.ttl` fallback) for expiry; decorator forwards its `ttl` to both backends.
+	- SQLite schema migration adds `ttl_override` column idempotently via guarded `ALTER TABLE`.
+	- 12 new tests covering in-memory, SQLite, and decorator paths.
 
 ### Execution Order
 

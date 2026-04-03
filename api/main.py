@@ -435,6 +435,104 @@ def _get_spa_index() -> str | None:
     return None
 
 
+def _check_token_limits(
+    messages: list,
+    provider: str,
+    model: str,
+) -> None:
+    """Validate assembled messages against model token limits.
+
+    Raises :class:`~fastapi.HTTPException` with status 413 when the estimated
+    token count exceeds either the hard system limit or the effective model/API
+    limit.  Shared between the REST endpoint and the WebSocket streaming handler
+    so both paths enforce identical rules.
+    """
+    from stratifyai.utils.token_counter import (
+        count_tokens_for_messages,
+        get_context_window,
+    )
+
+    estimated_tokens = count_tokens_for_messages(messages, provider, model)
+
+    context_window = get_context_window(provider, model)
+    model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
+    api_max_input = model_info.get("api_max_input")
+    effective_limit = (
+        api_max_input
+        if api_max_input and api_max_input < context_window
+        else context_window
+    )
+
+    MAX_SYSTEM_LIMIT = 1_000_000
+    if estimated_tokens > MAX_SYSTEM_LIMIT:
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "error": "content_too_large",
+                "message": (
+                    f"File is too large to process. The content has approximately "
+                    f"{estimated_tokens:,} tokens, which exceeds the system's maximum "
+                    f"limit of {MAX_SYSTEM_LIMIT:,} tokens."
+                ),
+                "estimated_tokens": estimated_tokens,
+                "system_limit": MAX_SYSTEM_LIMIT,
+                "provider": provider,
+                "model": model,
+                "suggestion": "Please split your file into smaller chunks or use a different processing approach.",
+            },
+        )
+
+    if estimated_tokens > effective_limit:
+        if api_max_input and context_window > api_max_input:
+            raise HTTPException(
+                status_code=413,
+                detail={
+                    "error": "input_too_long",
+                    "message": (
+                        f"Input is too long for {model}. The content has approximately "
+                        f"{estimated_tokens:,} tokens, but the API restricts input to "
+                        f"{api_max_input:,} tokens (despite the model's {context_window:,} "
+                        f"token context window)."
+                    ),
+                    "estimated_tokens": estimated_tokens,
+                    "api_limit": api_max_input,
+                    "context_window": context_window,
+                    "provider": provider,
+                    "model": model,
+                    "suggestion": (
+                        "✓ Enable 'Smart Chunking' checkbox to reduce tokens by 40-90%\n"
+                        "✓ Switch to Google Gemini models (no API input limits): "
+                        "gemini-2.5-pro, gemini-2.5-flash\n"
+                        "✓ Switch to OpenRouter with google/gemini-2.5-pro or "
+                        "google/gemini-2.5-flash"
+                    ),
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=413,
+                detail={
+                    "error": "input_too_long",
+                    "message": (
+                        f"Input is too long for {model}. The content has approximately "
+                        f"{estimated_tokens:,} tokens, which exceeds the model's maximum "
+                        f"of {effective_limit:,} tokens."
+                    ),
+                    "estimated_tokens": estimated_tokens,
+                    "model_limit": effective_limit,
+                    "provider": provider,
+                    "model": model,
+                    "suggestion": (
+                        "✓ Switch to a model with larger context window:\n"
+                        "  - Google Gemini 2.5 Pro (1M tokens, no API limits)\n"
+                        "  - Google Gemini 2.5 Flash (1M tokens, cheaper)\n"
+                        "  - Claude Opus 4.5 (1M context, 200k API limit)\n"
+                        "✓ Enable 'Smart Chunking' to reduce token usage"
+                    ),
+                },
+            )
+
+
 @app.get("/")
 async def root():
     """Serve the frontend interface (SPA or legacy)."""
@@ -745,77 +843,7 @@ async def chat_completion(
                 )
 
         # Validate token count before making request
-        from stratifyai.utils.token_counter import (
-            count_tokens_for_messages,
-            get_context_window,
-        )
-
-        estimated_tokens = count_tokens_for_messages(
-            messages, payload.provider, payload.model
-        )
-
-        # Get context window and API limits
-        context_window = get_context_window(payload.provider, payload.model)
-        model_info = MODEL_CATALOG.get(payload.provider, {}).get(payload.model, {})
-        api_max_input = model_info.get("api_max_input")
-        effective_limit = (
-            api_max_input
-            if api_max_input and api_max_input < context_window
-            else context_window
-        )
-
-        # Check if exceeds absolute maximum (1M tokens)
-        MAX_SYSTEM_LIMIT = 1_000_000
-        if estimated_tokens > MAX_SYSTEM_LIMIT:
-            raise HTTPException(
-                status_code=413,
-                detail={
-                    "error": "content_too_large",
-                    "message": f"File is too large to process. The content has approximately {estimated_tokens:,} tokens, which exceeds the system's maximum limit of {MAX_SYSTEM_LIMIT:,} tokens.",
-                    "estimated_tokens": estimated_tokens,
-                    "system_limit": MAX_SYSTEM_LIMIT,
-                    "provider": payload.provider,
-                    "model": payload.model,
-                    "suggestion": "Please split your file into smaller chunks or use a different processing approach.",
-                },
-            )
-
-        # Check if exceeds model's effective limit
-        if estimated_tokens > effective_limit:
-            # Determine if chunking could help
-            if api_max_input and context_window > api_max_input:
-                # Model has larger context but API restricts input
-                # Suggest chunking to reduce tokens OR switching to unrestricted model
-                raise HTTPException(
-                    status_code=413,
-                    detail={
-                        "error": "input_too_long",
-                        "message": f"Input is too long for {request.model}. The content has approximately {estimated_tokens:,} tokens, but the API restricts input to {api_max_input:,} tokens (despite the model's {context_window:,} token context window).",
-                        "estimated_tokens": estimated_tokens,
-                        "api_limit": api_max_input,
-                        "context_window": context_window,
-                        "provider": payload.provider,
-                        "model": payload.model,
-                        "suggestion": "✓ Enable 'Smart Chunking' checkbox to reduce tokens by 40-90%\n✓ Switch to Google Gemini models (no API input limits): gemini-2.5-pro, gemini-2.5-flash\n✓ Switch to OpenRouter with google/gemini-2.5-pro or google/gemini-2.5-flash",
-                        "chunking_enabled": payload.chunked,
-                    },
-                )
-            else:
-                # Model simply can't handle this much input
-                # Suggest switching to larger context model
-                raise HTTPException(
-                    status_code=413,
-                    detail={
-                        "error": "input_too_long",
-                        "message": f"Input is too long for {request.model}. The content has approximately {estimated_tokens:,} tokens, which exceeds the model's maximum of {effective_limit:,} tokens.",
-                        "estimated_tokens": estimated_tokens,
-                        "model_limit": effective_limit,
-                        "provider": request.provider,
-                        "model": request.model,
-                        "suggestion": "✓ Switch to a model with larger context window:\n  - Google Gemini 2.5 Pro (1M tokens, no API limits)\n  - Google Gemini 2.5 Flash (1M tokens, cheaper)\n  - Claude Opus 4.5 (1M context, 200k API limit)\n✓ Enable 'Smart Chunking' to reduce token usage",
-                        "chunking_enabled": request.chunked,
-                    },
-                )
+        _check_token_limits(messages, payload.provider, payload.model)
 
         # Determine temperature using shared reasoning model detector (BUG-002)
         reasoning = is_reasoning_model(payload.provider, payload.model, MODEL_CATALOG)
@@ -1179,6 +1207,34 @@ async def chat_stream(websocket: WebSocket):
                         content=f"[File: {file_name}]\n\n{file_content_to_use}",
                     )
                 )
+
+        # Validate token count before making request (parity with REST path)
+        try:
+            _check_token_limits(messages, provider, model)
+        except HTTPException as exc:
+            detail = exc.detail
+            await websocket.send_json(
+                {
+                    "error": (
+                        detail.get("error", "content_too_large")
+                        if isinstance(detail, dict)
+                        else "content_too_large"
+                    ),
+                    "detail": (
+                        detail.get("message", str(detail))
+                        if isinstance(detail, dict)
+                        else str(detail)
+                    ),
+                    "estimated_tokens": (
+                        detail.get("estimated_tokens")
+                        if isinstance(detail, dict)
+                        else None
+                    ),
+                    "correlation_id": correlation_id,
+                    "done": True,
+                }
+            )
+            return
 
         # Determine temperature using shared reasoning model detector (BUG-002)
         reasoning = is_reasoning_model(provider, model, MODEL_CATALOG)

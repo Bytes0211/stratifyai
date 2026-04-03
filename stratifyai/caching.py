@@ -61,6 +61,9 @@ class CacheEntry:
     timestamp: float
     hits: int = 0
     cost_saved: float = 0.0  # Total cost saved from this entry
+    ttl: int | None = (
+        None  # Per-entry TTL override in seconds (None = use parent cache TTL)
+    )
 
 
 class ResponseCache:
@@ -106,7 +109,8 @@ class ResponseCache:
                 return None
 
             entry = self._cache[key]
-            if time.time() - entry.timestamp > self.ttl:
+            effective_ttl = entry.ttl if entry.ttl is not None else self.ttl
+            if time.time() - entry.timestamp > effective_ttl:
                 model = entry.response.model
                 del self._cache[key]
                 self._total_misses += 1
@@ -130,7 +134,7 @@ class ResponseCache:
                 resp_cost = entry.response.usage.cost_usd
             entry.cost_saved += resp_cost
             self._total_cost_saved += resp_cost
-            ttl_remaining = max(0, int(self.ttl - (time.time() - entry.timestamp)))
+            ttl_remaining = max(0, int(effective_ttl - (time.time() - entry.timestamp)))
             response = entry.response
 
         _log_cache_event(
@@ -142,18 +146,21 @@ class ResponseCache:
         )
         return cast(ChatResponse, response)
 
-    def set(self, key: str, response: ChatResponse) -> None:
+    def set(self, key: str, response: ChatResponse, ttl: int | None = None) -> None:
         """
         Store response in cache (write operation).
 
         Args:
             key: Cache key
             response: Response to cache
+            ttl: Optional per-entry TTL override in seconds.  When provided,
+                this entry expires after *ttl* seconds regardless of the
+                cache instance's global TTL.
         """
         with self._lock.gen_wlock():
             # LRUCache automatically evicts oldest entry when max size is reached
             self._cache[key] = CacheEntry(
-                response=response, timestamp=time.time(), hits=0
+                response=response, timestamp=time.time(), hits=0, ttl=ttl
             )
 
     def clear(self) -> None:
@@ -215,7 +222,9 @@ class ResponseCache:
                         "hits": entry.hits,
                         "cost_saved": entry.cost_saved,
                         "age_seconds": int(age),
-                        "expires_in": int(self.ttl - age),
+                        "expires_in": int(
+                            (entry.ttl if entry.ttl is not None else self.ttl) - age
+                        ),
                     }
                 )
 
@@ -280,6 +289,11 @@ class PersistentResponseCache:
                 )
                 """
             )
+            # Schema migration: add ttl_override column when upgrading existing DBs
+            try:
+                conn.execute("ALTER TABLE cache ADD COLUMN ttl_override INTEGER")
+            except Exception:  # column already exists — safe to ignore
+                pass
             conn.commit()
 
     # ---- Serialisation ----------------------------------------------------
@@ -341,16 +355,17 @@ class PersistentResponseCache:
         with self._lock:
             with self._connect() as conn:
                 row = conn.execute(
-                    "SELECT response_json, timestamp, hits, cost_saved FROM cache WHERE key = ?",
+                    "SELECT response_json, timestamp, hits, cost_saved, ttl_override FROM cache WHERE key = ?",
                     (key,),
                 ).fetchone()
                 if row is None:
                     return None
 
-                response_json, ts, hits, cost_saved = row
+                response_json, ts, hits, cost_saved, ttl_override = row
+                effective_ttl = ttl_override if ttl_override is not None else self.ttl
 
                 # Expire stale entries
-                if time.time() - ts > self.ttl:
+                if time.time() - ts > effective_ttl:
                     conn.execute("DELETE FROM cache WHERE key = ?", (key,))
                     conn.commit()
                     response = self._deserialize_response(response_json)
@@ -374,7 +389,7 @@ class PersistentResponseCache:
                     (cost, key),
                 )
                 conn.commit()
-                ttl_remaining = max(0, int(self.ttl - (time.time() - ts)))
+                ttl_remaining = max(0, int(effective_ttl - (time.time() - ts)))
                 _log_cache_event(
                     "hit",
                     key=key,
@@ -384,7 +399,7 @@ class PersistentResponseCache:
                 )
                 return response
 
-    def set(self, key: str, response: ChatResponse) -> None:
+    def set(self, key: str, response: ChatResponse, ttl: int | None = None) -> None:
         with self._lock:
             with self._connect() as conn:
                 # Evict oldest if at capacity
@@ -397,9 +412,10 @@ class PersistentResponseCache:
 
                 response_json = self._serialize_response(response)
                 conn.execute(
-                    "INSERT OR REPLACE INTO cache (key, response_json, timestamp, hits, cost_saved) "
-                    "VALUES (?, ?, ?, 0, 0.0)",
-                    (key, response_json, time.time()),
+                    "INSERT OR REPLACE INTO cache "
+                    "(key, response_json, timestamp, hits, cost_saved, ttl_override) "
+                    "VALUES (?, ?, ?, 0, 0.0, ?)",
+                    (key, response_json, time.time(), ttl),
                 )
                 conn.commit()
 
@@ -431,14 +447,17 @@ class PersistentResponseCache:
         with self._lock:
             with self._connect() as conn:
                 rows = conn.execute(
-                    "SELECT key, response_json, timestamp, hits, cost_saved "
+                    "SELECT key, response_json, timestamp, hits, cost_saved, ttl_override "
                     "FROM cache ORDER BY hits DESC LIMIT 100"
                 ).fetchall()
                 entries = []
                 now = time.time()
-                for key, rj, ts, hits, cs in rows:
+                for key, rj, ts, hits, cs, ttl_override in rows:
                     resp = self._deserialize_response(rj)
                     age = now - ts
+                    effective_ttl = (
+                        ttl_override if ttl_override is not None else self.ttl
+                    )
                     entries.append(
                         {
                             "key": key[:16] + "...",
@@ -447,7 +466,7 @@ class PersistentResponseCache:
                             "hits": hits,
                             "cost_saved": cs,
                             "age_seconds": int(age),
-                            "expires_in": int(self.ttl - age),
+                            "expires_in": int(effective_ttl - age),
                         }
                     )
                 return entries
@@ -513,9 +532,10 @@ def cache_response(
     Decorator to cache async LLM responses.
 
     Args:
-        ttl: Time-to-live for cache entries in seconds. When using ``cache_instance``,
-            the TTL should match the cache's configured TTL, as the cache's TTL is
-            used for expiration checking.
+        ttl: Time-to-live for cache entries in seconds.  Each entry is stored
+            with this TTL and expires independently of the cache instance's
+            global TTL, enabling multiple decorators with different retention
+            windows on the same cache instance.
         cache_instance: Optional in-memory cache instance (uses global if None)
         cache_backend: Optional persistent cache backend (takes precedence over
             ``cache_instance`` if provided)
@@ -529,9 +549,9 @@ def cache_response(
             return await self.provider.chat_completion(request)
 
     Note:
-        When using a custom ``cache_instance``, expiration is controlled by the
-        cache's TTL, not the decorator's ``ttl`` parameter. Ensure both are set
-        to the same value for consistent behavior.
+        Each decorated entry is stored with its own expiry derived from
+        *ttl*, so two decorators with different *ttl* values on the same
+        cache instance will not interfere with each other.
     """
     # Persistent backend takes precedence if provided
     backend = cache_backend
@@ -576,7 +596,7 @@ def cache_response(
 
                 response = await func(*args, **kwargs)
                 if not kwargs.get("stream", False):
-                    backend.set(cache_key, response)
+                    backend.set(cache_key, response, ttl=ttl)
                 return cast(ChatResponse, response)
 
             # --- In-memory path (ResponseCache) ---
@@ -597,7 +617,7 @@ def cache_response(
 
             # Cache response (only if not streaming)
             if not kwargs.get("stream", False):
-                cache.set(cache_key, response)
+                cache.set(cache_key, response, ttl=ttl)
 
             return cast(ChatResponse, response)
 

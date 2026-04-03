@@ -2,9 +2,10 @@
 
 **Project Start:** January 30, 2026
 **Last Update:** April 2, 2026
-**Current Status:** ✅ Phase 15 Complete; MCP technical approach finalized for implementation
+**Current Status:** ✅ Phase 15 Complete; all PR review fixes applied; MCP technical approach finalized
 **Providers:** 9 operational (all with concurrency limit support)
-**Test Suite:** 536 tests passing, 4 skipped (69% coverage)
+**Test Suite:** 540 tests (536 passing, 4 skipped), 69% coverage
+**Dependencies:** All vulnerability-free (pip-audit clean)
 
 ---
 
@@ -26,10 +27,15 @@
 ## Current Focus
 
 - Execute MCP Server Core implementation from the technical approach plan.
-- Close prioritized open follow-ups from previous bug audit:
-	- P0: WebSocket token-limit parity with REST path.
-	- P1: Per-decorator TTL behavior for shared cache decorators.
 - Keep runbook and onboarding docs synchronized as MCP phases land.
+
+## Recently Completed
+
+- All PR review fixes applied (PR #17: cache/concurrency safety, PR #18: CI audit + WebSocket cleanup).
+- Phase 15 security gaps closed (sanitization expanded, WebSocket validation hardened).
+- Pre-commit hooks and VS Code ruff integration configured for developer workflow.
+- Open follow-ups (P0 WebSocket token-limit parity, P1 per-decorator TTL) verified complete.
+- 6 vulnerable dependencies updated to patched versions.
 
 ---
 

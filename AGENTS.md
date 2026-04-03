@@ -367,13 +367,22 @@ stratifyai check-keys
 ## Project Status
 
 **Current Phase:** MCP Implementation Planning (post-Phase 15)
-**Progress:** Phases 1-15 complete; MCP technical approach finalized for execution
-**Latest Updates:** Phase 14 DX + Phase 15 Security complete (Apr 2, 2026); MCP technical approach authored in `developer/PRD-MCP-implemenation.md`
-**Test Suite:** 536 passed, 4 skipped
+**Progress:** Phases 1-15 complete; all PR review fixes applied; MCP technical approach finalized
+**Latest Updates:** PR review fixes (cache safety, concurrency deadlock, CI audit, WebSocket validation); 6 vulnerable deps updated; pre-commit + VS Code ruff configured
+**Test Suite:** 536 passed, 4 skipped (69% coverage)
+**Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
 - Note: test counts listed below are phase-local historical snapshots; current suite totals are tracked in the Project Status section above.
 
+- ✅ Phase 14: Developer Experience (100%) - Apr 2, 2026
+  - CLI `doctor` command, route `--dry-run`, structured error codes, changelog, contribution guide
+- ✅ Phase 15: Security Audit (100%) - Apr 2, 2026
+  - API key sanitization expanded to all error paths (providers, embeddings, retry logging)
+  - Per-API-key rate limiting (slowapi), WebSocket input validation (provider/model/temperature)
+  - CORS production tightening (env-based allowlist)
+  - CI dependency vulnerability scanning (pip-audit on full resolved graph)
+  - All vulnerable dependencies updated to patched versions
 - ✅ Phase 1: Core Implementation (100%)
   - BaseProvider abstract class
   - OpenAI provider with cost tracking
@@ -573,6 +582,7 @@ stratifyai check-keys
   - **Objective 2: Provider Concurrency Limits** - Per-provider semaphores
     - Lazy asyncio.Semaphore creation (binds to correct event loop)
     - All 9 providers implement acquire/try/finally/release pattern
+    - Semaphore ref captured locally — prevents deadlock on mid-flight limit change
     - LLMClient API: `set_provider_concurrency_limit("openai", 5)`
     - 10 new tests — semaphore, queueing, parallelism
   - **Objective 3: Load Profile Benchmarking** - 4 profiles
@@ -584,8 +594,8 @@ stratifyai check-keys
     - Fixed silent exception swallowing in streaming retry
     - Replaced hash()-based pool key with SHA-256 (stable across processes)
     - Removed exception-swallowing in tests, generous timing thresholds
-  - Historical snapshot at phase completion: **526 total tests passing**, 69% coverage, **no regressions**
-  - All 22 critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality)
+  - Historical snapshot at phase completion: **536 total tests passing**, 69% coverage, **no regressions**
+  - All 22+ critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality, PR review fixes)
   - See `developer/developer-journal.md` + `developer/TODO.md` for detailed summary
 
 ### In Progress

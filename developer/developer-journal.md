@@ -1,5 +1,37 @@
 # Developer Journal
 
+## April 2, 2026 - Code Quality, PR Review Fixes, and Dependency Updates
+
+Addressed ruff lint/format violations across the entire codebase, fixed PR review comments, and updated vulnerable dependencies.
+
+### Changes
+- Fixed 36+ ruff lint errors across 15 files (B904 exception chaining, E402 import order, E722 bare excepts, UP038 isinstance syntax, B018 useless access).
+- Removed duplicate `line-length` from `[tool.ruff.lint]` in pyproject.toml (was blocking all ruff checks).
+- Added per-file E402 ignores for `examples/`, `stratifyai/chat/`, `stratifyai/caching.py`.
+- Set up pre-commit hooks (ruff check --fix + ruff format) and VS Code format-on-save settings.
+- Fixed `builder.py` SyntaxError: `from __future__` import must be first statement.
+- Fixed 6 CLI chat test failures: async generator mock for streaming, `encoding="utf-8"` on file opens.
+- PR #17 review fixes:
+  - `ResponseCache.get()` now uses write lock (LRUCache `__getitem__` mutates LRU order on access).
+  - `_acquire_concurrency_slot()` returns semaphore ref; `_release_concurrency_slot(sem)` uses it — prevents deadlock on mid-flight limit change.
+  - Added docstring warning on `chat_completion_stream` about consuming/closing the generator.
+- PR #18 review fixes:
+  - CI pip-audit now scans full resolved dependency graph via `uv export --all-extras --no-hashes --no-editable`.
+  - Removed redundant `auth_header` reassignment in WebSocket rate limiting.
+- Phase 15 gap fixes:
+  - Sanitized `_initialize_client()` errors in all 4 providers.
+  - Sanitized embeddings.py and retry.py error paths.
+  - Added WebSocket provider/model validation against MODEL_CATALOG.
+  - Added WebSocket temperature bounds check (0.0–2.0).
+- Updated 6 vulnerable dependencies: aiohttp 3.13.5, requests 2.33.1, cryptography 46.0.6, protobuf 6.33.6, pyasn1 0.6.3, pygments 2.20.0.
+
+### Validation Summary
+- Ruff: All checks passed, 110 files formatted.
+- pip-audit: No known vulnerabilities found.
+- Tests: 536 passed, 4 skipped, 0 failed.
+
+---
+
 ## April 2, 2026 - Phase 14/15 Completion and MCP Technical Approach
 
 Completed the Phase 14 developer experience workstream and the Phase 15 security hardening workstream, then prepared MCP implementation execution artifacts.
