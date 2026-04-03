@@ -3,11 +3,11 @@
 
 # StratifyAI — Unified Multi‑Provider LLM Interface
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-526%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-536%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Production Ready (Phase 13 Complete - Performance & Scalability)
+**Status:** Production Ready (Phase 15 Complete - Security Hardening)
 **Providers:** 9 Operational
-**Features:** Routing • RAG • Caching • Streaming • Observability • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits**
+**Features:** Routing • RAG • Caching • Streaming • Observability • Security Hardening • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits**
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
@@ -93,6 +93,12 @@ For Phase 15 hardening guidance (threat model assumptions, staging/production
 environment settings, verification commands, and incident response), see:
 
 - `developer/runbook/phase15-security-runbook.md`
+
+### MCP Technical Approach
+
+The MCP implementation blueprint, interface contracts, and phase-by-phase execution plan are documented in:
+
+- `developer/PRD-MCP-implemenation.md`
 
 ---
 

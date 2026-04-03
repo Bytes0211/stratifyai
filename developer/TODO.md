@@ -145,3 +145,24 @@
 - [x] Add input validation/sanitization on WebSocket messages
 - [x] Review CORS configuration for production tightening
 - [x] Add dependency vulnerability scanning to CI (pip-audit or safety)
+
+---
+
+## Open Follow-ups (from PRD Phase 8 audit)
+
+> Remaining gaps validated against current codebase after Phase 15.
+
+- [ ] **P0 — WebSocket token-limit parity with REST path**
+	- Current WebSocket flow supports file handling and chunking, but does not run the same pre-request token limit checks as `POST /api/chat`.
+	- Action: Extract shared token validation helper and invoke it in both REST and WebSocket request paths.
+	- Why P0: Prevents oversized streaming requests from bypassing safeguards already enforced in REST.
+
+- [ ] **P1 — Per-decorator TTL behavior for `cache_response`**
+	- The original global TTL mutation bug is fixed, but decorator-level `ttl` does not enforce per-entry expiry when sharing one cache instance.
+	- Action: Store effective TTL per cache entry (or support isolated cache policies) so different decorators can use different TTLs without interference.
+	- Why P1: Correctness gap is real but impact is narrower than request-size safety; mainly affects mixed-TTL caching behavior.
+
+### Execution Order
+
+1. P0 — WebSocket token-limit parity with REST path
+2. P1 — Per-decorator TTL behavior for `cache_response`

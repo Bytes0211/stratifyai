@@ -163,7 +163,7 @@ stratifyai/                             # Project root
 │   └── web_server.py
 ├── scripts/
 │   └── validate_catalog.py             # Catalog validation tool (schema + content checks)
-├── tests/                              # Test suite (408+ tests)
+├── tests/                              # Test suite (536+ tests)
 │   ├── conftest.py                     # Shared fixtures (provider pool cleanup)
 │   ├── test_async_operations.py
 │   ├── test_bedrock_provider.py
@@ -268,7 +268,7 @@ stratifyai/                             # Project root
 
 ### Running Tests
 ```bash
-# Run all tests (530+ total)
+# Run full test suite
 pytest
 
 # Run with verbose output
@@ -366,24 +366,26 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** Phase 14 - Developer Experience (Next)
-**Progress:** Phases 1-13 complete; Phase 13 bug fix pass applied
-**Latest Updates:** Phase 13 bug fix pass (Apr 2, 2026) — concurrency coverage, cache RWLock, streaming retry, pool key stability
-**Test Suite:** 531 tests
+**Current Phase:** MCP Implementation Planning (post-Phase 15)
+**Progress:** Phases 1-15 complete; MCP technical approach finalized for execution
+**Latest Updates:** Phase 14 DX + Phase 15 Security complete (Apr 2, 2026); MCP technical approach authored in `developer/PRD-MCP-implemenation.md`
+**Test Suite:** 536 passed, 4 skipped
 
 ### Completed Phases
+- Note: test counts listed below are phase-local historical snapshots; current suite totals are tracked in the Project Status section above.
+
 - ✅ Phase 1: Core Implementation (100%)
   - BaseProvider abstract class
   - OpenAI provider with cost tracking
   - Unified LLMClient
   - Custom exception hierarchy
-  - 32 unit tests passing
+  - Historical snapshot at phase completion: 32 unit tests passing
 - ✅ Phase 2: Provider Expansion (100%)
   - Anthropic provider with Messages API
   - OpenAICompatibleProvider base class
   - Google, DeepSeek, Groq, Grok, Ollama, OpenRouter providers
-  - 77 total tests passing
   - All 9 providers operational (added AWS Bedrock)
+  - Historical snapshot at phase completion: 77 total tests passing
 - ✅ Phase 3: Advanced Features (100%)
   - Enhanced streaming support
   - Cost tracking module with history
@@ -401,7 +403,7 @@ stratifyai check-keys
   - Cost/quality/latency/hybrid strategies
   - Fallback chain routing for resilient applications
   - Capability-based filtering (vision, tools, reasoning)
-  - 33 router unit tests passing
+  - Historical snapshot at phase completion: 33 router unit tests passing
 - ✅ Phase 5: CLI Interface (100%)
   - Typer CLI framework with 5 commands
   - Rich formatting (tables, colors, progress)
@@ -422,7 +424,7 @@ stratifyai check-keys
   - Smart chunking at natural boundaries (158 lines)
   - Progressive summarization (179 lines)
   - CLI integration (--chunked, --chunk-size flags)
-  - 19 unit tests passing (16 passing, 3 skipped)
+  - Historical snapshot at phase completion: 19 unit tests passing (16 passing, 3 skipped)
 - ✅ Phase 7.2: Intelligent Extraction (100%)
   - CSV schema extractor (197 lines, 26-99% reduction)
   - JSON schema extractor (219 lines, 78-95% reduction)
@@ -430,15 +432,15 @@ stratifyai check-keys
   - Code structure extractor (327 lines, 33-80% reduction)
   - `analyze` CLI command
   - pandas dependency
-  - 35 unit tests passing (100%)
+  - Historical snapshot at phase completion: 35 unit tests passing
 - ✅ Phase 7.3: Model Auto-Selection (100%)
   - ModelSelector class for file-based selection (324 lines)
   - Router.route_for_extraction() method with quality prioritization
   - --auto-select flag in chat command
   - Auto-selection in analyze command (provider/model flags)
   - ExtractionMode enum (schema/errors/structure/summary)
-  - 32 unit tests passing (100%)
   - CSV → Claude Sonnet, JSON → Claude Sonnet, Logs → DeepSeek Reasoner, Code → DeepSeek
+  - Historical snapshot at phase completion: 32 unit tests passing
 - ✅ Phase 7.4: Enhanced Caching UI (100%)
   - Enhanced ResponseCache with hit/miss tracking and cost analytics
   - cache-stats command with --detailed flag for entry inspection
@@ -446,7 +448,7 @@ stratifyai check-keys
   - Visual hit rate indicators (🎯 ≥75%, ⚠️ ≥50%, 📉 <50%)
   - Cost savings analysis showing total saved and average per hit
   - Top 10 cache entries table when --detailed flag used
-  - 11 unit tests passing (100%)
+  - Historical snapshot at phase completion: 11 unit tests passing
 - ✅ Interactive Mode Enhancements (100%)
   - Intelligent file extraction integrated into /file and /attach commands
   - Automatic schema extraction for large files (>500KB) with user prompt
@@ -487,8 +489,7 @@ stratifyai check-keys
   - Model parameter now required (no defaults) - explicit over implicit
   - All 9 chat modules updated to require model parameter
   - chat() raises ValueError if model not specified
-  - 28 builder unit tests passing (tests/test_chat_builder.py)
-  - 13 async operations tests passing (tests/test_async_operations.py)
+  - Historical snapshot at phase completion: 28 builder + 13 async operations unit tests passing
 - ✅ Phase 7.9: Web UI Enhancements (100%)
   - Vision support for image uploads (GPT-4o, Claude, Gemini, Nova)
   - Dynamic file input based on model vision capability
@@ -526,8 +527,6 @@ stratifyai check-keys
   - **State Management**: Svelte stores for chat, config, cost, files
   - Dependencies: Svelte 5, Vite 6, TypeScript, marked, highlight.js, DOMPurify
 
-**Status:** Production Ready baseline with active hardening roadmap
-
 - ✅ Phase 9.1: Prompt Templates (100%) - Feb 27, 2026
   - PromptTemplate and PromptParameter data models (~170 lines)
   - PromptRegistry for discovery and loading (~230 lines)
@@ -536,10 +535,8 @@ stratifyai check-keys
   - CLI: templates command + --template/--params flags
   - API: /api/templates endpoints (list, get, render)
   - User-defined templates: ~/.stratifyai/prompts/
-  - 30 comprehensive tests (100% passing)
   - Full documentation (docs/PROMPT-TEMPLATES.md)
-
-**Status:** Production Ready baseline with active hardening roadmap (Phase 11)
+  - Historical snapshot at phase completion: 30 unit tests passing
 
 - ✅ Phase 10: CI/CD & Testing Infrastructure (100%)
   - Full PR/push CI workflow for tests
@@ -554,7 +551,7 @@ stratifyai check-keys
   - Retry consistency across all request paths
   - Provider-specific timeout controls
   - Cancellation support for long-running async operations
-  - 498 tests passing, 69% coverage maintained
+  - Historical snapshot at phase completion: 498 tests passing, 69% coverage maintained
 
 - ✅ Phase 12: Observability & Streaming Telemetry (100%) - Apr 1, 2026
   - Correlation ID context management across requests
@@ -564,7 +561,7 @@ stratifyai check-keys
   - Streaming telemetry: correlation ID, first-token latency, total latency
   - Cache hit/miss/expired logging with TTL tracking
   - TrackedLLMClient middleware for pre/post-request observability
-  - 515 tests passing, 69% coverage maintained
+  - Historical snapshot at phase completion: 515 tests passing, 69% coverage maintained
 
 - ✅ Phase 13: Performance & Scalability (100%) - Apr 2, 2026
   - **Objective 1: O(1) Cache Backend** - LRUCache + RWLockFair
@@ -587,24 +584,22 @@ stratifyai check-keys
     - Fixed silent exception swallowing in streaming retry
     - Replaced hash()-based pool key with SHA-256 (stable across processes)
     - Removed exception-swallowing in tests, generous timing thresholds
-  - **526 total tests passing**, 69% coverage, **no regressions**
+  - Historical snapshot at phase completion: **526 total tests passing**, 69% coverage, **no regressions**
   - All 22 critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality)
   - See `developer/developer-journal.md` + `developer/TODO.md` for detailed summary
 
 ### In Progress
 
-- 🔧 Phase 14: Developer Experience Polish
-  - Enhanced error messages and debugging capabilities
-  - Performance optimization in non-critical paths
-  - Documentation and examples expansion
-  - User workflow improvements
+- 🔧 MCP Server Implementation Planning and Sequencing
+  - Technical approach finalized with phased rollout and acceptance criteria
+  - Tool/resource/prompt contract surfaces defined
+  - Packaging, test, and rollout gates documented
 
 ### Future Enhancements
 
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
-- 📝 Phase 15: Security Audit & Hardening
-- 📝 MCP Server Core (see `docs/MCP-IMPLEMENTATION-PLAN.md`)
+- 📝 MCP Server Core implementation (see `developer/PRD-MCP-implemenation.md`)
 - 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
 - 📝 MCP Client (deferred — tool orchestration loop)
 
@@ -630,7 +625,9 @@ See **developer/TODO.md** for detailed task breakdowns per phase.
 - **developer/developer-journal.md** — Implementation log and lessons learned
 - **docs/CHANGELOG.md** — Version history
 - **docs/CONTRIBUTING.md** — Contribution guidelines
+- **docs/project-status.md** — Current phase, milestones, and next steps
 - **developer/TODO.md** — Prioritized roadmap (Phases 10–15)
+- **developer/PRD-MCP-implemenation.md** — MCP technical approach and implementation phases
 - **AGENTS.md** — This file (AI agent guidance)
 
 ## Troubleshooting

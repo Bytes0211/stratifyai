@@ -1,4 +1,34 @@
 # Developer Journal
+
+## April 2, 2026 - Phase 14/15 Completion and MCP Technical Approach
+
+Completed the Phase 14 developer experience workstream and the Phase 15 security hardening workstream, then prepared MCP implementation execution artifacts.
+
+### Changes
+- Delivered Phase 14 developer experience updates:
+  - Added CLI `doctor` command with structured checks and JSON output mode.
+  - Added `route --dry-run` model candidate scoring preview.
+  - Added structured exception error codes and expanded test coverage.
+- Delivered Phase 15 security hardening updates:
+  - Expanded payload and error sanitization paths.
+  - Added per-key and fallback-IP rate limiting behavior.
+  - Tightened WebSocket request validation and payload handling.
+  - Added CORS allowlist-based production configuration.
+  - Added CI vulnerability scan step (`pip-audit`).
+- Added operations and security runbooks and linked them from contributor-facing docs.
+- Authored MCP implementation technical approach:
+  - `developer/PRD-MCP-implemenation.md`
+  - Includes architecture, contracts, phased execution plan, quality gates, and rollout guidance.
+
+### Validation Summary
+- Full test suite remained stable after hardening changes.
+- Mypy checks passed for modified code paths.
+- Documentation now reflects post-Phase-15 state and MCP planning focus.
+
+### Follow-up Items
+- P0: WebSocket token-limit parity with REST path.
+- P1: Per-decorator TTL semantics for shared cache decorator usage.
+
 ## April 2, 2026 - Phase 13: Performance & Scalability Complete
 
 **Milestone:** Phase 13 successfully delivered all 3 core objectives for caching optimization, provider concurrency management, and router load benchmarking.
