@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `stratifyai doctor` CLI command for environment, key, provider, and optional live connectivity diagnostics
 - `--dry-run` flag for the `route` CLI command to show routing rationale and ranked candidates without API execution
+- CI dependency vulnerability scanning via `pip-audit`
 
 ### Changed
 - Documentation improvements with badges and type hints
 - Structured error codes added to custom exception hierarchy for programmatic handling
+- FastAPI rate limiting now keys by API token hash (fallback to client IP)
+- WebSocket payload hardening: max payload size checks and message content validation
+- API error handling now sanitizes sensitive key-like strings before logging/response details
+- CORS defaults tightened with localhost allowlist and explicit `CORS_ALLOW_ALL` override
 
 ## [0.1.0] - 2026-02-04
 

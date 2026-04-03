@@ -32,6 +32,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev --group dev
 
+      - name: Dependency vulnerability scan (pip-audit)
+        run: |
+          uv export --format requirements-txt --all-extras --no-hashes --no-editable | \
+            grep -v '^\.' | \
+            uvx pip-audit --requirement /dev/stdin
+
       - name: Detect changed Python files (PR only)
         if: github.event_name == 'pull_request'
         id: changed_py

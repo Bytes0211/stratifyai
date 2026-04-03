@@ -87,6 +87,13 @@ Check configured providers:
 stratifyai check-keys
 ```
 
+### Security Runbook
+
+For Phase 15 hardening guidance (threat model assumptions, staging/production
+environment settings, verification commands, and incident response), see:
+
+- `developer/runbook/phase15-security-runbook.md`
+
 ---
 
 ## Quick Start

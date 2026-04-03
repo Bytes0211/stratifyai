@@ -2,6 +2,9 @@
 
 This runbook provides copy-paste commands for local development and daily operations.
 
+Related runbook:
+- See developer/runbook/phase15-security-runbook.md for security hardening assumptions, environment settings, and verification checks.
+
 ## 1) One-time setup
 
 ```bash

@@ -140,8 +140,8 @@
 
 > No critical issues found, but worth hardening before public release.
 
-- [ ] Audit all error paths for potential API key leakage (expand sanitizer coverage)
-- [ ] Add rate limiting per API key in FastAPI (currently global only)
-- [ ] Add input validation/sanitization on WebSocket messages
-- [ ] Review CORS configuration for production tightening
-- [ ] Add dependency vulnerability scanning to CI (pip-audit or safety)
+- [x] Audit all error paths for potential API key leakage (expand sanitizer coverage)
+- [x] Add rate limiting per API key in FastAPI (currently global only)
+- [x] Add input validation/sanitization on WebSocket messages
+- [x] Review CORS configuration for production tightening
+- [x] Add dependency vulnerability scanning to CI (pip-audit or safety)

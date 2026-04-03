@@ -215,6 +215,16 @@ app.add_middleware(
 )
 ```
 
+Current environment-based CORS controls:
+
+```bash
+# Recommended for production (comma-separated allowlist)
+export CORS_ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
+
+# Optional development override (disables credentials)
+export CORS_ALLOW_ALL=true
+```
+
 ## Production Deployment
 
 ### Using Gunicorn + Uvicorn

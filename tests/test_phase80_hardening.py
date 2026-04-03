@@ -218,6 +218,31 @@ class TestVerifyApiKeyHmac:
         verify_api_key("Bearer anything")
 
 
+class TestRateLimitKeying:
+    """Ensure HTTP rate limiting keys by API key when available."""
+
+    def test_rate_limit_key_uses_hashed_api_key(self):
+        from api.main import _rate_limit_key
+
+        request = MagicMock()
+        request.headers = {"Authorization": "Bearer my-secret-token"}
+        request.client = MagicMock(host="10.0.0.1")
+
+        key = _rate_limit_key(request)
+        assert key.startswith("key:")
+        assert "my-secret-token" not in key
+
+    def test_rate_limit_key_falls_back_to_ip(self):
+        from api.main import _rate_limit_key
+
+        request = MagicMock()
+        request.headers = {}
+        request.client = MagicMock(host="10.0.0.9")
+
+        key = _rate_limit_key(request)
+        assert key == "ip:10.0.0.9"
+
+
 # ---------------------------------------------------------------------------
 # _sanitize_file_name edge cases
 # ---------------------------------------------------------------------------
@@ -530,6 +555,39 @@ class TestApiIntegration:
         assert body["cache"]["size"] == 1
         assert body["cost"]["total_cost"] == 0.123
 
+    @patch.dict("os.environ", {}, clear=False)
+    @patch("api.main.get_tracked_client")
+    def test_chat_error_detail_sanitized(self, mock_get_tracked_client):
+        """API responses must redact key-like material in error details."""
+        import os
+
+        from fastapi.testclient import TestClient
+
+        from api.main import app
+
+        os.environ.pop("STRATIFYAI_API_KEY", None)
+
+        tracked = MagicMock()
+        tracked.chat_completion = AsyncMock(
+            side_effect=Exception("provider failed with sk-proj-ABCDEFGHIJKLMNOP")
+        )
+        mock_get_tracked_client.return_value = tracked
+
+        client = TestClient(app)
+        resp = client.post(
+            "/api/chat",
+            json={
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": "hi"}],
+            },
+        )
+
+        assert resp.status_code == 500
+        detail = resp.json()["detail"]["detail"]
+        assert "sk-proj-ABCDEFGHIJKLMNOP" not in detail
+        assert "***REDACTED***" in detail
+
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "my-secret"})
     def test_providers_without_auth_returns_401(self):
         from fastapi.testclient import TestClient
@@ -664,6 +722,15 @@ class TestWebSocketStructuredErrors:
             data = ws.receive_json()
             assert data.get("done") is True
             assert "error" in data
+
+    def test_stream_message_validator_rejects_control_chars(self):
+        """Message validator should reject control characters in content."""
+        from pydantic import ValidationError as PydanticValidationError
+
+        from api.main import StreamMessage
+
+        with pytest.raises(PydanticValidationError):
+            StreamMessage(role="user", content="hi\x01there")
 
     @patch.dict("os.environ", {}, clear=False)
     @patch("api.main.cost_tracker")

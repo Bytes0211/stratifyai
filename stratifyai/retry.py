@@ -11,6 +11,7 @@ from .exceptions import (
     ProviderAPIError,
     RateLimitError,
 )
+from .utils.sanitizer import sanitize_error
 
 # 4xx status codes that indicate permanent failures — retrying will never help.
 # 429 (rate limit) is intentionally excluded; it's handled by RateLimitError.
@@ -109,7 +110,7 @@ def with_retry(
 
                     logging.warning(
                         f"Retry attempt {attempt + 1}/{config.max_retries} "
-                        f"after {delay:.2f}s delay. Error: {str(e)}"
+                        f"after {delay:.2f}s delay. Error: {sanitize_error(str(e))}"
                     )
                     await asyncio.sleep(delay)
 
