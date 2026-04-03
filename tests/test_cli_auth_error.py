@@ -1,8 +1,9 @@
 """Tests for AuthenticationError handling in CLI."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 from typer.testing import CliRunner
+
 from cli.stratifyai_cli import app
 from stratifyai.exceptions import AuthenticationError
 

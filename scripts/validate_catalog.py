@@ -16,13 +16,13 @@ Usage:
 import json
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Any
 
 
-def load_json_file(path: Path) -> Dict[str, Any]:
+def load_json_file(path: Path) -> dict[str, Any]:
     """Load and parse JSON file."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         print(f"❌ Invalid JSON in {path}: {e}")
@@ -32,7 +32,7 @@ def load_json_file(path: Path) -> Dict[str, Any]:
         sys.exit(1)
 
 
-def validate_schema(catalog: Dict[str, Any], schema: Dict[str, Any]) -> List[str]:
+def validate_schema(catalog: dict[str, Any], schema: dict[str, Any]) -> list[str]:
     """Basic schema validation (simplified - doesn't use jsonschema library)."""
     errors = []
 
@@ -54,7 +54,7 @@ def validate_schema(catalog: Dict[str, Any], schema: Dict[str, Any]) -> List[str
     return errors
 
 
-def validate_providers(providers: Dict[str, Dict[str, Any]]) -> List[str]:
+def validate_providers(providers: dict[str, dict[str, Any]]) -> list[str]:
     """Validate provider models."""
     errors = []
 
@@ -97,7 +97,7 @@ def validate_providers(providers: Dict[str, Dict[str, Any]]) -> List[str]:
             ]:
                 if cost_field in model_data:
                     cost = model_data[cost_field]
-                    if not isinstance(cost, (int, float)) or cost < 0:
+                    if not isinstance(cost, int | float) or cost < 0:
                         errors.append(
                             f"{provider_name}/{model_id}: Invalid {cost_field}: {cost} (must be non-negative number)"
                         )
@@ -116,7 +116,7 @@ def validate_providers(providers: Dict[str, Dict[str, Any]]) -> List[str]:
     return errors
 
 
-def check_routing_fields(providers: Dict[str, Dict[str, Any]]) -> List[str]:
+def check_routing_fields(providers: dict[str, dict[str, Any]]) -> list[str]:
     """Check for missing quality_score / avg_latency_ms (warnings, not errors)."""
     warnings = []
     for provider_name, models in providers.items():

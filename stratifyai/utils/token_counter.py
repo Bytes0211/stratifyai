@@ -152,7 +152,7 @@ def get_context_window(provider: str, model: str) -> int:
     from ..config import MODEL_CATALOG
 
     model_info = MODEL_CATALOG.get(provider, {}).get(model, {})
-    return model_info.get("context", 128000)  # Default to 128k
+    return int(model_info.get("context", 128000))  # Default to 128k
 
 
 def check_token_limit(

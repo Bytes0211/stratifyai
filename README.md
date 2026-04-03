@@ -3,11 +3,11 @@
 
 # StratifyAI — Unified Multi‑Provider LLM Interface
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-408%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-526%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Production Ready (Phase 12 Complete, Phase 13 Next)  
-**Providers:** 9 Operational  
-**Features:** Routing • RAG • Caching • Streaming • Observability • CLI • Svelte 5 SPA • Vision • Smart Chunking • **Prompt Templates**
+**Status:** Production Ready (Phase 13 Complete - Performance & Scalability)
+**Providers:** 9 Operational
+**Features:** Routing • RAG • Caching • Streaming • Observability • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits**
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
@@ -24,7 +24,9 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - Latency tracking on all responses
 - Retry logic with fallback models
 - Streaming support for all providers
-- Response caching + provider prompt caching
+- **O(1) Cache with LRU eviction** + provider prompt caching
+- **Concurrent read-write locking** (RWLockFair) for high-throughput caching
+- **Provider concurrency limits** (max concurrent requests per provider)
 - Correlation IDs for HTTP/WebSocket tracing
 - Provider health and structured metrics endpoints
 - Intelligent routing (cost, quality, latency, hybrid)
@@ -333,7 +335,7 @@ pytest           # Run all tests
 pytest -v        # Verbose output
 ```
 
-**Test Coverage:** 408+ tests across all modules
+**Test Coverage:** 531 tests across all modules (69% code coverage)
 
 ---
 

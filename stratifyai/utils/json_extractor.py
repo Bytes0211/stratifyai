@@ -82,7 +82,7 @@ def infer_json_schema(
     elif isinstance(data, bool):
         return JSONSchema(type="boolean", sample_values=[data], depth=current_depth)
 
-    elif isinstance(data, (int, float)):
+    elif isinstance(data, int | float):
         return JSONSchema(type="number", sample_values=[data], depth=current_depth)
 
     elif isinstance(data, str):

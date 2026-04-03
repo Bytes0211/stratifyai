@@ -22,7 +22,7 @@ class InvalidProviderError(ProviderError):
 class ProviderAPIError(ProviderError):
     """Raised when a provider API call fails."""
 
-    def __init__(self, message: str, provider: str, status_code: int = None):
+    def __init__(self, message: str, provider: str, status_code: int | None = None):
         self.provider = provider
         self.status_code = status_code
         super().__init__(f"[{provider}] {message}")
@@ -31,7 +31,7 @@ class ProviderAPIError(ProviderError):
 class AuthenticationError(ProviderError):
     """Raised when API key authentication fails."""
 
-    def __init__(self, provider: str, message: str = None):
+    def __init__(self, provider: str, message: str | None = None):
         self.provider = provider
         super().__init__(
             message or f"Authentication failed for {provider}. Check API key."
@@ -51,7 +51,7 @@ class InsufficientBalanceError(ProviderError):
 class RateLimitError(ProviderError):
     """Raised when rate limit is exceeded."""
 
-    def __init__(self, provider: str, retry_after: int = None):
+    def __init__(self, provider: str, retry_after: int | None = None):
         self.provider = provider
         self.retry_after = retry_after
         message = f"Rate limit exceeded for {provider}"

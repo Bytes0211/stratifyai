@@ -1,8 +1,9 @@
 """Unit tests for router module."""
 
 import pytest
-from stratifyai.router import Router, RoutingStrategy, ModelMetadata
+
 from stratifyai.models import Message
+from stratifyai.router import ModelMetadata, Router, RoutingStrategy
 
 
 class TestRouter:
@@ -25,7 +26,7 @@ class TestRouter:
         router = Router(excluded_providers=["ollama"])
 
         # Check that no Ollama models are loaded
-        for key, meta in router.model_metadata.items():
+        for _key, meta in router.model_metadata.items():
             assert meta.provider != "ollama"
 
     def test_router_with_preferred_providers(self):
@@ -312,7 +313,7 @@ class TestRouterHelperMethods:
         vision_models = router.list_models(required_capabilities=["vision"])
 
         # All returned models should have vision capability
-        for provider, model, meta in vision_models:
+        for _provider, _model, meta in vision_models:
             assert "vision" in meta.capabilities
 
         # Should have some vision-capable models
@@ -395,7 +396,7 @@ class TestQualityScoresAndLatency:
         reasoning_scores = []
         non_reasoning_scores = []
 
-        for key, meta in router.model_metadata.items():
+        for _key, meta in router.model_metadata.items():
             if meta.reasoning_model:
                 reasoning_scores.append(meta.quality_score)
             else:
@@ -414,7 +415,7 @@ class TestQualityScoresAndLatency:
         local_latencies = []
         remote_latencies = []
 
-        for key, meta in router.model_metadata.items():
+        for _key, meta in router.model_metadata.items():
             if meta.provider == "ollama":
                 local_latencies.append(meta.avg_latency_ms)
             else:

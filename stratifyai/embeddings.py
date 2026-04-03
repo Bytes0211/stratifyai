@@ -7,6 +7,7 @@ various provider APIs (OpenAI, Cohere, etc.).
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import cast
 
 from openai import AsyncOpenAI
 
@@ -73,7 +74,14 @@ class EmbeddingProvider(ABC):
         self, texts: list[str], model: str | None = None
     ) -> EmbeddingResult:
         """Synchronous wrapper for generate_embeddings."""
-        return run_sync(self.generate_embeddings(texts, model))
+        return cast(EmbeddingResult, run_sync(self.generate_embeddings(texts, model)))
+
+    async def generate_embedding(
+        self, text: str, model: str | None = None
+    ) -> list[float]:
+        """Generate an embedding for a single text input."""
+        result = await self.generate_embeddings([text], model=model)
+        return result.embeddings[0]
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
@@ -165,9 +173,14 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         except Exception as e:
             error_msg = str(e)
             if "authentication" in error_msg.lower() or "api key" in error_msg.lower():
-                raise AuthenticationError(f"OpenAI authentication failed: {error_msg}")
+                raise AuthenticationError(
+                    "openai", f"OpenAI authentication failed: {error_msg}"
+                ) from e
             else:
-                raise ProviderAPIError(f"OpenAI embedding request failed: {error_msg}")
+                raise ProviderAPIError(
+                    f"OpenAI embedding request failed: {error_msg}",
+                    "openai",
+                ) from e
 
     async def generate_embedding(
         self, text: str, model: str | None = None

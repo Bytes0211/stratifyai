@@ -360,7 +360,7 @@ class Router:
                 + latency_weight * latency_score
             )
 
-        return max(scores, key=scores.get)
+        return max(scores, key=lambda key: scores[key])
 
     def get_model_info(self, provider: str, model: str) -> ModelMetadata | None:
         """Get metadata for a specific model."""
@@ -438,7 +438,7 @@ class Router:
             scores[key] = quality_weight * quality_score + cost_weight * cost_score
 
         # Select highest scoring model
-        best_key = max(scores, key=scores.get)
+        best_key = max(scores, key=lambda key: scores[key])
         metadata = self.model_metadata[best_key]
         return metadata.provider, metadata.model
 

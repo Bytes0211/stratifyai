@@ -4,14 +4,12 @@ This example demonstrates how StratifyAI automatically selects the optimal
 model based on file type and extraction task.
 """
 
-from pathlib import Path
-from stratifyai.utils.model_selector import (
-    ModelSelector,
-    ExtractionMode,
-    select_model_for_file,
-)
 from stratifyai.router import Router
 from stratifyai.utils.file_analyzer import FileType
+from stratifyai.utils.model_selector import (
+    ExtractionMode,
+    ModelSelector,
+)
 
 
 def demo_model_selector():
@@ -94,7 +92,7 @@ def demo_router_extraction():
     metadata = router.get_model_info(provider, model)
     print(f"   Selected: {provider}/{model}")
     print(f"   Quality Score: {metadata.quality_score:.2f}")
-    print(f"   Strategy: Quality-focused (90% quality, 10% cost)")
+    print("   Strategy: Quality-focused (90% quality, 10% cost)")
     print()
 
     # Example 2: Error extraction with reasoning boost

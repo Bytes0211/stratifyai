@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from stratifyai.utils.sync_helpers import run_sync
 
@@ -216,7 +216,7 @@ class ChatBuilder:
             elif msg.role == "user":
                 user_content = msg.content
 
-        updates = {}
+        updates: dict[str, Any] = {}
         if system_content:
             updates["_system"] = system_content
         if user_content:
@@ -382,14 +382,17 @@ class ChatBuilder:
         Yields:
             ChatResponse chunks.
         """
-        return await self.chat(
-            prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=True,
-            **kwargs,
+        return cast(
+            AsyncIterator[ChatResponse],
+            await self.chat(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+                **kwargs,
+            ),
         )
 
     def chat_sync(
@@ -415,16 +418,19 @@ class ChatBuilder:
         Returns:
             ChatResponse object.
         """
-        return run_sync(
-            self.chat(
-                prompt,
-                model=model,
-                system=system,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False,
-                **kwargs,
-            )
+        return cast(
+            ChatResponse,
+            run_sync(
+                self.chat(
+                    prompt,
+                    model=model,
+                    system=system,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                    **kwargs,
+                )
+            ),
         )
 
 

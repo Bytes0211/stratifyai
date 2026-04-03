@@ -5,6 +5,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 try:
     import aioboto3
@@ -144,74 +145,79 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints for Bedrock (0.0 to 1.0)
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Build request body based on model family
-        body = self._build_request_body(request)
-
+        sem = await self._acquire_concurrency_slot()
         try:
-            # Create async client and invoke Bedrock model
-            async with self._session.client(
-                "bedrock-runtime",
-                config=BotoConfig(
-                    connect_timeout=self.connect_timeout_seconds,
-                    read_timeout=self.timeout_seconds,
-                ),
-            ) as client:
-                response = await client.invoke_model(
-                    modelId=request.model,
-                    contentType="application/json",
-                    accept="application/json",
-                    body=json.dumps(body),
-                )
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-                # Parse response - aioboto3 returns StreamingBody
-                response_body_bytes = await response["body"].read()
-                response_body = json.loads(response_body_bytes)
+            # Validate temperature constraints for Bedrock (0.0 to 1.0)
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
 
-                # Normalize response based on model family
-                return self._normalize_response(response_body, request.model)
+            # Build request body based on model family
+            body = self._build_request_body(request)
 
-        except ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            error_message = e.response["Error"]["Message"]
+            try:
+                # Create async client and invoke Bedrock model
+                async with self._session.client(
+                    "bedrock-runtime",
+                    config=BotoConfig(
+                        connect_timeout=self.connect_timeout_seconds,
+                        read_timeout=self.timeout_seconds,
+                    ),
+                ) as client:
+                    response = await client.invoke_model(
+                        modelId=request.model,
+                        contentType="application/json",
+                        accept="application/json",
+                        body=json.dumps(body),
+                    )
 
-            # Parse and provide user-friendly error messages
-            if error_code == "ValidationException":
-                # Extract specific validation issues
-                if (
-                    "is not less or equal to" in error_message
-                    and "/p:" in error_message
-                ):
-                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
-                elif (
-                    "is not a valid enum value" in error_message
-                    and "role" in error_message
-                ):
-                    friendly_msg = "Model configuration error: Invalid message role format for this model."
-                else:
-                    friendly_msg = f"Request validation failed: {error_message}"
+                    # Parse response - aioboto3 returns StreamingBody
+                    response_body_bytes = await response["body"].read()
+                    response_body = json.loads(response_body_bytes)
+
+                    # Normalize response based on model family
+                    return self._normalize_response(response_body, request.model)
+
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                error_message = e.response["Error"]["Message"]
+
+                # Parse and provide user-friendly error messages
+                if error_code == "ValidationException":
+                    # Extract specific validation issues
+                    if (
+                        "is not less or equal to" in error_message
+                        and "/p:" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                    elif (
+                        "is not a valid enum value" in error_message
+                        and "role" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: Invalid message role format for this model."
+                    else:
+                        friendly_msg = f"Request validation failed: {error_message}"
+                    raise ProviderAPIError(
+                        f"[bedrock] {friendly_msg}", self.provider_name
+                    ) from e
+
                 raise ProviderAPIError(
-                    f"[bedrock] {friendly_msg}", self.provider_name
+                    f"Bedrock API error ({error_code}): {error_message}",
+                    self.provider_name,
                 ) from e
-
-            raise ProviderAPIError(
-                f"Bedrock API error ({error_code}): {error_message}", self.provider_name
-            ) from e
-        except Exception as e:
-            raise ProviderAPIError(
-                f"Chat completion failed: {sanitize_error(str(e), self.api_key)}",
-                self.provider_name,
-            ) from e
+            except Exception as e:
+                raise ProviderAPIError(
+                    f"Chat completion failed: {sanitize_error(str(e), self.api_key)}",
+                    self.provider_name,
+                ) from e
+        finally:
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -229,78 +235,82 @@ class BedrockProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Build request body
-        body = self._build_request_body(request)
-
+        sem = await self._acquire_concurrency_slot()
         try:
-            # Create async client and invoke Bedrock model with streaming
-            async with self._session.client(
-                "bedrock-runtime",
-                config=BotoConfig(
-                    connect_timeout=self.connect_timeout_seconds,
-                    read_timeout=self.timeout_seconds,
-                ),
-            ) as client:
-                response = await client.invoke_model_with_response_stream(
-                    modelId=request.model,
-                    contentType="application/json",
-                    accept="application/json",
-                    body=json.dumps(body),
-                )
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-                # Process streaming response
-                stream = response.get("body")
-                if stream:
-                    async for event in stream:
-                        chunk_data = event.get("chunk")
-                        if chunk_data:
-                            chunk = json.loads(chunk_data["bytes"].decode())
-                            yield self._normalize_stream_chunk(chunk, request.model)
+            # Validate temperature constraints
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
 
-        except ClientError as e:
-            error_code = e.response["Error"]["Code"]
-            error_message = e.response["Error"]["Message"]
+            # Build request body
+            body = self._build_request_body(request)
 
-            # Parse and provide user-friendly error messages
-            if error_code == "ValidationException":
-                if (
-                    "is not less or equal to" in error_message
-                    and "/p:" in error_message
-                ):
-                    friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
-                elif (
-                    "is not a valid enum value" in error_message
-                    and "role" in error_message
-                ):
-                    friendly_msg = "Model configuration error: Invalid message role format for this model."
-                else:
-                    friendly_msg = f"Request validation failed: {error_message}"
+            try:
+                # Create async client and invoke Bedrock model with streaming
+                async with self._session.client(
+                    "bedrock-runtime",
+                    config=BotoConfig(
+                        connect_timeout=self.connect_timeout_seconds,
+                        read_timeout=self.timeout_seconds,
+                    ),
+                ) as client:
+                    response = await client.invoke_model_with_response_stream(
+                        modelId=request.model,
+                        contentType="application/json",
+                        accept="application/json",
+                        body=json.dumps(body),
+                    )
+
+                    # Process streaming response
+                    stream = response.get("body")
+                    if stream:
+                        async for event in stream:
+                            chunk_data = event.get("chunk")
+                            if chunk_data:
+                                chunk = json.loads(chunk_data["bytes"].decode())
+                                yield self._normalize_stream_chunk(chunk, request.model)
+
+            except ClientError as e:
+                error_code = e.response["Error"]["Code"]
+                error_message = e.response["Error"]["Message"]
+
+                # Parse and provide user-friendly error messages
+                if error_code == "ValidationException":
+                    if (
+                        "is not less or equal to" in error_message
+                        and "/p:" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: top_p parameter exceeds maximum allowed value for this model."
+                    elif (
+                        "is not a valid enum value" in error_message
+                        and "role" in error_message
+                    ):
+                        friendly_msg = "Model configuration error: Invalid message role format for this model."
+                    else:
+                        friendly_msg = f"Request validation failed: {error_message}"
+                    raise ProviderAPIError(
+                        f"[bedrock] {friendly_msg}", self.provider_name
+                    ) from e
+
                 raise ProviderAPIError(
-                    f"[bedrock] {friendly_msg}", self.provider_name
+                    f"Bedrock streaming error ({error_code}): {error_message}",
+                    self.provider_name,
                 ) from e
+            except Exception as e:
+                raise ProviderAPIError(
+                    f"Streaming chat completion failed: {sanitize_error(str(e), self.api_key)}",
+                    self.provider_name,
+                ) from e
+        finally:
+            self._release_concurrency_slot(sem)
 
-            raise ProviderAPIError(
-                f"Bedrock streaming error ({error_code}): {error_message}",
-                self.provider_name,
-            ) from e
-        except Exception as e:
-            raise ProviderAPIError(
-                f"Streaming chat completion failed: {sanitize_error(str(e), self.api_key)}",
-                self.provider_name,
-            ) from e
-
-    def _build_request_body(self, request: ChatRequest) -> dict:
+    def _build_request_body(self, request: ChatRequest) -> dict[str, Any]:
         """
         Build request body based on model family.
 
@@ -348,11 +358,11 @@ class BedrockProvider(BaseProvider):
                 f"Unknown model family for {model_id}", self.provider_name
             )
 
-    def _build_anthropic_request(self, request: ChatRequest) -> dict:
+    def _build_anthropic_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Anthropic Claude models."""
         # Separate system message from conversation
-        system_message = None
-        messages = []
+        system_message: str | None = None
+        messages: list[dict[str, Any]] = []
 
         for msg in request.messages:
             if msg.role == "system":
@@ -364,7 +374,7 @@ class BedrockProvider(BaseProvider):
                     text_content, image_data = msg.parse_vision_content()
 
                     # Build content array for vision (Anthropic format)
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"type": "text", "text": text_content})
 
@@ -386,7 +396,7 @@ class BedrockProvider(BaseProvider):
                 else:
                     messages.append({"role": msg.role, "content": msg.content})
 
-        body = {
+        body: dict[str, Any] = {
             "anthropic_version": "bedrock-2023-05-31",
             "messages": messages,
             "max_tokens": request.max_tokens or 4096,
@@ -404,7 +414,7 @@ class BedrockProvider(BaseProvider):
 
         return body
 
-    def _build_llama_request(self, request: ChatRequest) -> dict:
+    def _build_llama_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Meta Llama models."""
         # Llama uses a prompt-based format
         prompt = self._messages_to_prompt(request.messages)
@@ -416,7 +426,7 @@ class BedrockProvider(BaseProvider):
             "top_p": request.top_p,
         }
 
-    def _build_mistral_request(self, request: ChatRequest) -> dict:
+    def _build_mistral_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Mistral models."""
         # Convert to prompt format
         prompt = self._messages_to_prompt(request.messages)
@@ -428,12 +438,12 @@ class BedrockProvider(BaseProvider):
             "top_p": request.top_p,
         }
 
-    def _build_cohere_request(self, request: ChatRequest) -> dict:
+    def _build_cohere_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Cohere models."""
         # Cohere Bedrock uses USER/CHATBOT roles and requires specific format
         # Extract user message (last message should be from user)
         user_message = ""
-        chat_history = []
+        chat_history: list[dict[str, str]] = []
 
         for i, msg in enumerate(request.messages):
             # Skip system messages - Cohere handles them differently
@@ -459,11 +469,11 @@ class BedrockProvider(BaseProvider):
             "p": top_p,
         }
 
-    def _build_nova_request(self, request: ChatRequest) -> dict:
+    def _build_nova_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Amazon Nova models."""
         # Nova uses messages API similar to Claude
-        system_message = None
-        messages = []
+        system_message: str | None = None
+        messages: list[dict[str, Any]] = []
 
         for msg in request.messages:
             if msg.role == "system":
@@ -472,10 +482,17 @@ class BedrockProvider(BaseProvider):
                 # Check if message contains an image
                 if msg.has_image():
                     # Parse vision content
-                    text_content, (mime_type, base64_data) = msg.parse_vision_content()
+                    text_content, image_data = msg.parse_vision_content()
+                    if image_data is None:
+                        messages.append(
+                            {"role": msg.role, "content": [{"text": text_content}]}
+                        )
+                        continue
+
+                    mime_type, base64_data = image_data
 
                     # Build content array for vision (Nova format)
-                    content_parts = []
+                    content_parts: list[dict[str, Any]] = []
                     if text_content:
                         content_parts.append({"text": text_content})
 
@@ -499,7 +516,7 @@ class BedrockProvider(BaseProvider):
                         {"role": msg.role, "content": [{"text": msg.content}]}
                     )
 
-        body = {
+        body: dict[str, Any] = {
             "messages": messages,
             "inferenceConfig": {
                 "max_new_tokens": request.max_tokens or 4096,
@@ -519,7 +536,7 @@ class BedrockProvider(BaseProvider):
 
         return body
 
-    def _build_titan_request(self, request: ChatRequest) -> dict:
+    def _build_titan_request(self, request: ChatRequest) -> dict[str, Any]:
         """Build request for Amazon Titan models."""
         # Titan uses inputText format
         prompt = self._messages_to_prompt(request.messages)
@@ -534,7 +551,7 @@ class BedrockProvider(BaseProvider):
             },
         }
 
-    def _messages_to_prompt(self, messages: list) -> str:
+    def _messages_to_prompt(self, messages: list[Any]) -> str:
         """
         Convert message list to a single prompt string.
 
@@ -555,7 +572,11 @@ class BedrockProvider(BaseProvider):
 
         return "\n\n".join(prompt_parts) + "\n\nAssistant:"
 
-    def _normalize_response(self, raw_response: dict, model: str) -> ChatResponse:
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert Bedrock response to unified format.
 
@@ -567,6 +588,12 @@ class BedrockProvider(BaseProvider):
             Normalized ChatResponse with cost
         """
         # Parse response based on model family
+        if model is None:
+            raise ProviderAPIError(
+                "Bedrock response normalization requires a model id",
+                self.provider_name,
+            )
+
         if model.startswith("anthropic.claude"):
             content = self._parse_anthropic_response(raw_response)
             usage = self._extract_anthropic_usage(raw_response)

@@ -1,10 +1,12 @@
 """Unified client for accessing multiple LLM providers."""
 
 import asyncio
+import hashlib
 import logging
 import time
 from collections.abc import AsyncIterator
 from enum import Enum
+from typing import Any, cast
 
 from .api_key_helper import APIKeyHelper
 from .config import MODEL_CATALOG
@@ -55,9 +57,15 @@ _provider_pool: dict[str, BaseProvider] = {}
 
 
 def _pool_key(provider: str, api_key: str | None) -> str:
-    """Build a deterministic key for the provider pool."""
-    # Use a short hash of the api_key so different keys get different clients
-    key_part = str(hash(api_key))[:12] if api_key else "env"
+    """Build a deterministic key for the provider pool.
+
+    Uses SHA-256 (stable across processes) instead of Python's hash()
+    which is randomized per process via PYTHONHASHSEED.
+    """
+    if api_key:
+        key_part = hashlib.sha256(api_key.encode()).hexdigest()[:12]
+    else:
+        key_part = "env"
     return f"{provider}:{key_part}"
 
 
@@ -90,7 +98,7 @@ class LLMClient:
         self,
         provider: str | None = None,
         api_key: str | None = None,
-        config: dict = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize unified LLM client.
@@ -107,7 +115,7 @@ class LLMClient:
         self.provider_name = provider
         self.api_key = api_key
         self.config = config or {}
-        self._provider_instance = None
+        self._provider_instance: BaseProvider | None = None
         self._providers: dict[str, BaseProvider] = {}
         self._retry_config = self._build_retry_config()
 
@@ -144,9 +152,12 @@ class LLMClient:
 
         is_valid, error_message = APIKeyHelper.validate_api_key(provider, self.api_key)
         if not is_valid:
-            raise AuthenticationError(provider, error_message)
+            raise AuthenticationError(
+                provider,
+                error_message or f"Missing or invalid API key for {provider}.",
+            )
 
-    def _build_provider_config(self, provider: str) -> dict:
+    def _build_provider_config(self, provider: str) -> dict[str, Any]:
         """Build provider-specific config with optional per-provider overrides."""
         provider_config = dict(self.config)
         providers_cfg = provider_config.pop("providers", None)
@@ -199,7 +210,7 @@ class LLMClient:
         else:
             provider_class = self._provider_registry[provider]
             provider_instance = provider_class(
-                api_key=self.api_key,
+                api_key=self.api_key or "",
                 config=self._build_provider_config(provider),
             )
             _provider_pool[key] = provider_instance
@@ -242,9 +253,58 @@ class LLMClient:
         """
         for provider_name, models in MODEL_CATALOG.items():
             if model in models:
-                return provider_name
+                return str(provider_name)
 
         raise InvalidModelError(model, "any provider")
+
+    def set_provider_concurrency_limit(
+        self, provider: str, max_concurrent: int | None
+    ) -> None:
+        """
+        Set maximum concurrent requests for a specific provider.
+
+        Args:
+            provider: Provider name (e.g., 'openai', 'anthropic')
+            max_concurrent: Maximum number of concurrent requests.
+                          None removes the limit (default behavior).
+
+        Raises:
+            InvalidProviderError: If provider is not supported
+        """
+        if provider not in self._provider_registry:
+            raise InvalidProviderError(f"Provider '{provider}' is not supported")
+
+        # Initialize provider if not already done
+        if provider not in self._providers:
+            self._initialize_provider(provider)
+
+        # Set limit on the provider instance
+        self._providers[provider].set_concurrency_limit(max_concurrent)
+        logger.debug(
+            "Set concurrency limit for %s: %s", provider, max_concurrent or "unlimited"
+        )
+
+    def get_provider_concurrency_limit(self, provider: str) -> int | None:
+        """
+        Get the current concurrency limit for a provider.
+
+        Args:
+            provider: Provider name
+
+        Returns:
+            Current limit, or None if no limit is set
+
+        Raises:
+            InvalidProviderError: If provider is not supported
+        """
+        if provider not in self._provider_registry:
+            raise InvalidProviderError(f"Provider '{provider}' is not supported")
+
+        if provider not in self._providers:
+            # Provider not yet initialized, no limit set
+            return None
+
+        return self._providers[provider].get_concurrency_limit()
 
     async def chat(
         self,
@@ -300,7 +360,7 @@ class LLMClient:
                 return await provider.chat_completion(request)
 
             start_time = time.perf_counter()
-            response = await _chat_call()
+            response = cast(ChatResponse, await _chat_call())
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             return response
 
@@ -333,7 +393,7 @@ class LLMClient:
 
         # Capture timing
         start_time = time.perf_counter()
-        response = await _completion_call()
+        response = cast(ChatResponse, await _completion_call())
         latency_ms = (time.perf_counter() - start_time) * 1000
 
         # Add latency to response
@@ -412,6 +472,9 @@ class LLMClient:
                     str(exc),
                 )
                 await asyncio.sleep(delay)
+            except Exception:
+                # Non-retryable exceptions must propagate immediately
+                raise
 
     def chat_sync(
         self,
@@ -434,15 +497,18 @@ class LLMClient:
         Returns:
             Chat completion response
         """
-        return run_sync(
-            self.chat(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False,
-                **kwargs,
-            )
+        return cast(
+            ChatResponse,
+            run_sync(
+                self.chat(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                    **kwargs,
+                )
+            ),
         )
 
     def chat_completion_sync(self, request: ChatRequest) -> ChatResponse:
@@ -455,7 +521,7 @@ class LLMClient:
         Returns:
             Chat completion response
         """
-        return run_sync(self.chat_completion(request))
+        return cast(ChatResponse, run_sync(self.chat_completion(request)))
 
     def close(self) -> None:
         """Release this client's provider from the shared pool."""
@@ -496,7 +562,7 @@ class LLMClient:
             return list(MODEL_CATALOG.get(provider, {}).keys())
 
         # Return all models from all providers
-        all_models = []
+        all_models: list[str] = []
         for models in MODEL_CATALOG.values():
             all_models.extend(models.keys())
         return all_models

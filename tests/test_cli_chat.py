@@ -1,13 +1,14 @@
 """Unit tests for CLI chat command and _chat_impl function."""
 
-import pytest
-from unittest.mock import MagicMock, patch, mock_open, call
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 from typer.testing import CliRunner
 
-from cli.stratifyai_cli import app, _chat_impl
-from stratifyai.models import Message, ChatRequest, ChatResponse, Usage
+from cli.stratifyai_cli import _chat_impl, app
+from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 
 @pytest.fixture
@@ -74,7 +75,7 @@ class TestChatCommand:
         # Capture the request when chat_completion_stream is called
         captured_request = []
 
-        def mock_stream(request):
+        async def mock_stream(request):
             # Capture a copy of the request before messages are modified
             captured_request.append(
                 ChatRequest(
@@ -454,7 +455,7 @@ class TestChatImplSave:
         )
 
         # Verify file was opened for writing
-        mock_file.assert_called_once_with("test_conversation.md", "w")
+        mock_file.assert_called_once_with("test_conversation.md", "w", encoding="utf-8")
 
         # Get the file handle
         handle = mock_file()
@@ -570,7 +571,7 @@ class TestChatImplSave:
         )
 
         # Verify file was saved
-        mock_file.assert_called_once_with("saved.md", "w")
+        mock_file.assert_called_once_with("saved.md", "w", encoding="utf-8")
 
         # Verify chat_completion was called twice (once for initial, once for follow-up)
         assert client_instance.chat_completion_sync.call_count == 2
@@ -695,7 +696,7 @@ class TestChatImplSave:
         )
 
         # Verify file was saved
-        mock_file.assert_called_once_with("multi_turn.md", "w")
+        mock_file.assert_called_once_with("multi_turn.md", "w", encoding="utf-8")
 
         # Get written content
         handle = mock_file()
@@ -768,7 +769,7 @@ class TestChatImplSave:
         )
 
         # Verify file was opened with .md extension added
-        mock_file.assert_called_once_with("myfile.md", "w")
+        mock_file.assert_called_once_with("myfile.md", "w", encoding="utf-8")
         mock_console.print.assert_any_call("[green]✓ Saved to myfile.md[/green]")
 
 
@@ -824,7 +825,7 @@ class TestChatImplFileInput:
         )
 
         # Verify file was read
-        mock_file.assert_any_call(test_file_path, "r", encoding="utf-8")
+        mock_file.assert_any_call(test_file_path, encoding="utf-8")
 
         # Verify message content includes file content
         call_args = client_instance.chat_completion_sync.call_args

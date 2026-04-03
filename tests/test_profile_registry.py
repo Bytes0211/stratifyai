@@ -17,7 +17,6 @@ import pytest
 from stratifyai.profiles.models import (
     PARAMETER_DEFINITIONS,
     Profile,
-    ProfileParameter,
     merge_parameters,
 )
 from stratifyai.profiles.registry import ProfileRegistry, _load_yaml_profiles
@@ -357,7 +356,7 @@ class TestRegistryLoading:
             )
             # Force-load built-ins first
             reg._ensure_loaded()
-            orig_desc = reg._profiles["fast"].description
+            _ = reg._profiles["fast"].description
 
             # Now load user dir — should override
             reg.load_directory(Path(tmpdir), source="user")

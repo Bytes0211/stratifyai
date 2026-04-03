@@ -1,8 +1,9 @@
 """Unit tests for ChatBuilder pattern."""
 
-import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from stratifyai.chat.builder import ChatBuilder, create_module_builder
 from stratifyai.models import ChatResponse, Message, Usage
@@ -236,7 +237,7 @@ class TestChatBuilderAsyncChat:
             client_factory=lambda: mock_client,
         ).with_model("gpt-4.1")
 
-        response = await builder.chat("Hello")
+        await builder.chat("Hello")
 
         # Verify model was passed correctly
         call_args = mock_client.chat.call_args
@@ -268,7 +269,7 @@ class TestChatBuilderAsyncChat:
             .with_temperature(0.3)
         )
 
-        response = await builder.chat("Hello")
+        await builder.chat("Hello")
 
         call_args = mock_client.chat.call_args
         assert call_args[1]["temperature"] == 0.3
@@ -295,7 +296,7 @@ class TestChatBuilderAsyncChat:
         ).with_model("gpt-4.1")
 
         # Override with different model
-        response = await builder.chat("Hello", model="gpt-4.1-mini")
+        await builder.chat("Hello", model="gpt-4.1-mini")
 
         call_args = mock_client.chat.call_args
         assert call_args[1]["model"] == "gpt-4.1-mini"

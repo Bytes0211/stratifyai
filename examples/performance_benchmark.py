@@ -8,34 +8,48 @@ Profile and measure performance of StratifyAI across different scenarios:
 - Throughput
 - Memory usage
 - Cache performance
+- Concurrent load profiles
 
 Usage:
     python examples/performance_benchmark.py --output benchmark_results.json
+    python examples/performance_benchmark.py --profile concurrent-heavy
 """
 
 import argparse
+import asyncio
 import json
 import sys
 import time
 import tracemalloc
+from enum import Enum
 from pathlib import Path
-from typing import Dict, Any, List
 from statistics import mean, median, stdev
+from typing import Any
+
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from stratifyai import LLMClient, Router, RoutingStrategy
-from stratifyai.models import Message
-from stratifyai.caching import ResponseCache, cache_response
+# noqa: E402
+from stratifyai import LLMClient, Router, RoutingStrategy  # noqa: E402
+from stratifyai.caching import ResponseCache  # noqa: E402
+from stratifyai.models import Message  # noqa: E402
 
 console = Console()
+
+
+class LoadProfile(str, Enum):
+    """Load profile types for benchmarking."""
+
+    BASELINE = "baseline"  # 1 concurrent user
+    CONCURRENT_LIGHT = "concurrent-light"  # 3 concurrent users
+    CONCURRENT_HEAVY = "concurrent-heavy"  # 10 concurrent users
+    MIXED_COMPLEXITY = "mixed-complexity"  # Varying message complexity
 
 
 class PerformanceBenchmark:
@@ -45,7 +59,7 @@ class PerformanceBenchmark:
         """Initialize the benchmark."""
         self.results = {}
 
-    def measure_cold_start(self) -> Dict[str, float]:
+    def measure_cold_start(self) -> dict[str, float]:
         """Measure cold start latency.
 
         Returns:
@@ -55,17 +69,17 @@ class PerformanceBenchmark:
 
         # Measure client initialization
         start = time.time()
-        client = LLMClient()
+        _client = LLMClient()  # noqa: F841
         client_init_time = time.time() - start
 
         # Measure router initialization
         start = time.time()
-        router = Router()
+        _router = Router()  # noqa: F841
         router_init_time = time.time() - start
 
         # Measure cache initialization
         start = time.time()
-        cache = ResponseCache(max_size=1000)
+        _cache = ResponseCache(max_size=1000)  # noqa: F841
         cache_init_time = time.time() - start
 
         return {
@@ -80,7 +94,7 @@ class PerformanceBenchmark:
 
     def measure_request_latency(
         self, model: str = "gpt-4o-mini", num_requests: int = 5
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Measure request latency for different scenarios.
 
         Args:
@@ -102,7 +116,7 @@ class PerformanceBenchmark:
         for i in range(num_requests):
             start = time.time()
             try:
-                response = client.chat(model=model, messages=simple_message)
+                _response = client.chat(model=model, messages=simple_message)  # noqa: F841
                 latency = (time.time() - start) * 1000
                 latencies.append(latency)
                 console.print(f"  Request {i + 1}: {latency:.1f}ms")
@@ -125,7 +139,7 @@ class PerformanceBenchmark:
         else:
             return {"error": "All requests failed"}
 
-    def measure_router_overhead(self, num_iterations: int = 100) -> Dict[str, float]:
+    def measure_router_overhead(self, num_iterations: int = 100) -> dict[str, float]:
         """Measure router overhead vs direct client calls.
 
         Args:
@@ -143,7 +157,7 @@ class PerformanceBenchmark:
 
         # Measure routing decision overhead (no API calls)
         routing_times = []
-        for i in range(num_iterations):
+        for _ in range(num_iterations):
             start = time.time()
             # route() performs complexity analysis and model selection
             provider, model = router.route(messages)
@@ -159,7 +173,7 @@ class PerformanceBenchmark:
 
     def measure_cache_performance(
         self, cache_size: int = 1000, num_operations: int = 1000
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Measure cache performance.
 
         Args:
@@ -214,7 +228,7 @@ class PerformanceBenchmark:
             "miss_p95_ms": sorted(miss_times)[int(len(miss_times) * 0.95)],
         }
 
-    def measure_memory_usage(self) -> Dict[str, float]:
+    def measure_memory_usage(self) -> dict[str, float]:
         """Measure memory usage of key components.
 
         Returns:
@@ -228,11 +242,11 @@ class PerformanceBenchmark:
         baseline = tracemalloc.get_traced_memory()[0]
 
         # Client
-        client = LLMClient()
+        _client = LLMClient()  # noqa: F841
         client_mem = tracemalloc.get_traced_memory()[0] - baseline
 
         # Router
-        router = Router()
+        _router = Router()  # noqa: F841
         router_mem = tracemalloc.get_traced_memory()[0] - baseline - client_mem
 
         # Cache with 1000 entries
@@ -253,9 +267,107 @@ class PerformanceBenchmark:
             "total_mb": total_mem / (1024 * 1024),
         }
 
+    async def measure_concurrent_load(
+        self,
+        profile: LoadProfile = LoadProfile.BASELINE,
+        model: str = "gpt-4o-mini",
+        duration: int = 10,
+    ) -> dict[str, Any]:
+        """Measure concurrent load performance.
+
+        Args:
+            profile: Load profile type
+            model: Model to use
+            duration: Duration in seconds
+
+        Returns:
+            Dictionary with concurrency metrics
+        """
+        # Determine concurrency level based on profile
+        profile_config = {
+            LoadProfile.BASELINE: {"users": 1, "delays": [0]},
+            LoadProfile.CONCURRENT_LIGHT: {"users": 3, "delays": [0, 0.05, 0.1]},
+            LoadProfile.CONCURRENT_HEAVY: {
+                "users": 10,
+                "delays": [i * 0.02 for i in range(10)],
+            },
+            LoadProfile.MIXED_COMPLEXITY: {
+                "users": 5,
+                "delays": [0, 0.1, 0, 0.05, 0.15],
+                "complexity": ["simple", "simple", "complex", "complex", "simple"],
+            },
+        }
+
+        config = profile_config[profile]
+        num_users = config["users"]
+        delays = config["delays"]
+
+        console.print(
+            f"\n[cyan]Measuring {profile.value} load ({num_users} concurrent users, {duration}s)...[/cyan]"
+        )
+
+        client = LLMClient()
+        latencies = []
+        errors = 0
+        start_time = time.time()
+
+        async def user_task(user_id: int, delay: float):
+            """Simulate a user making requests."""
+            nonlocal errors
+            await asyncio.sleep(delay)  # Stagger start times
+
+            complexity = config.get("complexity", ["simple"] * num_users)[user_id]
+            if complexity == "complex":
+                content = (
+                    "Explain machine learning in detail with equations and examples. "
+                    * 3
+                )
+            else:
+                content = "Say hello"
+
+            message = [Message(role="user", content=content)]
+
+            while time.time() - start_time < duration:
+                try:
+                    req_start = time.time()
+                    _response = await client.chat(model=model, messages=message)  # noqa: F841
+                    latency = (time.time() - req_start) * 1000
+                    latencies.append(latency)
+                except Exception:
+                    errors += 1
+                await asyncio.sleep(0.1)  # 100ms between requests per user
+
+        # Create user tasks
+        tasks = [user_task(user_id, delays[user_id]) for user_id in range(num_users)]
+
+        # Run concurrent tasks
+        await asyncio.gather(*tasks)
+
+        if latencies:
+            return {
+                "profile": profile.value,
+                "num_users": num_users,
+                "duration_seconds": duration,
+                "total_requests": len(latencies),
+                "errors": errors,
+                "throughput_rps": len(latencies) / duration,
+                "mean_latency_ms": mean(latencies),
+                "median_latency_ms": median(latencies),
+                "p95_latency_ms": sorted(latencies)[int(len(latencies) * 0.95)]
+                if latencies
+                else 0,
+                "p99_latency_ms": sorted(latencies)[int(len(latencies) * 0.99)]
+                if latencies
+                else 0,
+                "min_latency_ms": min(latencies),
+                "max_latency_ms": max(latencies),
+            }
+        else:
+            return {"error": "All requests failed", "profile": profile.value}
+
     def run_all_benchmarks(
         self, model: str = "gpt-4o-mini", num_requests: int = 3
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run all benchmarks.
 
         Args:
@@ -287,6 +399,27 @@ class PerformanceBenchmark:
 
         # Memory usage
         self.results["memory_usage"] = self.measure_memory_usage()
+
+        return self.results
+
+    async def run_load_profile_benchmark(
+        self, profile: LoadProfile = LoadProfile.BASELINE, model: str = "gpt-4o-mini"
+    ) -> dict[str, Any]:
+        """Run concurrent load profile benchmark.
+
+        Args:
+            profile: Load profile to test
+            model: Model to use
+
+        Returns:
+            Benchmark results with load profile metrics
+        """
+        console.print("[bold]Load Profile Benchmarking[/bold]\n")
+
+        # Run the specified load profile
+        self.results["load_profile"] = await self.measure_concurrent_load(
+            profile=profile, model=model, duration=10
+        )
 
         return self.results
 
@@ -441,13 +574,31 @@ def main():
         default=3,
         help="Number of API requests for latency tests (default: 3)",
     )
+    parser.add_argument(
+        "--profile",
+        "-p",
+        type=str,
+        choices=[profile.value for profile in LoadProfile],
+        help="Run specific load profile benchmark (concurrent mode)",
+    )
     parser.add_argument("--output", "-o", type=Path, help="Save results to JSON file")
 
     args = parser.parse_args()
 
     # Run benchmarks
     benchmark = PerformanceBenchmark()
-    results = benchmark.run_all_benchmarks(model=args.model, num_requests=args.requests)
+
+    if args.profile:
+        # Run load profile benchmark (async)
+        profile = LoadProfile(args.profile)
+        results = asyncio.run(
+            benchmark.run_load_profile_benchmark(profile=profile, model=args.model)
+        )
+    else:
+        # Run standard benchmarks
+        results = benchmark.run_all_benchmarks(
+            model=args.model, num_requests=args.requests
+        )
 
     # Display results
     benchmark.display_results()
@@ -455,7 +606,7 @@ def main():
     # Save to file
     if args.output:
         with open(args.output, "w") as f:
-            json.dump(results, f, indent=2)
+            json.dump(results, f, indent=2, default=str)
         console.print(f"\n[green]✓ Results saved to {args.output}[/green]")
 
     console.print("\n[bold]Benchmark complete![/bold]\n")

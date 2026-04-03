@@ -17,24 +17,25 @@ Usage:
 import argparse
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
-from rich.table import Table
-from rich.markdown import Markdown
+from pathlib import Path
+from typing import Any
+
 from dotenv import load_dotenv
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load environment variables
 load_dotenv()
 
-from stratifyai import LLMClient, CostTracker
-from stratifyai.models import Message
+from stratifyai import CostTracker, LLMClient
 from stratifyai.exceptions import LLMAbstractionError
+from stratifyai.models import Message
 
 console = Console()
 
@@ -45,7 +46,7 @@ class Chatbot:
     def __init__(
         self,
         model: str = "gpt-4o-mini",
-        system_message: Optional[str] = None,
+        system_message: str | None = None,
         budget_limit: float = 1.0,
     ):
         """Initialize the chatbot.
@@ -59,7 +60,7 @@ class Chatbot:
         self.tracker = CostTracker()
         self.tracker.set_budget(budget_limit)
         self.current_model = model
-        self.conversation: List[Message] = []
+        self.conversation: list[Message] = []
         self.metadata = {
             "started_at": datetime.now().isoformat(),
             "model_switches": 0,
@@ -71,7 +72,7 @@ class Chatbot:
         self.system_message = system_message or default_system
         self.conversation.append(Message(role="system", content=self.system_message))
 
-    def chat(self, user_input: str) -> Optional[str]:
+    def chat(self, user_input: str) -> str | None:
         """Send a message and get response.
 
         Args:
@@ -127,7 +128,7 @@ class Chatbot:
         self.metadata["model_switches"] += 1
         console.print(f"[cyan]Switched from {old_model} to {new_model}[/cyan]")
 
-    def get_conversation_summary(self) -> Dict[str, Any]:
+    def get_conversation_summary(self) -> dict[str, Any]:
         """Get conversation statistics.
 
         Returns:
@@ -181,7 +182,7 @@ class Chatbot:
         Returns:
             Chatbot instance with loaded conversation
         """
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             data = json.load(f)
 
         bot = cls(model=data["model"], system_message=data["system_message"])
@@ -240,13 +241,13 @@ class ChatInterface:
         if role == "user":
             console.print(f"\n[bold blue]You:[/bold blue] {content}")
         elif role == "assistant":
-            console.print(f"\n[bold green]Assistant:[/bold green]")
+            console.print("\n[bold green]Assistant:[/bold green]")
             console.print(Markdown(content))
 
     def display_stats(self):
         """Display conversation statistics."""
         summary = self.bot.get_conversation_summary()
-        cost_tracker_summary = self.bot.tracker.get_summary()
+        self.bot.tracker.get_summary()
 
         table = Table(title="Conversation Statistics")
         table.add_column("Metric", style="cyan")
@@ -341,7 +342,7 @@ class ChatInterface:
         if budget_status["budget_set"]:
             console.print(f"[dim]Budget: ${budget_status['budget_limit']:.2f}[/dim]\n")
         else:
-            console.print(f"[dim]Budget: Not set[/dim]\n")
+            console.print("[dim]Budget: Not set[/dim]\n")
 
         while True:
             try:

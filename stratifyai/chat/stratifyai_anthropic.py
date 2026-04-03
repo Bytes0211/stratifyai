@@ -1,3 +1,5 @@
+from typing import cast
+
 """Anthropic chat interface for StratifyAI.
 
 Provides convenient functions for Anthropic Claude chat completions.
@@ -162,14 +164,17 @@ async def chat_stream(
         >>> async for chunk in anthropic.chat_stream("Tell me a story", model="claude-sonnet-4-5"):
         ...     print(chunk.content, end="", flush=True)
     """
-    return await chat(
-        prompt,
-        model=model,
-        system=system,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        stream=True,
-        **kwargs,
+    return cast(
+        AsyncIterator[ChatResponse],
+        await chat(
+            prompt,
+            model=model,
+            system=system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+            **kwargs,
+        ),
     )
 
 
@@ -183,14 +188,17 @@ def chat_sync(
     **kwargs,
 ) -> ChatResponse:
     """Synchronous wrapper for chat(). Model is required."""
-    return run_sync(
-        chat(
-            prompt,
-            model=model,
-            system=system,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            **kwargs,
-        )
+    return cast(
+        ChatResponse,
+        run_sync(
+            chat(
+                prompt,
+                model=model,
+                system=system,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                **kwargs,
+            )
+        ),
     )

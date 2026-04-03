@@ -8,7 +8,11 @@ from .openai_compatible import OpenAICompatibleProvider
 class DeepSeekProvider(OpenAICompatibleProvider):
     """DeepSeek provider using OpenAI-compatible API."""
 
-    def __init__(self, api_key: str | None = None, config: dict = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        config: dict[str, object] | None = None,
+    ):
         """
         Initialize DeepSeek provider.
 

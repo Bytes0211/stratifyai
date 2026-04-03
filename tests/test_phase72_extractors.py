@@ -1,27 +1,28 @@
 """Unit tests for Phase 7.2 intelligent file extractors."""
 
-import pytest
 import json
-import tempfile
 from pathlib import Path
+
+import pytest
+
+from stratifyai.utils.code_extractor import analyze_code_file, extract_python_structure
 from stratifyai.utils.csv_extractor import (
-    extract_csv_schema,
     analyze_csv_file,
     estimate_token_reduction,
+    extract_csv_schema,
 )
 from stratifyai.utils.json_extractor import (
-    infer_json_schema,
-    extract_json_schema,
     analyze_json_file,
+    extract_json_schema,
+    infer_json_schema,
 )
 from stratifyai.utils.log_extractor import (
-    extract_timestamp,
-    extract_log_level,
-    extract_error_pattern,
     analyze_log_file,
+    extract_error_pattern,
+    extract_log_level,
     extract_log_summary,
+    extract_timestamp,
 )
-from stratifyai.utils.code_extractor import extract_python_structure, analyze_code_file
 
 
 class TestCSVExtractor:
@@ -345,7 +346,7 @@ class TestCodeExtractor:
         for i in range(50):
             code_lines.append(f"def function_{i}(arg1, arg2, arg3):")
             code_lines.append(f'    """Function {i} does something."""')
-            code_lines.append(f"    result = arg1 + arg2 + arg3")
+            code_lines.append("    result = arg1 + arg2 + arg3")
             code_lines.append(f"    return result * {i}")
             code_lines.append("")
 

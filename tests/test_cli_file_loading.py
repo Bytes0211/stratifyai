@@ -1,13 +1,13 @@
 """Unit tests for CLI file loading functionality."""
 
-import pytest
-from unittest.mock import MagicMock, patch, mock_open, PropertyMock
-from pathlib import Path
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 from typer.testing import CliRunner
 
 from cli.stratifyai_cli import app
-from stratifyai.models import Message, ChatRequest, ChatResponse, Usage
+from stratifyai.models import ChatResponse, Message, Usage
 
 
 @pytest.fixture
@@ -117,7 +117,7 @@ class TestLoadFileContentSuccess:
         ):
             # Run interactive command with file flag
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app,
                 [
                     "interactive",
@@ -184,7 +184,7 @@ class TestLoadFileContentSuccess:
         ):
             # Run interactive command with file flag
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app,
                 [
                     "interactive",
@@ -236,7 +236,7 @@ class TestLoadFileContentNotFound:
         ):
             # Run interactive command without file flag (will prompt for file)
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app, ["interactive", "--provider", "openai", "--model", "gpt-4.1-mini"]
             )
 
@@ -282,7 +282,7 @@ class TestLoadFileContentSizeLimit:
         ):
             # Run interactive command
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app, ["interactive", "--provider", "openai", "--model", "gpt-4.1-mini"]
             )
 
@@ -346,7 +346,7 @@ class TestLoadFileContentSizeLimit:
         ):
             # Run interactive command with file flag
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app,
                 [
                     "interactive",
@@ -402,7 +402,7 @@ class TestLoadFileContentSizeLimit:
         ):
             # Run interactive command with file flag
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app,
                 [
                     "interactive",
@@ -462,7 +462,7 @@ class TestLoadFileContentNonTextFile:
         ):
             # Run interactive command
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app, ["interactive", "--provider", "openai", "--model", "gpt-4.1-mini"]
             )
 
@@ -533,7 +533,7 @@ class TestInteractiveModeInitialFileLoad:
         ):
             # Run interactive command with file flag
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app,
                 [
                     "interactive",
@@ -603,7 +603,7 @@ class TestInteractiveModeInitialFileLoad:
         ):
             # Run interactive command without file flag (will prompt for file)
             runner = CliRunner()
-            result = runner.invoke(
+            runner.invoke(
                 app, ["interactive", "--provider", "openai", "--model", "gpt-4.1-mini"]
             )
 

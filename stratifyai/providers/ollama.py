@@ -8,7 +8,11 @@ from .openai_compatible import OpenAICompatibleProvider
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama provider for local models using OpenAI-compatible API."""
 
-    def __init__(self, api_key: str | None = None, config: dict = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        config: dict[str, object] | None = None,
+    ):
         """
         Initialize Ollama provider.
 
@@ -25,7 +29,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         # Allow custom base URL via config
         base_url = PROVIDER_BASE_URLS["ollama"]
         if config and "base_url" in config:
-            base_url = config["base_url"]
+            base_url = str(config["base_url"])
 
         super().__init__(api_key, base_url, OLLAMA_MODELS, config)
 

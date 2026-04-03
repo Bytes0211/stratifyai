@@ -13,14 +13,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from .chunking import chunk_content, get_chunk_metadata
 from .client import LLMClient
 from .embeddings import EmbeddingProvider, create_embedding_provider
 from .exceptions import LLMAbstractionError
 from .models import ChatRequest, Message
 from .vectordb import SearchResult, VectorDBClient
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -185,7 +185,7 @@ class RAGClient:
             file_patterns = ["*.txt", "*.md", "*.py", "*.js", "*.java", "*.cpp"]
 
         # Find all matching files
-        files = []
+        files: list[Path] = []
         for pattern in file_patterns:
             files.extend(dir_path.rglob(pattern))
 

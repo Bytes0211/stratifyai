@@ -7,8 +7,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from stratifyai.models import Message
-from stratifyai.prompts import PromptParameter, PromptTemplate, PromptRegistry, registry
-
+from stratifyai.prompts import PromptParameter, PromptRegistry, PromptTemplate, registry
 
 # ===== Model Tests =====
 

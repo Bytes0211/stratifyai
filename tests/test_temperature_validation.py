@@ -16,7 +16,7 @@ def test_anthropic_temperature_validation():
         # This should raise ValidationError (temperature > 1.0)
         messages = [Message(role="user", content="Hello")]
         try:
-            response = client.chat_completion(
+            client.chat_completion(
                 model="claude-3-5-sonnet-20241022",
                 messages=messages,
                 temperature=1.3,  # Invalid for Anthropic
@@ -27,7 +27,7 @@ def test_anthropic_temperature_validation():
 
         # This should succeed (temperature = 1.0)
         try:
-            response = client.chat_completion(
+            client.chat_completion(
                 model="claude-3-5-sonnet-20241022",
                 messages=messages,
                 temperature=1.0,  # Valid for Anthropic
@@ -38,7 +38,7 @@ def test_anthropic_temperature_validation():
 
         # This should succeed (temperature = 0.7)
         try:
-            response = client.chat_completion(
+            client.chat_completion(
                 model="claude-3-5-sonnet-20241022",
                 messages=messages,
                 temperature=0.7,  # Valid for Anthropic
@@ -62,7 +62,7 @@ def test_openai_temperature_validation():
 
         # This should raise ValidationError (temperature > 2.0)
         try:
-            response = client.chat_completion(
+            client.chat_completion(
                 model="gpt-4o-mini",
                 messages=messages,
                 temperature=2.5,  # Invalid for OpenAI
@@ -73,7 +73,7 @@ def test_openai_temperature_validation():
 
         # This should succeed (temperature = 2.0)
         try:
-            response = client.chat_completion(
+            client.chat_completion(
                 model="gpt-4o-mini",
                 messages=messages,
                 temperature=2.0,  # Valid for OpenAI

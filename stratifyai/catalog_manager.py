@@ -8,7 +8,7 @@ import json
 import logging
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def load_catalog(force_reload: bool = False) -> dict[str, Any]:
 
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in catalog: {e}")
-            raise ValueError(f"Failed to parse catalog JSON: {e}")
+            raise ValueError(f"Failed to parse catalog JSON: {e}") from e
         except Exception as e:
             logger.error(f"Error loading catalog: {e}")
             raise
@@ -108,7 +108,7 @@ def get_provider_models(provider: str) -> dict[str, dict[str, Any]]:
         logger.warning(f"Provider '{provider}' not found in catalog")
         return {}
 
-    return providers[provider]
+    return cast(dict[str, dict[str, Any]], providers[provider])
 
 
 def get_model_metadata(provider: str, model_id: str) -> dict[str, Any] | None:
@@ -138,7 +138,7 @@ def is_model_deprecated(provider: str, model_id: str) -> bool:
     metadata = get_model_metadata(provider, model_id)
     if metadata is None:
         return False
-    return metadata.get("deprecated", False)
+    return bool(metadata.get("deprecated", False))
 
 
 def get_model_replacement(provider: str, model_id: str) -> str | None:
@@ -154,7 +154,8 @@ def get_model_replacement(provider: str, model_id: str) -> str | None:
     metadata = get_model_metadata(provider, model_id)
     if metadata is None:
         return None
-    return metadata.get("replacement_model")
+    replacement = metadata.get("replacement_model")
+    return replacement if isinstance(replacement, str) else None
 
 
 def list_all_models(include_deprecated: bool = False) -> dict[str, list]:
@@ -186,13 +187,15 @@ def list_all_models(include_deprecated: bool = False) -> dict[str, list]:
 def get_catalog_version() -> str:
     """Get catalog version string."""
     catalog = load_catalog()
-    return catalog.get("version", "unknown")
+    version = catalog.get("version", "unknown")
+    return str(version)
 
 
 def get_catalog_updated() -> str:
     """Get catalog last updated timestamp."""
     catalog = load_catalog()
-    return catalog.get("updated", "unknown")
+    updated = catalog.get("updated", "unknown")
+    return str(updated)
 
 
 # Convenience functions for backward compatibility with config.py

@@ -13,6 +13,7 @@ transparently handles:
 import logging
 import time
 from collections.abc import AsyncIterator
+from typing import cast
 
 from .client import LLMClient
 from .cost_tracker import CostTracker
@@ -56,13 +57,16 @@ class TrackedLLMClient:
         self._pre_request(model, messages)
 
         start = time.perf_counter()
-        response = await self.client.chat(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=False,
-            **kwargs,
+        response = cast(
+            ChatResponse,
+            await self.client.chat(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=False,
+                **kwargs,
+            ),
         )
         latency_ms = (time.perf_counter() - start) * 1000
         response.latency_ms = latency_ms

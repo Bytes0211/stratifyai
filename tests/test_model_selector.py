@@ -1,14 +1,13 @@
 """Unit tests for model selector functionality."""
 
 import pytest
-from pathlib import Path
+
+from stratifyai.utils.file_analyzer import FileType
 from stratifyai.utils.model_selector import (
-    ModelSelector,
     ExtractionMode,
-    ModelRecommendation,
+    ModelSelector,
     select_model_for_file,
 )
-from stratifyai.utils.file_analyzer import FileType
 
 
 class TestModelSelector:

@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
 from anthropic import AsyncAnthropic
 
@@ -16,7 +17,11 @@ from .base import BaseProvider
 class AnthropicProvider(BaseProvider):
     """Anthropic provider implementation with Messages API."""
 
-    def __init__(self, api_key: str | None = None, config: dict = None):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        config: dict[str, Any] | None = None,
+    ):
         """
         Initialize Anthropic provider.
 
@@ -55,9 +60,9 @@ class AnthropicProvider(BaseProvider):
     def supports_caching(self, model: str) -> bool:
         """Check if model supports prompt caching."""
         model_info = ANTHROPIC_MODELS.get(model, {})
-        return model_info.get("supports_caching", False)
+        return bool(model_info.get("supports_caching", False))
 
-    def _build_sampling_params(self, request: ChatRequest) -> dict:
+    def _build_sampling_params(self, request: ChatRequest) -> dict[str, float]:
         """Build temperature/top_p params respecting Anthropic's mutual exclusivity."""
         if request.temperature != 0.7:
             return {"temperature": request.temperature}
@@ -79,100 +84,109 @@ class AnthropicProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints for Anthropic (0.0 to 1.0)
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Convert messages to Anthropic format
-        # Anthropic requires system message separate from messages array
-        system_message = None
-        messages = []
-
-        for msg in request.messages:
-            if msg.role == "system":
-                system_message = msg.content
-            else:
-                # Check if message contains image data
-                if msg.has_image():
-                    # Parse vision content
-                    text_content, image_data = msg.parse_vision_content()
-
-                    # Build vision message content array
-                    content_parts = []
-                    if text_content:
-                        content_parts.append({"type": "text", "text": text_content})
-
-                    if image_data:
-                        mime_type, base64_data = image_data
-                        # Anthropic expects base64 with source
-                        content_parts.append(
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": mime_type,
-                                    "data": base64_data,
-                                },
-                            }
-                        )
-
-                    message_dict = {"role": msg.role, "content": content_parts}
-                else:
-                    # Regular text message
-                    message_dict = {"role": msg.role, "content": msg.content}
-
-                # Add cache_control if present and model supports caching
-                if msg.cache_control and self.supports_caching(request.model):
-                    message_dict["cache_control"] = msg.cache_control
-                messages.append(message_dict)
-
-        # Build Anthropic-specific request parameters
-        anthropic_params = {
-            "model": request.model,
-            "messages": messages,
-            "max_tokens": request.max_tokens or 4096,  # Anthropic requires max_tokens
-        }
-
-        anthropic_params.update(self._build_sampling_params(request))
-
-        # Add system message if present
-        if system_message:
-            anthropic_params["system"] = system_message
-
-        # Add optional parameters
-        if request.stop:
-            anthropic_params["stop_sequences"] = request.stop
-
-        # Add any extra params
-        if request.extra_params:
-            anthropic_params.update(request.extra_params)
-
+        sem = await self._acquire_concurrency_slot()
         try:
-            # Make API request
-            raw_response = await self._client.messages.create(**anthropic_params)
-            # Normalize and return
-            return self._normalize_response(raw_response.model_dump())
-        except Exception as e:
-            error_str = sanitize_error(str(e), self.api_key)
-            # Check for vision-related errors
-            if "image" in error_str.lower() and (
-                "not supported" in error_str.lower() or "invalid" in error_str.lower()
-            ):
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
+
+            # Validate temperature constraints for Anthropic (0.0 to 1.0)
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
+
+            # Convert messages to Anthropic format
+            # Anthropic requires system message separate from messages array
+            system_message: str | None = None
+            messages: list[dict[str, Any]] = []
+
+            for msg in request.messages:
+                if msg.role == "system":
+                    system_message = msg.content
+                else:
+                    # Check if message contains image data
+                    if msg.has_image():
+                        # Parse vision content
+                        text_content, image_data = msg.parse_vision_content()
+
+                        # Build vision message content array
+                        content_parts: list[dict[str, Any]] = []
+                        if text_content:
+                            content_parts.append({"type": "text", "text": text_content})
+
+                        if image_data:
+                            mime_type, base64_data = image_data
+                            # Anthropic expects base64 with source
+                            content_parts.append(
+                                {
+                                    "type": "image",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": mime_type,
+                                        "data": base64_data,
+                                    },
+                                }
+                            )
+
+                        message_dict: dict[str, Any] = {
+                            "role": msg.role,
+                            "content": content_parts,
+                        }
+                    else:
+                        # Regular text message
+                        message_dict = {"role": msg.role, "content": msg.content}
+
+                    # Add cache_control if present and model supports caching
+                    if msg.cache_control and self.supports_caching(request.model):
+                        message_dict["cache_control"] = msg.cache_control
+                    messages.append(message_dict)
+
+            # Build Anthropic-specific request parameters
+            anthropic_params: dict[str, Any] = {
+                "model": request.model,
+                "messages": messages,
+                "max_tokens": request.max_tokens
+                or 4096,  # Anthropic requires max_tokens
+            }
+
+            anthropic_params.update(self._build_sampling_params(request))
+
+            # Add system message if present
+            if system_message:
+                anthropic_params["system"] = system_message
+
+            # Add optional parameters
+            if request.stop:
+                anthropic_params["stop_sequences"] = request.stop
+
+            # Add any extra params
+            if request.extra_params:
+                anthropic_params.update(request.extra_params)
+
+            try:
+                # Make API request
+                raw_response = await self._client.messages.create(**anthropic_params)
+                # Normalize and return
+                return self._normalize_response(raw_response.model_dump())
+            except Exception as e:
+                error_str = sanitize_error(str(e), self.api_key)
+                # Check for vision-related errors
+                if "image" in error_str.lower() and (
+                    "not supported" in error_str.lower()
+                    or "invalid" in error_str.lower()
+                ):
+                    raise ProviderAPIError(
+                        f"Vision not supported: The model '{request.model}' cannot process images. "
+                        f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
+                        self.provider_name,
+                    ) from e
                 raise ProviderAPIError(
-                    f"Vision not supported: The model '{request.model}' cannot process images. "
-                    f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
-                    self.provider_name,
+                    f"Chat completion failed: {error_str}", self.provider_name
                 ) from e
-            raise ProviderAPIError(
-                f"Chat completion failed: {error_str}", self.provider_name
-            ) from e
+        finally:
+            self._release_concurrency_slot(sem)
 
     async def chat_completion_stream(
         self, request: ChatRequest
@@ -190,78 +204,87 @@ class AnthropicProvider(BaseProvider):
             InvalidModelError: If model not supported
             ProviderAPIError: If API call fails
         """
-        if not self.validate_model(request.model):
-            raise InvalidModelError(request.model, self.provider_name)
-
-        # Validate temperature constraints for Anthropic (0.0 to 1.0)
-        constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
-        self.validate_temperature(
-            request.temperature,
-            constraints.get("min_temperature", 0.0),
-            constraints.get("max_temperature", 1.0),
-        )
-
-        # Convert messages to Anthropic format with vision support
-        system_message = None
-        messages = []
-
-        for msg in request.messages:
-            if msg.role == "system":
-                system_message = msg.content
-            else:
-                if msg.has_image():
-                    # Parse and format vision content
-                    text_content, image_data = msg.parse_vision_content()
-                    content_parts = []
-                    if text_content:
-                        content_parts.append({"type": "text", "text": text_content})
-                    if image_data:
-                        mime_type, base64_data = image_data
-                        content_parts.append(
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": mime_type,
-                                    "data": base64_data,
-                                },
-                            }
-                        )
-                    messages.append({"role": msg.role, "content": content_parts})
-                else:
-                    messages.append({"role": msg.role, "content": msg.content})
-
-        # Build request parameters
-        anthropic_params = {
-            "model": request.model,
-            "messages": messages,
-            "max_tokens": request.max_tokens or 4096,
-        }
-        anthropic_params.update(self._build_sampling_params(request))
-
-        if system_message:
-            anthropic_params["system"] = system_message
-
+        sem = await self._acquire_concurrency_slot()
         try:
-            async with self._client.messages.stream(**anthropic_params) as stream:
-                async for chunk in stream.text_stream:
-                    yield self._normalize_stream_chunk(chunk)
-        except Exception as e:
-            error_str = sanitize_error(str(e), self.api_key)
-            # Check for vision-related errors
-            if "image" in error_str.lower() and (
-                "not supported" in error_str.lower() or "invalid" in error_str.lower()
-            ):
-                raise ProviderAPIError(
-                    f"Vision not supported: The model '{request.model}' cannot process images. "
-                    f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
-                    self.provider_name,
-                ) from e
-            raise ProviderAPIError(
-                f"Streaming chat completion failed: {error_str}", self.provider_name
-            ) from e
+            if not self.validate_model(request.model):
+                raise InvalidModelError(request.model, self.provider_name)
 
-    def _normalize_response(self, raw_response: dict) -> ChatResponse:
+            # Validate temperature constraints for Anthropic (0.0 to 1.0)
+            constraints = PROVIDER_CONSTRAINTS.get(self.provider_name, {})
+            self.validate_temperature(
+                request.temperature,
+                constraints.get("min_temperature", 0.0),
+                constraints.get("max_temperature", 1.0),
+            )
+
+            # Convert messages to Anthropic format with vision support
+            system_message: str | None = None
+            messages: list[dict[str, Any]] = []
+
+            for msg in request.messages:
+                if msg.role == "system":
+                    system_message = msg.content
+                else:
+                    if msg.has_image():
+                        # Parse and format vision content
+                        text_content, image_data = msg.parse_vision_content()
+                        content_parts: list[dict[str, Any]] = []
+                        if text_content:
+                            content_parts.append({"type": "text", "text": text_content})
+                        if image_data:
+                            mime_type, base64_data = image_data
+                            content_parts.append(
+                                {
+                                    "type": "image",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": mime_type,
+                                        "data": base64_data,
+                                    },
+                                }
+                            )
+                        messages.append({"role": msg.role, "content": content_parts})
+                    else:
+                        messages.append({"role": msg.role, "content": msg.content})
+
+            # Build request parameters
+            anthropic_params: dict[str, Any] = {
+                "model": request.model,
+                "messages": messages,
+                "max_tokens": request.max_tokens or 4096,
+            }
+            anthropic_params.update(self._build_sampling_params(request))
+
+            if system_message:
+                anthropic_params["system"] = system_message
+
+            try:
+                async with self._client.messages.stream(**anthropic_params) as stream:
+                    async for chunk in stream.text_stream:
+                        yield self._normalize_stream_chunk(chunk)
+            except Exception as e:
+                error_str = sanitize_error(str(e), self.api_key)
+                # Check for vision-related errors
+                if "image" in error_str.lower() and (
+                    "not supported" in error_str.lower()
+                    or "invalid" in error_str.lower()
+                ):
+                    raise ProviderAPIError(
+                        f"Vision not supported: The model '{request.model}' cannot process images. "
+                        f"Please use a vision-capable Claude model like 'claude-sonnet-4-5' or 'claude-opus-4-5'.",
+                        self.provider_name,
+                    ) from e
+                raise ProviderAPIError(
+                    f"Streaming chat completion failed: {error_str}", self.provider_name
+                ) from e
+        finally:
+            self._release_concurrency_slot(sem)
+
+    def _normalize_response(
+        self,
+        raw_response: dict[str, Any],
+        model: str | None = None,
+    ) -> ChatResponse:
         """
         Convert Anthropic response to unified format.
 
@@ -340,8 +363,8 @@ class AnthropicProvider(BaseProvider):
             Cost in USD
         """
         model_info = ANTHROPIC_MODELS.get(model, {})
-        cost_input = model_info.get("cost_input", 0.0)
-        cost_output = model_info.get("cost_output", 0.0)
+        cost_input = float(model_info.get("cost_input", 0.0))
+        cost_output = float(model_info.get("cost_output", 0.0))
 
         # Calculate non-cached prompt tokens
         non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
@@ -350,7 +373,7 @@ class AnthropicProvider(BaseProvider):
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input
         output_cost = (usage.completion_tokens / 1_000_000) * cost_output
 
-        return input_cost + output_cost
+        return float(input_cost + output_cost)
 
     def _calculate_cache_cost(
         self, cache_creation_tokens: int, cache_read_tokens: int, model: str
@@ -372,11 +395,11 @@ class AnthropicProvider(BaseProvider):
         if not model_info.get("supports_caching", False):
             return 0.0
 
-        cost_cache_write = model_info.get("cost_cache_write", 0.0)
-        cost_cache_read = model_info.get("cost_cache_read", 0.0)
+        cost_cache_write = float(model_info.get("cost_cache_write", 0.0))
+        cost_cache_read = float(model_info.get("cost_cache_read", 0.0))
 
         # Costs are per 1M tokens
         write_cost = (cache_creation_tokens / 1_000_000) * cost_cache_write
         read_cost = (cache_read_tokens / 1_000_000) * cost_cache_read
 
-        return write_cost + read_cost
+        return float(write_cost + read_cost)

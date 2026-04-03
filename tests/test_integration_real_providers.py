@@ -10,9 +10,8 @@ import os
 import pytest
 
 from stratifyai.client import LLMClient
-from stratifyai.exceptions import ProviderAPIError
+from stratifyai.exceptions import MaxRetriesExceededError, ProviderAPIError
 from stratifyai.models import ChatRequest, Message
-
 
 pytestmark = [pytest.mark.integration]
 
@@ -57,7 +56,7 @@ async def test_real_provider_chat_completion() -> None:
 
         try:
             response = await client.chat_completion(request)
-        except ProviderAPIError as exc:
+        except (ProviderAPIError, MaxRetriesExceededError) as exc:
             # API-level failures (deprecated models, IP restrictions, quota, etc.)
             # are infrastructure issues, not code bugs. Warn and continue.
             skipped.append(f"[{provider}] skipped due to API error: {exc}")

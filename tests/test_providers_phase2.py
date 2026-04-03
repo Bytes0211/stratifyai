@@ -1,19 +1,18 @@
 """Tests for Phase 2 providers (Anthropic, Google, DeepSeek, Groq, Grok, Ollama, OpenRouter)."""
 
-import asyncio
-import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
+
+from stratifyai.exceptions import AuthenticationError, InvalidModelError
+from stratifyai.models import ChatRequest, Message
 from stratifyai.providers.anthropic import AnthropicProvider
-from stratifyai.providers.google import GoogleProvider
 from stratifyai.providers.deepseek import DeepSeekProvider
-from stratifyai.providers.groq import GroqProvider
+from stratifyai.providers.google import GoogleProvider
 from stratifyai.providers.grok import GrokProvider
+from stratifyai.providers.groq import GroqProvider
 from stratifyai.providers.ollama import OllamaProvider
 from stratifyai.providers.openrouter import OpenRouterProvider
-from stratifyai.models import ChatRequest, Message
-from stratifyai.exceptions import AuthenticationError, InvalidModelError
 
 
 class TestAnthropicProvider:

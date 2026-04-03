@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import builtins
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from stratifyai.models import Message
 from stratifyai.prompts.models import PromptParameter, PromptTemplate
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 # Directories
 _BUILTIN_DIR = Path(__file__).parent / "templates"
 _USER_DIR = Path.home() / ".stratifyai" / "prompts"
+PromptSource = Literal["builtin", "user"]
 
 
 class PromptRegistry:
@@ -48,7 +50,7 @@ class PromptRegistry:
         if _USER_DIR.is_dir():
             self.load_directory(_USER_DIR, source="user")
 
-    def load_directory(self, path: Path, source: str = "user") -> int:
+    def load_directory(self, path: Path, source: PromptSource = "user") -> int:
         """Load all YAML templates from a directory.
 
         Args:
@@ -101,7 +103,7 @@ class PromptRegistry:
         self,
         tag: str | None = None,
         source: str | None = None,
-    ) -> list[PromptTemplate]:
+    ) -> builtins.list[PromptTemplate]:
         """List templates with optional filtering.
 
         Args:
@@ -112,7 +114,7 @@ class PromptRegistry:
             List of matching templates, sorted by name.
         """
         self._ensure_loaded()
-        templates = list(self._templates.values())
+        templates = builtins.list(self._templates.values())
 
         if tag:
             templates = [t for t in templates if tag in t.tags]
@@ -121,7 +123,7 @@ class PromptRegistry:
 
         return sorted(templates, key=lambda t: t.name)
 
-    def render(self, name: str, **kwargs: Any) -> list[Message]:
+    def render(self, name: str, **kwargs: Any) -> builtins.list[Message]:
         """Shortcut: get a template and render it in one call.
 
         Args:
@@ -134,7 +136,7 @@ class PromptRegistry:
         template = self.get(name)
         return template.render(**kwargs)
 
-    def tags(self) -> list[str]:
+    def tags(self) -> builtins.list[str]:
         """Return all unique tags across all templates, sorted."""
         self._ensure_loaded()
         all_tags: set[str] = set()
@@ -142,7 +144,7 @@ class PromptRegistry:
             all_tags.update(t.tags)
         return sorted(all_tags)
 
-    def search(self, query: str) -> list[PromptTemplate]:
+    def search(self, query: str) -> builtins.list[PromptTemplate]:
         """Search templates by name, description, and tags.
 
         Args:
@@ -164,7 +166,7 @@ class PromptRegistry:
         return sorted(results, key=lambda t: t.name)
 
 
-def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
+def _load_yaml_template(path: Path, source: PromptSource = "user") -> PromptTemplate:
     """Load a single YAML file into a PromptTemplate.
 
     Args:
@@ -179,12 +181,12 @@ def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
         ValueError: If the YAML is missing required fields.
     """
     try:
-        import yaml
-    except ImportError:
+        import yaml  # type: ignore[import-untyped]
+    except ImportError as e:
         raise ImportError(
             "PyYAML is required to load YAML templates. "
             "Install it with: pip install pyyaml"
-        )
+        ) from e
 
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -198,7 +200,7 @@ def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
                 f"Template {path.name} missing required field: '{required_field}'"
             )
 
-    parameters = []
+    parameters: builtins.list[PromptParameter] = []
     for p in data.get("parameters", []):
         parameters.append(
             PromptParameter(
@@ -222,3 +224,24 @@ def _load_yaml_template(path: Path, source: str = "user") -> PromptTemplate:
         recommended_temperature=data.get("recommended_temperature"),
         source=source,
     )
+
+
+registry = PromptRegistry()
+
+
+def get(name: str) -> PromptTemplate:
+    """Module-level access to the singleton prompt registry."""
+    return registry.get(name)
+
+
+def list(
+    tag: str | None = None,
+    source: str | None = None,
+) -> builtins.list[PromptTemplate]:
+    """Module-level access to the singleton prompt registry."""
+    return registry.list(tag=tag, source=source)
+
+
+def render(name: str, **kwargs: Any) -> builtins.list[Message]:
+    """Module-level access to the singleton prompt registry."""
+    return registry.render(name, **kwargs)

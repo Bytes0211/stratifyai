@@ -58,10 +58,10 @@ class PromptParameter:
         if self.type == "number":
             try:
                 value = float(value)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as e:
                 raise ValueError(
                     f"Parameter '{self.name}' must be a number, got: {value!r}"
-                )
+                ) from e
 
         if self.type == "choice" and self.choices:
             if str(value) not in self.choices:

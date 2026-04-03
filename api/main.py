@@ -7,6 +7,7 @@ import os
 import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, cast
 
@@ -96,11 +97,22 @@ def get_tracked_client(provider: str) -> TrackedLLMClient:
     return TrackedLLMClient(client=get_client(provider), cost_tracker=cost_tracker)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: emit startup warnings."""
+    if not os.getenv("STRATIFYAI_API_KEY"):
+        logger.warning(
+            "STRATIFYAI_API_KEY is not set. API auth is disabled (development mode)."
+        )
+    yield
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="StratifyAI API",
     description="Unified API for multiple LLM providers",
     version=API_VERSION,
+    lifespan=lifespan,
 )
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
@@ -1113,10 +1125,10 @@ async def chat_stream(websocket: WebSocket):
         latency_ms = (time.perf_counter() - start_time) * 1000
         tracked_metrics = tracked.get_last_stream_metrics()
         tracked_first_token = tracked_metrics.get("first_token_latency_ms")
-        if isinstance(tracked_first_token, (int, float)):
+        if isinstance(tracked_first_token, int | float):
             first_token_latency_ms = float(tracked_first_token)
         total_latency_value = tracked_metrics.get("total_latency_ms")
-        if isinstance(total_latency_value, (int, float)):
+        if isinstance(total_latency_value, int | float):
             latency_ms = float(total_latency_value)
         metrics_registry.record_stream_completion(first_token_latency_ms, latency_ms)
 
@@ -1561,15 +1573,6 @@ async def get_metrics(_: None = Depends(verify_api_key)):
             cost_summary=cost_tracker.get_summary(),
         ),
     }
-
-
-@app.on_event("startup")
-async def startup_security_notice() -> None:
-    """Emit startup warning when API auth is disabled."""
-    if not os.getenv("STRATIFYAI_API_KEY"):
-        logger.warning(
-            "STRATIFYAI_API_KEY is not set. API auth is disabled (development mode)."
-        )
 
 
 if __name__ == "__main__":
