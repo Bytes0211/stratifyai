@@ -9,69 +9,69 @@ def _get_prompt(name: str):
 
 
 class TestNamedPrompts:
-    def test_compare_models_returns_string(self):
+    def test_compare_models_returns_messages(self):
         result = _get_prompt("compare_models")(
             models="openai/gpt-4.1,anthropic/claude-sonnet-4-5"
         )
-        assert isinstance(result, str)
-        assert "openai/gpt-4.1" in result
-        assert "anthropic/claude-sonnet-4-5" in result
-        assert "Compare" in result
+        assert isinstance(result, list)
+        assert result[0]["role"] == "system"
+        assert result[1]["role"] == "user"
+        assert "openai/gpt-4.1" in result[1]["content"]
+        assert "anthropic/claude-sonnet-4-5" in result[1]["content"]
 
     def test_recommend_model_basic(self):
         result = _get_prompt("recommend_model")(
             task_description="Summarize a 10-page legal document"
         )
-        assert isinstance(result, str)
-        assert "Summarize" in result
+        assert isinstance(result, list)
+        assert result[0]["role"] == "system"
+        assert result[1]["role"] == "user"
+        assert "Summarize" in result[1]["content"]
 
     def test_recommend_model_with_budget(self):
         result = _get_prompt("recommend_model")(
             task_description="Code review", budget="low"
         )
-        assert "budget" in result.lower() or "Budget" in result
+        assert "budget" in result[1]["content"].lower()
 
     def test_recommend_model_with_priority(self):
         result = _get_prompt("recommend_model")(
             task_description="Chat", priority="cost"
         )
-        assert "cost" in result.lower() or "Priority" in result
+        assert "priority" in result[1]["content"].lower()
+        assert "cost" in result[1]["content"].lower()
 
     def test_analyze_costs_basic(self):
         result = _get_prompt("analyze_costs")()
-        assert isinstance(result, str)
-        assert "cost" in result.lower()
+        assert isinstance(result, list)
+        assert "cost" in result[1]["content"].lower()
 
     def test_analyze_costs_with_period(self):
         result = _get_prompt("analyze_costs")(time_period="last hour")
-        assert "last hour" in result
+        assert "last hour" in result[1]["content"]
 
 
 class TestDynamicTemplatePrompts:
     def test_template_prompts_registered(self):
         registered = list(mcp._prompt_manager._prompts.keys())
-        template_prompts = [n for n in registered if n.startswith("template_")]
-        assert len(template_prompts) >= 5  # at least some built-in templates
+        named_prompts = {"compare_models", "recommend_model", "analyze_costs"}
+        dynamic_prompts = [n for n in registered if n not in named_prompts]
+        assert len(dynamic_prompts) >= 10
 
     def test_template_prompt_returns_messages(self):
-        # Find any template prompt
-        registered = list(mcp._prompt_manager._prompts.keys())
-        template_names = [n for n in registered if n.startswith("template_")]
-        assert len(template_names) > 0
-
-        # Call the first template prompt
-        fn = _get_prompt(template_names[0])
+        fn = _get_prompt("code_review")
         result = fn()
         assert isinstance(result, list)
+        assert len(result) >= 1
         for msg in result:
             assert "role" in msg
             assert "content" in msg
 
     def test_code_review_template_exists(self):
-        assert "template_code_review" in mcp._prompt_manager._prompts
+        assert "code_review" in mcp._prompt_manager._prompts
 
     def test_summarize_template_exists(self):
-        assert "template_summarize" in mcp._prompt_manager._prompts
+        assert "summarize" in mcp._prompt_manager._prompts
 
 
 class TestPromptRegistration:

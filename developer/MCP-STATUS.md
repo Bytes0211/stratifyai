@@ -19,7 +19,7 @@ Project Board: https://github.com/users/Bytes0211/projects/4
 | 2 | Core Tools | https://github.com/Bytes0211/stratifyai/issues/21 | Done | - | 2026-04-03 | Core MCP execution and model lookup tools verified in tools.py |
 | 3 | Cost Tools | https://github.com/Bytes0211/stratifyai/issues/22 | Done | - | 2026-04-03 | Session cost tracking, summary filters, and validation tooling verified |
 | 4 | Resources | https://github.com/Bytes0211/stratifyai/issues/23 | Done | - | 2026-04-03 | MCP resources verified with focused resource test coverage |
-| 5 | Prompts | https://github.com/Bytes0211/stratifyai/issues/24 | Planned | - | 2026-04-03 | Phase field assigned in project |
+| 5 | Prompts | https://github.com/Bytes0211/stratifyai/issues/24 | Done | - | 2026-04-03 | Named and dynamic MCP prompts verified with prompt test coverage |
 | 6 | HTTP Transport | https://github.com/Bytes0211/stratifyai/issues/25 | Planned | - | 2026-04-03 | Phase field assigned in project |
 | 7 | Tests and CI | https://github.com/Bytes0211/stratifyai/issues/26 | Planned | - | 2026-04-03 | Phase field assigned in project |
 | 8 | Docs and Config | https://github.com/Bytes0211/stratifyai/issues/27 | Planned | - | 2026-04-03 | Phase field assigned in project |
@@ -81,11 +81,11 @@ Use this section for fine-grained execution status. Update step status as work m
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P5-S1 | Register compare_models prompt | Planned | 2026-04-03 | Issue 24 |
-| P5-S2 | Register recommend_model prompt | Planned | 2026-04-03 | Issue 24 |
-| P5-S3 | Register analyze_costs prompt | Planned | 2026-04-03 | Issue 24 |
-| P5-S4 | Expose dynamic registry templates as prompts | Planned | 2026-04-03 | Issue 24 |
-| P5-S5 | Validate prompt output shape (role/content list) | Planned | 2026-04-03 | Issue 24 |
+| P5-S1 | Register compare_models prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
+| P5-S2 | Register recommend_model prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
+| P5-S3 | Register analyze_costs prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
+| P5-S4 | Expose dynamic registry templates as prompts | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
+| P5-S5 | Validate prompt output shape (role/content list) | Done | 2026-04-03 | tests/test_mcp_prompts.py |
 
 ### Phase 6 - HTTP Transport (Optional, Post-GA)
 
