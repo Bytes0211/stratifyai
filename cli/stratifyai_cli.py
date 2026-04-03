@@ -1,5 +1,7 @@
 """StratifyAI CLI - Unified LLM interface via terminal."""
 
+import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -996,6 +998,11 @@ def route(
         "-c",
         help="Required capability (vision, tools, reasoning). Can be specified multiple times.",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show routing reasoning and ranked candidates without making an API call.",
+    ),
 ):
     """Auto-select best model using router."""
 
@@ -1012,6 +1019,10 @@ def route(
             console.print(
                 f"[red]Invalid strategy:[/red] {strategy}. Use: cost, quality, latency, or hybrid"
             )
+            raise typer.Exit(1)
+
+        if dry_run and execute:
+            console.print("[red]Cannot use --execute and --dry-run together.[/red]")
             raise typer.Exit(1)
 
         # Create router and route
@@ -1060,6 +1071,62 @@ def route(
             console.print(
                 f"Latency: [yellow]{model_info.avg_latency_ms:.0f}ms[/yellow]"
             )
+
+        if dry_run:
+            candidates = router._filter_candidates(
+                required_capabilities=capability,
+                max_cost_per_1k=max_cost,
+                max_latency_ms=max_latency,
+                min_context_window=None,
+            )
+            scores = router._score_candidates(candidates, complexity)
+            ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+
+            weights: str
+            if strategy_map[strategy] == RoutingStrategy.HYBRID:
+                quality_weight = 0.1 + (complexity * 0.5)
+                cost_weight = 0.6 - (complexity * 0.3)
+                latency_weight = 0.3 - (complexity * 0.2)
+                weights = (
+                    f"quality={quality_weight:.2f}, "
+                    f"cost={cost_weight:.2f}, "
+                    f"latency={latency_weight:.2f}"
+                )
+            else:
+                weights = strategy_map[strategy].value
+
+            console.print(f"Reasoning: [dim]{weights}[/dim]")
+
+            table = Table(
+                title="Routing Candidates (Dry Run)",
+                show_header=True,
+                header_style="bold cyan",
+            )
+            table.add_column("Rank", justify="right")
+            table.add_column("Provider", style="cyan")
+            table.add_column("Model", style="green")
+            table.add_column("Score", justify="right")
+            table.add_column("Cost/1K", justify="right")
+            table.add_column("Latency", justify="right")
+            table.add_column("Capabilities", style="magenta")
+
+            for index, (key, score) in enumerate(ranked[:5], start=1):
+                meta = candidates[key]
+                avg_cost_per_1k = (
+                    meta.cost_per_1m_input + meta.cost_per_1m_output
+                ) / 1000
+                table.add_row(
+                    str(index),
+                    meta.provider,
+                    meta.model,
+                    f"{score:.3f}",
+                    f"${avg_cost_per_1k:.4f}",
+                    f"{meta.avg_latency_ms:.0f}ms",
+                    ", ".join(meta.capabilities) if meta.capabilities else "-",
+                )
+
+            console.print(table)
+            return
 
         # Execute if requested
         if execute or Confirm.ask("\nExecute with this model?", default=True):
@@ -2815,6 +2882,151 @@ def check_keys():
         console.print(
             "[dim]💡 Tip: Run [cyan]stratifyai setup[/cyan] to see how to configure missing providers[/dim]\n"
         )
+
+
+@app.command()
+def doctor(
+    live: bool = typer.Option(
+        False,
+        "--live",
+        help="Run live provider connectivity checks (makes real API calls).",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit machine-readable JSON output for automation and CI.",
+    ),
+):
+    """Run one-shot diagnostics for environment, keys, providers, and connectivity."""
+    from stratifyai.api_key_helper import APIKeyHelper
+
+    if not json_output:
+        console.print("\n[bold cyan]🩺 StratifyAI Doctor[/bold cyan]\n")
+
+    checks = Table(show_header=True, header_style="bold magenta")
+    checks.add_column("Check", style="cyan")
+    checks.add_column("Status", justify="center")
+    checks.add_column("Details", style="white")
+    check_results: list[dict[str, Any]] = []
+
+    def add_check(name: str, ok: bool, details: str, fatal: bool = True) -> None:
+        check_results.append(
+            {"name": name, "ok": ok, "details": details, "fatal": fatal}
+        )
+        if ok:
+            status = "[green]PASS[/green]"
+        elif fatal:
+            status = "[red]FAIL[/red]"
+        else:
+            status = "[yellow]WARN[/yellow]"
+        checks.add_row(name, status, details)
+
+    env_exists = Path(".env").exists()
+    add_check(
+        "Environment file",
+        env_exists,
+        ".env found" if env_exists else ".env not found",
+        fatal=False,
+    )
+
+    add_check(
+        "Python runtime",
+        sys.version_info >= (3, 10),
+        f"Python {sys.version.split()[0]}",
+    )
+
+    provider_count = len(MODEL_CATALOG)
+    model_count = sum(len(models) for models in MODEL_CATALOG.values())
+    add_check(
+        "Catalog load",
+        provider_count > 0 and model_count > 0,
+        f"{provider_count} providers, {model_count} models",
+    )
+
+    available = APIKeyHelper.check_available_providers()
+    configured = [provider for provider, has_key in available.items() if has_key]
+    add_check(
+        "API keys",
+        len(configured) > 0,
+        (
+            f"{len(configured)}/{len(available)} providers configured"
+            if configured
+            else "No provider API keys configured"
+        ),
+        fatal=False,
+    )
+
+    init_failures: list[str] = []
+    for provider in configured:
+        try:
+            LLMClient(provider=provider)
+        except Exception as exc:
+            init_failures.append(f"{provider}: {exc}")
+
+    add_check(
+        "Client initialization",
+        len(init_failures) == 0,
+        "All configured providers initialized"
+        if not init_failures
+        else "; ".join(init_failures[:3]),
+    )
+
+    if live:
+        live_failures: list[str] = []
+        tested = 0
+        for provider in configured:
+            models = MODEL_CATALOG.get(provider, {})
+            if not models:
+                continue
+            model = next(iter(models.keys()))
+            try:
+                client = LLMClient(provider=provider)
+                request = ChatRequest(
+                    model=model,
+                    messages=[Message(role="user", content="Reply with: ok")],
+                    temperature=0.0,
+                    max_tokens=8,
+                )
+                client.chat_completion_sync(request)
+                tested += 1
+            except Exception as exc:
+                tested += 1
+                live_failures.append(f"{provider}: {exc}")
+
+        add_check(
+            "Live connectivity",
+            tested > 0 and len(live_failures) == 0,
+            (
+                f"{tested} provider(s) responded"
+                if not live_failures
+                else "; ".join(live_failures[:3])
+            ),
+        )
+    else:
+        add_check(
+            "Live connectivity",
+            True,
+            "Skipped (use --live to run real provider calls)",
+        )
+
+    failed_checks = [
+        check for check in check_results if not check["ok"] and check["fatal"]
+    ]
+    payload = {
+        "ok": len(failed_checks) == 0,
+        "live_enabled": live,
+        "configured_providers": configured,
+        "checks": check_results,
+        "init_failures": init_failures,
+    }
+
+    if json_output:
+        typer.echo(json.dumps(payload))
+    else:
+        console.print(checks)
+
+    if failed_checks:
+        raise typer.Exit(1)
 
 
 @app.command()

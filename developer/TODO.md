@@ -128,11 +128,11 @@
 
 > Polish items that improve onboarding and daily use.
 
-- [ ] Add `stratifyai doctor` CLI command — validates env, keys, providers, connectivity in one shot
-- [ ] Add `--dry-run` flag to router CLI to show selection reasoning without making API call
-- [ ] Add structured error codes to all exceptions (for programmatic handling)
-- [ ] Add changelog (CHANGELOG.md) or adopt automated release notes
-- [ ] Add contribution guide (CONTRIBUTING.md) with dev setup instructions
+- [x] Add `stratifyai doctor` CLI command — validates env, keys, providers, connectivity in one shot
+- [x] Add `--dry-run` flag to router CLI to show selection reasoning without making API call
+- [x] Add structured error codes to all exceptions (for programmatic handling)
+- [x] Add changelog (CHANGELOG.md) or adopt automated release notes
+- [x] Add contribution guide (CONTRIBUTING.md) with dev setup instructions
 
 ---
 

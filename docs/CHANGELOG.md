@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `stratifyai doctor` CLI command for environment, key, provider, and optional live connectivity diagnostics
+- `--dry-run` flag for the `route` CLI command to show routing rationale and ranked candidates without API execution
+
 ### Changed
 - Documentation improvements with badges and type hints
+- Structured error codes added to custom exception hierarchy for programmatic handling
 
 ## [0.1.0] - 2026-02-04
 

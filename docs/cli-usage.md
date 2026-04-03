@@ -183,6 +183,7 @@ python -m cli.stratifyai_cli route [OPTIONS] MESSAGE
 **Options:**
 - `--strategy, -s TEXT`: Routing strategy (cost, quality, latency, hybrid) [default: hybrid]
 - `--execute, -e`: Execute with selected model without prompting
+- `--dry-run`: Show selection reasoning and ranked candidates without making an API call
 - `--max-cost FLOAT`: Maximum cost per 1K tokens
 - `--max-latency INTEGER`: Maximum latency in milliseconds
 
@@ -212,6 +213,9 @@ python -m cli.stratifyai_cli route --strategy latency \
 # Auto-execute without confirmation
 python -m cli.stratifyai_cli route --execute "Hello"
 
+# Show ranked candidates and scoring weights without API execution
+python -m cli.stratifyai_cli route --dry-run "Summarize this architecture"
+
 # With cost constraint
 python -m cli.stratifyai_cli route --max-cost 0.002 "Simple query"
 
@@ -239,7 +243,36 @@ Cost: $0.000050 | Tokens: 12 | Latency: 782ms
 
 ---
 
-### 5. `interactive` - Interactive Chat Session
+### 5. `doctor` - One-Shot Environment Diagnostics
+
+Validate Python runtime, catalog load, API key configuration, provider initialization,
+and optional live provider connectivity checks.
+
+**Usage:**
+```bash
+python -m cli.stratifyai_cli doctor [OPTIONS]
+```
+
+**Options:**
+- `--live`: Run live provider connectivity checks (real API calls)
+- `--json`: Emit machine-readable JSON diagnostics output (CI-friendly)
+
+**Examples:**
+
+```bash
+# Run local diagnostics only (no API calls)
+python -m cli.stratifyai_cli doctor
+
+# Run diagnostics plus live connectivity checks
+python -m cli.stratifyai_cli doctor --live
+
+# Emit JSON diagnostics for automation/CI
+python -m cli.stratifyai_cli doctor --json
+```
+
+---
+
+### 6. `interactive` - Interactive Chat Session
 
 Start an interactive chat session with conversation history.
 
