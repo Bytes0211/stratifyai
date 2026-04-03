@@ -34,7 +34,8 @@ jobs:
 
       - name: Dependency vulnerability scan (pip-audit)
         run: |
-          uv export --format requirements-txt --all-extras | \
+          uv export --format requirements-txt --all-extras --no-hashes --no-editable | \
+            grep -v '^\.' | \
             uvx pip-audit --requirement /dev/stdin
 
       - name: Detect changed Python files (PR only)
