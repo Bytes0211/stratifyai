@@ -54,7 +54,7 @@ def _build_capabilities(model_data: dict[str, Any]) -> list[str]:
     return caps
 
 
-def register(mcp: FastMCP) -> None:
+def register(mcp: FastMCP) -> None:  # noqa: C901
     """Register all MCP tools on the server instance."""
 
     # ------------------------------------------------------------------
@@ -100,9 +100,10 @@ def register(mcp: FastMCP) -> None:
                 cost_usd=cost,
                 latency_ms=response.latency_ms,
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider, model)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def chat_with_routing(
@@ -158,9 +159,10 @@ def register(mcp: FastMCP) -> None:
                 cost_usd=cost,
                 latency_ms=response.latency_ms,
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def list_providers() -> list[dict[str, Any]]:
@@ -175,10 +177,11 @@ def register(mcp: FastMCP) -> None:
                     model_count=len(models),
                     configured=_is_configured(name),
                 )
-                result.append(info.model_dump())
+                result.append(dict(info.model_dump()))
             return result
         except Exception as exc:
             raise_tool_error(exc)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def list_models(provider: str) -> list[dict[str, Any]]:
@@ -199,10 +202,11 @@ def register(mcp: FastMCP) -> None:
                     cost_output_per_1m=float(data.get("cost_output", 0.0)),
                     capabilities=_build_capabilities(data),
                 )
-                result.append(summary.model_dump())
+                result.append(dict(summary.model_dump()))
             return result
         except Exception as exc:
             raise_tool_error(exc, provider)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def get_model_info(provider: str, model: str) -> dict[str, Any]:
@@ -225,9 +229,10 @@ def register(mcp: FastMCP) -> None:
                 model=model,
                 metadata=dict(model_data),
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider, model)
+            raise  # unreachable — satisfies mypy
 
     # ------------------------------------------------------------------
     # Phase 3 — Cost and Validation Tools
@@ -251,9 +256,10 @@ def register(mcp: FastMCP) -> None:
                 by_provider=summary.get("by_provider", {}),
                 by_model=summary.get("by_model", {}),
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider, model)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def validate_provider(provider: str) -> dict[str, Any]:
@@ -276,9 +282,10 @@ def register(mcp: FastMCP) -> None:
                 models_available=models,
                 validation_errors=errors,
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider)
+            raise  # unreachable — satisfies mypy
 
     @mcp.tool()
     async def estimate_cost(
@@ -310,6 +317,7 @@ def register(mcp: FastMCP) -> None:
                 provider=provider,
                 model=model,
             )
-            return output.model_dump()
+            return dict(output.model_dump())
         except Exception as exc:
             raise_tool_error(exc, provider, model)
+            raise  # unreachable — satisfies mypy

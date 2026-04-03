@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from typing import Any
+from typing import Any, NoReturn
 
 from stratifyai.exceptions import (
     AuthenticationError,
@@ -76,7 +76,7 @@ def raise_tool_error(
     exc: Exception,
     provider: str | None = None,
     model: str | None = None,
-) -> None:
+) -> NoReturn:
     """Raise a ValueError with JSON-serialized MCP error payload.
 
     FastMCP converts ValueError into a structured tool error response.
