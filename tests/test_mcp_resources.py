@@ -1,10 +1,20 @@
 """Tests for MCP resources."""
 
 import json
+from pathlib import Path
 
 import pytest
 
+from stratifyai.mcp_server import tools as mcp_tools
 from stratifyai.mcp_server.server import mcp
+
+
+@pytest.fixture(autouse=True)
+def reset_mcp_cost_tracker():
+    """Reset the shared MCP cost tracker between tests."""
+    mcp_tools._mcp_cost_tracker.reset()
+    yield
+    mcp_tools._mcp_cost_tracker.reset()
 
 
 def _get_resource(uri: str):
@@ -23,6 +33,8 @@ class TestCatalogResource:
         result = await fn()
         data = json.loads(result)
         assert "providers" in data
+        assert "version" in data
+        assert "updated" in data
 
     @pytest.mark.asyncio
     async def test_contains_known_providers(self):
@@ -33,6 +45,18 @@ class TestCatalogResource:
         assert "openai" in providers
         assert "anthropic" in providers
 
+    @pytest.mark.asyncio
+    async def test_matches_expected_top_level_schema_shape(self):
+        fn = _get_resource("stratifyai://catalog")
+        result = await fn()
+        data = json.loads(result)
+
+        schema_path = Path(__file__).resolve().parent.parent / "catalog" / "schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        assert data.keys() >= set(schema["required"])
+        assert isinstance(data["providers"], dict)
+
 
 class TestCatalogProviderResource:
     @pytest.mark.asyncio
@@ -42,6 +66,15 @@ class TestCatalogProviderResource:
         data = json.loads(result)
         assert isinstance(data, dict)
         assert len(data) > 0
+
+    @pytest.mark.asyncio
+    async def test_returns_only_requested_provider_models(self):
+        fn = _get_resource("stratifyai://catalog/{provider}")
+        result = await fn(provider="openai")
+        data = json.loads(result)
+
+        assert "gpt-4.1-mini" in data
+        assert not any(model_id.startswith("claude") for model_id in data)
 
     @pytest.mark.asyncio
     async def test_invalid_provider_raises(self):
@@ -71,6 +104,29 @@ class TestCostsResource:
         result = await fn()
         data = json.loads(result)
         assert isinstance(data, dict)
+
+    @pytest.mark.asyncio
+    async def test_returns_mcp_cost_summary_shape(self):
+        mcp_tools._mcp_cost_tracker.add_entry(
+            provider="openai",
+            model="gpt-4.1-mini",
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_tokens=15,
+            cost_usd=0.0015,
+            request_id="req-1",
+        )
+
+        fn = _get_resource("stratifyai://costs")
+        result = await fn()
+        data = json.loads(result)
+
+        assert data["mcp_schema_version"] == 1
+        assert data["total_cost_usd"] == pytest.approx(0.0015)
+        assert data["total_calls"] == 1
+        assert data["total_tokens"] == 15
+        assert data["by_provider"] == {"openai": pytest.approx(0.0015)}
+        assert data["by_model"] == {"gpt-4.1-mini": pytest.approx(0.0015)}
 
 
 class TestRouterStrategiesResource:

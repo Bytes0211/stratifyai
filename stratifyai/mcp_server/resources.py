@@ -51,10 +51,10 @@ def register(mcp: FastMCP) -> None:
     @mcp.resource("stratifyai://costs")
     async def costs_resource() -> str:
         """Current session cost summary."""
-        from stratifyai.mcp_server.tools import _mcp_cost_tracker
+        from stratifyai.mcp_server.tools import _build_cost_summary
 
-        summary = _mcp_cost_tracker.get_summary()
-        return json.dumps(summary, indent=2)
+        summary = _build_cost_summary()
+        return json.dumps(summary.model_dump(), indent=2)
 
     @mcp.resource("stratifyai://router/strategies")
     async def router_strategies_resource() -> str:
