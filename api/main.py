@@ -37,6 +37,17 @@ from stratifyai.catalog_manager import load_catalog
 from stratifyai.config import MODEL_CATALOG
 from stratifyai.cost_tracker import CostTracker
 from stratifyai.exceptions import AuthenticationError
+from stratifyai.mcp_catalog import (
+    build_claude_code_commands,
+    build_client_config,
+    detect_client_config_path,
+    get_configured_servers,
+    validate_prerequisites,
+    write_client_config,
+)
+from stratifyai.mcp_catalog import (
+    load_catalog as load_mcp_server_catalog,
+)
 from stratifyai.middleware import TrackedLLMClient
 from stratifyai.observability import (
     bind_correlation_id,
@@ -559,6 +570,15 @@ async def models_page():
     if os.path.exists(models_path):
         return FileResponse(models_path)
     return {"error": "Models page not found"}
+
+
+@app.get("/mcp")
+async def mcp_page():
+    """Serve the MCP management SPA route."""
+    index_path = _get_spa_index()
+    if index_path:
+        return FileResponse(index_path)
+    return {"error": "MCP page not found"}
 
 
 @app.get("/api/providers", response_model=list[str])
@@ -1454,6 +1474,45 @@ class AllModelsResponse(BaseModel):
     summary: dict
 
 
+class MCPClientInfo(BaseModel):
+    """Supported MCP client metadata for the Web UI."""
+
+    id: str
+    label: str
+    config_path: str | None = None
+    supports_apply: bool = True
+    exists: bool = False
+
+
+class MCPStatusResponse(BaseModel):
+    """Current MCP configuration state for one client."""
+
+    client: str
+    path: str | None = None
+    configured: dict[str, Any] = Field(default_factory=dict)
+    count: int = 0
+
+
+class MCPConfigureRequest(BaseModel):
+    """Request model for MCP config preview/apply actions."""
+
+    client: str
+    server_ids: list[str] = Field(default_factory=list)
+    env_values: dict[str, str] = Field(default_factory=dict)
+    arg_values: dict[str, str] = Field(default_factory=dict)
+    project_root: str | None = None
+    output_path: str | None = None
+    apply: bool = False
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+
 @app.get("/api/all-models")
 async def get_all_validated_models(_: None = Depends(verify_api_key)):
     """
@@ -1584,6 +1643,132 @@ async def get_catalog(_: None = Depends(verify_api_key)):
             }
 
     return cast(dict[str, Any], result)
+
+
+@app.get("/api/mcp/catalog")
+async def get_mcp_catalog(_: None = Depends(verify_api_key)):
+    """Return the curated MCP server catalog for the Web UI."""
+    catalog = load_mcp_server_catalog()
+    return catalog.model_dump()
+
+
+@app.get("/api/mcp/clients")
+async def get_mcp_clients(
+    project_root: str | None = None,
+    _: None = Depends(verify_api_key),
+):
+    """Return supported MCP client targets and their resolved config paths."""
+    client_labels = {
+        "claude-desktop": "Claude Desktop",
+        "claude-code": "Claude Code",
+        "cursor": "Cursor",
+        "vscode": "VS Code (Copilot Chat)",
+    }
+    clients: list[MCPClientInfo] = []
+
+    for client_id, label in client_labels.items():
+        path = detect_client_config_path(client_id, project_root)
+        clients.append(
+            MCPClientInfo(
+                id=client_id,
+                label=label,
+                config_path=str(path) if path is not None else None,
+                supports_apply=client_id != "claude-code",
+                exists=path.exists() if path is not None else False,
+            )
+        )
+
+    return {"clients": [client.model_dump() for client in clients]}
+
+
+@app.get("/api/mcp/status", response_model=MCPStatusResponse)
+async def get_mcp_status(
+    client: str,
+    project_root: str | None = None,
+    output_path: str | None = None,
+    _: None = Depends(verify_api_key),
+):
+    """Inspect the currently configured MCP servers for a target client."""
+    try:
+        path, configured = get_configured_servers(
+            client=client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        return MCPStatusResponse(
+            client=client,
+            path=str(path) if path is not None else None,
+            configured=configured,
+            count=len(configured),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp/configure")
+async def configure_mcp(
+    payload: MCPConfigureRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Preview or apply MCP client configuration for selected servers."""
+    if not payload.server_ids:
+        raise HTTPException(
+            status_code=400, detail="At least one server_id is required"
+        )
+
+    try:
+        warnings = validate_prerequisites(payload.server_ids)
+
+        if payload.client == "claude-code":
+            commands = build_claude_code_commands(
+                payload.server_ids,
+                payload.env_values,
+                payload.arg_values,
+            )
+            target_path = payload.output_path
+            if payload.apply and payload.output_path:
+                output_path = Path(payload.output_path)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+            return {
+                "applied": bool(payload.apply and payload.output_path),
+                "config": None,
+                "commands": commands,
+                "path": target_path,
+                "warnings": warnings,
+            }
+
+        config = build_client_config(
+            client=payload.client,
+            server_ids=payload.server_ids,
+            env_values=payload.env_values,
+            arg_values=payload.arg_values,
+            project_root=payload.project_root,
+        )
+
+        path = detect_client_config_path(payload.client, payload.project_root)
+        applied = False
+        if payload.apply:
+            written = write_client_config(
+                client=payload.client,
+                config=config,
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+            path = written
+            applied = True
+
+        return {
+            "applied": applied,
+            "config": config,
+            "commands": [],
+            "path": str(path) if path is not None else payload.output_path,
+            "warnings": warnings,
+        }
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=sanitize_error(str(exc))) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
 
 @app.get("/api/templates")

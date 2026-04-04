@@ -105,6 +105,84 @@ export interface CostSummary {
   };
 }
 
+export interface McpEnvVar {
+  name: string;
+  description: string;
+  required: boolean;
+  signup_url?: string | null;
+  secret?: boolean;
+}
+
+export interface McpUserArg {
+  name: string;
+  description: string;
+  required: boolean;
+  flag?: string | null;
+  example?: string | null;
+  multiple?: boolean;
+}
+
+export interface McpServerEntry {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  website?: string | null;
+  install_method: string;
+  command: string;
+  args: string[];
+  env_vars: McpEnvVar[];
+  user_args: McpUserArg[];
+  tags: string[];
+}
+
+export interface McpCatalogResponse {
+  version: string;
+  updated: string;
+  servers: McpServerEntry[];
+}
+
+export interface McpClientInfo {
+  id: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  label: string;
+  config_path?: string | null;
+  supports_apply: boolean;
+  exists: boolean;
+}
+
+export interface McpClientsResponse {
+  clients: McpClientInfo[];
+}
+
+export interface McpStatusResponse {
+  client: string;
+  path?: string | null;
+  configured: Record<string, {
+    command: string;
+    args?: string[];
+    env?: Record<string, string>;
+  }>;
+  count: number;
+}
+
+export interface McpConfigureRequest {
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  server_ids: string[];
+  env_values?: Record<string, string>;
+  arg_values?: Record<string, string>;
+  project_root?: string;
+  output_path?: string;
+  apply?: boolean;
+}
+
+export interface McpConfigureResponse {
+  applied: boolean;
+  config: Record<string, unknown> | null;
+  commands: string[];
+  path?: string | null;
+  warnings: string[];
+}
+
 export interface StreamMessage {
   content?: string;
   done?: boolean;
