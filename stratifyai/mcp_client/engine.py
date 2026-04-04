@@ -38,17 +38,41 @@ class MCPClientEngine:
         for server in self._servers:
             if not server.enabled or not server.auto_start:
                 continue
-            connection = await self._server_manager.spawn(server)
-            tools_result = await connection.session.list_tools()
-            self._tool_registry.register_server_tools(
-                server.server_id, tools_result.tools
-            )
+            await self.start_server(server.server_id)
+
+    async def start_server(self, server_id: str) -> ServerStatus:
+        """Start one configured server and register its tools."""
+        config = self._server_index.get(server_id)
+        if config is None:
+            raise KeyError(f"Unknown server: {server_id}")
+
+        connection = await self._server_manager.spawn(config)
+        tools_result = await connection.session.list_tools()
+        self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        return self.get_server_status(server_id)
 
     async def stop(self) -> None:
         """Stop all running servers and clear tool registry state."""
         for server_id in list(self._server_index.keys()):
-            await self._server_manager.stop(server_id)
-            self._tool_registry.unregister_server(server_id)
+            await self.stop_server(server_id)
+
+    async def stop_server(self, server_id: str) -> ServerStatus:
+        """Stop one server and unregister its tools."""
+        await self._server_manager.stop(server_id)
+        self._tool_registry.unregister_server(server_id)
+        return self.get_server_status(server_id)
+
+    async def restart_server(self, server_id: str) -> ServerStatus:
+        """Restart one server and refresh its tool registration."""
+        config = self._server_index.get(server_id)
+        if config is None:
+            raise KeyError(f"Unknown server: {server_id}")
+
+        self._tool_registry.unregister_server(server_id)
+        connection = await self._server_manager.restart(config)
+        tools_result = await connection.session.list_tools()
+        self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        return self.get_server_status(server_id)
 
     async def call_tool(self, server: str, tool: str, args: dict) -> dict:
         """Call one tool on a connected server."""
@@ -97,6 +121,10 @@ class MCPClientEngine:
             if status.server_id == server:
                 return status
         raise KeyError(f"Unknown server: {server}")
+
+    def find_tool(self, server_id: str, tool_name: str):
+        """Find one registered tool by server-local name."""
+        return self._tool_registry.find_tool(server_id, tool_name)
 
     async def _require_connection(self, server_id: str):
         connection = self._server_manager.get_connection(server_id)

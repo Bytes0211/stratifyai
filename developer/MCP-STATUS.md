@@ -197,7 +197,7 @@ Reference: `developer/PRD-MCP-abstraction-layer.md`
 
 ---
 
-## Workstream C: MCP Client Engine (Future)
+## Workstream C: MCP Client Engine
 
 Reference: `developer/PRD-MCP-client-engine.md`
 
@@ -206,7 +206,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 | Phase | Scope | GitHub Issue | Status | Updated | Notes |
 |---|---|---|---|---|---|
 | CE-1 | Client Engine Core | https://github.com/Bytes0211/stratifyai/issues/38 | Done | 2026-04-04 | MCPClientEngine core, ServerManager, stdio ClientSession wrapper, config loader, and E2E tool/resource test implemented |
-| CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Planned | 2026-04-03 | Aggregated tool list across servers |
+| CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Done | 2026-04-04 | Namespaced ToolRegistry, per-server lifecycle registration, and verified start/stop/restart behavior |
 | CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Planned | 2026-04-03 | LLM tool_use with MCP tools in conversation |
 | CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Planned | 2026-04-03 | Allow/deny/confirm per tool, safety defaults |
 | CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Planned | 2026-04-03 | Server dashboard, tool discovery, chat badges, permission manager |
@@ -266,11 +266,11 @@ Steps are listed in the same interleaved sequence as the execution order above. 
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| CE2-S1 | Implement `ToolRegistry` with register/unregister per server | Planned | 2026-04-04 | - |
-| CE2-S2 | Namespace tools as `{server_id}.{tool_name}` to prevent collisions | Planned | 2026-04-04 | - |
-| CE2-S3 | Handle server connect/disconnect events (auto register/unregister) | Planned | 2026-04-04 | - |
-| CE2-S4 | Implement `list_all()` returning merged tool list across all servers | Planned | 2026-04-04 | - |
-| CE2-S5 | Implement `find_tool(server, name)` lookup | Planned | 2026-04-04 | - |
+| CE2-S1 | Implement `ToolRegistry` with register/unregister per server | Done | 2026-04-04 | stratifyai/mcp_client/tool_registry.py (`register_server_tools`, `unregister_server`, `list_server_tools`) |
+| CE2-S2 | Namespace tools as `{server_id}.{tool_name}` to prevent collisions | Done | 2026-04-04 | stratifyai/mcp_client/tool_registry.py (`namespace=f"{server_id}.{tool_name}"`) |
+| CE2-S3 | Handle server connect/disconnect events (auto register/unregister) | Done | 2026-04-04 | stratifyai/mcp_client/engine.py (`start_server`, `stop_server`, `restart_server`) |
+| CE2-S4 | Implement `list_all()` returning merged tool list across all servers | Done | 2026-04-04 | stratifyai/mcp_client/tool_registry.py (`list_all()`); verified by `uv run pytest tests/test_mcp_client_engine.py` |
+| CE2-S5 | Implement `find_tool(server, name)` lookup | Done | 2026-04-04 | stratifyai/mcp_client/tool_registry.py (`find_tool`, `find_by_namespace`); verified by `uv run pytest tests/test_mcp_client_engine.py` |
 
 #### Step 5: AL-3 — Web UI
 

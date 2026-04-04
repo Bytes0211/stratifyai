@@ -68,6 +68,45 @@ def test_tool_registry_namespaces_server_tools() -> None:
     assert registry.list_all() == []
 
 
+def test_tool_registry_handles_multiple_servers_and_namespace_lookup() -> None:
+    registry = ToolRegistry()
+    registry.register_server_tools(
+        "alpha",
+        [
+            Tool(
+                name="echo",
+                description="Echo alpha",
+                inputSchema={"type": "object"},
+            )
+        ],
+    )
+    registry.register_server_tools(
+        "beta",
+        [
+            Tool(
+                name="echo",
+                description="Echo beta",
+                inputSchema={"type": "object"},
+            ),
+            Tool(
+                name="sum",
+                description="Sum values",
+                inputSchema={"type": "object"},
+            ),
+        ],
+    )
+
+    namespaces = [tool.namespace for tool in registry.list_all()]
+    assert namespaces == ["alpha.echo", "beta.echo", "beta.sum"]
+    assert registry.find_tool("beta", "sum") is not None
+    assert registry.find_by_namespace("beta.echo") is not None
+    assert registry.list_server_tools("beta")[1].namespace == "beta.sum"
+
+    registry.unregister_server("alpha")
+    namespaces = [tool.namespace for tool in registry.list_all()]
+    assert namespaces == ["beta.echo", "beta.sum"]
+
+
 @pytest.mark.asyncio
 async def test_mcp_client_engine_start_call_tool_and_get_resource(
     tmp_path: Path,
@@ -122,5 +161,53 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
 
         resource = await engine.get_resource("demo", "demo://status")
         assert "ready" in resource
+    finally:
+        await engine.stop()
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_start_stop_and_restart_updates_registry(
+    tmp_path: Path,
+) -> None:
+    server_script = tmp_path / "fake_mcp_server_reconnect.py"
+    server_script.write_text(
+        textwrap.dedent(
+            """
+            from mcp.server.fastmcp import FastMCP
+
+            mcp = FastMCP("demo-reconnect")
+
+            @mcp.tool()
+            async def echo(text: str) -> dict[str, str]:
+                return {"echo": text}
+
+            if __name__ == "__main__":
+                mcp.run(transport="stdio")
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    server = ConfiguredServer(
+        server_id="demo",
+        command=sys.executable,
+        args=[str(server_script)],
+        cwd=tmp_path,
+    )
+    engine = MCPClientEngine(servers=[server])
+
+    try:
+        await engine.start_server("demo")
+        assert [tool.namespace for tool in engine.list_tools()] == ["demo.echo"]
+        assert engine.find_tool("demo", "echo") is not None
+        assert engine.get_server_status("demo").status == "connected"
+
+        await engine.stop_server("demo")
+        assert engine.list_tools() == []
+        assert engine.get_server_status("demo").status == "stopped"
+
+        await engine.restart_server("demo")
+        assert [tool.namespace for tool in engine.list_tools()] == ["demo.echo"]
+        assert engine.get_server_status("demo").status == "connected"
     finally:
         await engine.stop()

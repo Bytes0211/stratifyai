@@ -33,17 +33,27 @@ class ToolRegistry:
     def find_tool(self, server_id: str, tool_name: str) -> Tool | None:
         return self._tools_by_server.get(server_id, {}).get(tool_name)
 
+    def find_by_namespace(self, namespace: str) -> Tool | None:
+        server_id, _, tool_name = namespace.partition(".")
+        if not server_id or not tool_name:
+            return None
+        return self.find_tool(server_id, tool_name)
+
+    def list_server_tools(self, server_id: str) -> list[ToolDescriptor]:
+        tools = self._tools_by_server.get(server_id, {})
+        return [
+            ToolDescriptor(
+                server_id=server_id,
+                tool_name=tool_name,
+                namespace=f"{server_id}.{tool_name}",
+                description=tool.description,
+                input_schema=dict(tool.inputSchema),
+            )
+            for tool_name, tool in sorted(tools.items())
+        ]
+
     def list_all(self) -> list[ToolDescriptor]:
         descriptors: list[ToolDescriptor] = []
-        for server_id, tools in sorted(self._tools_by_server.items()):
-            for tool_name, tool in sorted(tools.items()):
-                descriptors.append(
-                    ToolDescriptor(
-                        server_id=server_id,
-                        tool_name=tool_name,
-                        namespace=f"{server_id}.{tool_name}",
-                        description=tool.description,
-                        input_schema=dict(tool.inputSchema),
-                    )
-                )
+        for server_id in sorted(self._tools_by_server):
+            descriptors.extend(self.list_server_tools(server_id))
         return descriptors
