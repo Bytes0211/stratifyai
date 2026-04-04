@@ -149,7 +149,7 @@ Reference: `developer/PRD-MCP-abstraction-layer.md`
 | AL-1 | Catalog + CLI Core | https://github.com/Bytes0211/stratifyai/issues/33 | Done | 2026-04-03 | Catalog manager, CLI wizard, config generation for 4 clients, prerequisite validation verified |
 | AL-2 | Additional CLI Commands | https://github.com/Bytes0211/stratifyai/issues/34 | Done | 2026-04-03 | `mcp status/add/add-custom/remove` implemented and verified with focused CLI tests |
 | AL-3 | Web UI | https://github.com/Bytes0211/stratifyai/issues/35 | Done | 2026-04-03 | MCP API endpoints, Svelte management page, and preview/apply/export flow implemented and verified |
-| AL-4 | Inline Tool Tester | https://github.com/Bytes0211/stratifyai/issues/36 | Planned | 2026-04-03 | JSON editor, tool browser, presets, test API endpoint |
+| AL-4 | Inline Tool Tester | https://github.com/Bytes0211/stratifyai/issues/36 | Done | 2026-04-03 | Test-tool API, tool browser with schemas, JSON execution panel, and saved presets implemented and verified |
 | AL-5 | Polish | https://github.com/Bytes0211/stratifyai/issues/37 | Planned | 2026-04-03 | Health checks, custom server Web UI, tests and docs |
 
 ### Step-Level Tracking
@@ -190,10 +190,10 @@ Reference: `developer/PRD-MCP-abstraction-layer.md`
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| AL4-S1 | Add POST /api/mcp/test-tool endpoint | Planned | 2026-04-03 | - |
-| AL4-S2 | Build tool browser with schema display | Planned | 2026-04-03 | - |
-| AL4-S3 | Build JSON input editor with execute/response viewer | Planned | 2026-04-03 | - |
-| AL4-S4 | Implement request preset save/load | Planned | 2026-04-03 | - |
+| AL4-S1 | Add POST /api/mcp/test-tool endpoint | Done | 2026-04-03 | api/main.py (`/api/mcp/test-tool`, `/api/mcp/tools`); tests/test_mcp_catalog.py::test_api_mcp_test_tool_executes_list_providers |
+| AL4-S2 | Build tool browser with schema display | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPToolTester.svelte; frontend/src/lib/api/client.ts (`getMcpTools`) |
+| AL4-S3 | Build JSON input editor with execute/response viewer | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPToolTester.svelte; verified by `pytest tests/test_mcp_catalog.py tests/test_cli_auth_error.py` |
+| AL4-S4 | Implement request preset save/load | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPToolTester.svelte (localStorage-backed presets) |
 
 ---
 

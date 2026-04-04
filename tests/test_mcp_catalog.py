@@ -298,3 +298,35 @@ def test_api_mcp_status_reads_existing_config(tmp_path: Path) -> None:
     payload = response.json()
     assert payload["count"] == 1
     assert "memory" in payload["configured"]
+
+
+def test_api_mcp_tools_returns_tool_metadata() -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    client = TestClient(api_app)
+    response = client.get("/api/mcp/tools")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert any(tool["name"] == "list_providers" for tool in payload["tools"])
+    assert any(tool["name"] == "chat_completion" for tool in payload["tools"])
+
+
+def test_api_mcp_test_tool_executes_list_providers() -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    client = TestClient(api_app)
+    response = client.post(
+        "/api/mcp/test-tool",
+        json={"tool_name": "list_providers", "payload": {}},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["tool_name"] == "list_providers"
+    assert isinstance(payload["result"], list)
+    assert any(item["provider"] == "openai" for item in payload["result"])

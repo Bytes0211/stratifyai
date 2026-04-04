@@ -13,7 +13,10 @@ import type {
   McpClientsResponse,
   McpStatusResponse,
   McpConfigureRequest,
-  McpConfigureResponse
+  McpConfigureResponse,
+  McpToolsResponse,
+  McpToolTestRequest,
+  McpToolTestResponse
 } from './types';
 
 const API_BASE = '/api';
@@ -112,6 +115,17 @@ export async function getMcpStatus(
 
 export async function configureMcp(req: McpConfigureRequest): Promise<McpConfigureResponse> {
   return request<McpConfigureResponse>('/mcp/configure', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function getMcpTools(): Promise<McpToolsResponse> {
+  return request<McpToolsResponse>('/mcp/tools');
+}
+
+export async function testMcpTool(req: McpToolTestRequest): Promise<McpToolTestResponse> {
+  return request<McpToolTestResponse>('/mcp/test-tool', {
     method: 'POST',
     body: JSON.stringify(req),
   });
