@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from mcp.types import Tool
+
 from .config import ConfiguredServer, load_enabled_servers
 from .server_manager import ServerManager, ServerStatus
 from .tool_registry import ToolDescriptor, ToolRegistry
@@ -41,14 +43,22 @@ class MCPClientEngine:
             await self.start_server(server.server_id)
 
     async def start_server(self, server_id: str) -> ServerStatus:
-        """Start one configured server and register its tools."""
+        """Start one configured server and register its tools.
+
+        If tool discovery fails after a successful spawn, the server is
+        stopped to avoid a half-initialized state (connected but no tools).
+        """
         config = self._server_index.get(server_id)
         if config is None:
             raise KeyError(f"Unknown server: {server_id}")
 
         connection = await self._server_manager.spawn(config)
-        tools_result = await connection.session.list_tools()
-        self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        try:
+            tools_result = await connection.session.list_tools()
+            self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        except Exception:
+            await self._server_manager.stop(server_id)
+            raise
         return self.get_server_status(server_id)
 
     async def stop(self) -> None:
@@ -122,7 +132,7 @@ class MCPClientEngine:
                 return status
         raise KeyError(f"Unknown server: {server}")
 
-    def find_tool(self, server_id: str, tool_name: str):
+    def find_tool(self, server_id: str, tool_name: str) -> Tool | None:
         """Find one registered tool by server-local name."""
         return self._tool_registry.find_tool(server_id, tool_name)
 
