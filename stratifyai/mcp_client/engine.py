@@ -54,7 +54,7 @@ class MCPClientEngine:
         """Call one tool on a connected server."""
         connection = await self._require_connection(server)
         result = await connection.session.call_tool(tool, args)
-        return result.model_dump(mode="json")
+        return dict(result.model_dump(mode="json"))
 
     async def get_resource(self, server: str, uri: str) -> str:
         """Read a resource URI on a connected server and normalize content."""
@@ -74,7 +74,7 @@ class MCPClientEngine:
 
     def list_tools(self) -> list[ToolDescriptor]:
         """Return all discovered tools with server namespaces."""
-        return self._tool_registry.list_all()
+        return list(self._tool_registry.list_all())
 
     def list_servers(self) -> list[ServerStatus]:
         """Return all known server statuses."""
