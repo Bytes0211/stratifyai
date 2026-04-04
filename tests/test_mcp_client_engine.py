@@ -284,11 +284,16 @@ async def test_mcp_client_engine_confirmation_handler_can_approve_tool() -> None
 async def test_mcp_client_engine_build_tool_definitions_filters_active_servers() -> (
     None
 ):
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
         servers=[
-            ConfiguredServer(server_id="alpha", command="python"),
-            ConfiguredServer(server_id="beta", command="python"),
-        ]
+            ConfiguredServer(
+                server_id="alpha", command="python", permissions=allow_perms
+            ),
+            ConfiguredServer(
+                server_id="beta", command="python", permissions=allow_perms
+            ),
+        ],
     )
     engine._tool_registry.register_server_tools(
         "alpha",
@@ -320,8 +325,13 @@ async def test_mcp_client_engine_build_tool_definitions_filters_active_servers()
 
 @pytest.mark.asyncio
 async def test_mcp_client_engine_chat_with_mcp_executes_tool_calls() -> None:
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
-        servers=[ConfiguredServer(server_id="demo", command="python")]
+        servers=[
+            ConfiguredServer(
+                server_id="demo", command="python", permissions=allow_perms
+            )
+        ],
     )
     engine._tool_registry.register_server_tools(
         "demo",
@@ -451,6 +461,7 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
         encoding="utf-8",
     )
 
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
         servers=[
             ConfiguredServer(
@@ -458,8 +469,9 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
                 command=sys.executable,
                 args=[str(server_script)],
                 cwd=tmp_path,
+                permissions=allow_perms,
             )
-        ]
+        ],
     )
 
     try:

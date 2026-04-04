@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -47,7 +48,10 @@ class ServerPermissionConfig:
         default_mode: PermissionMode | None = None
         raw_mode = data.get("default_mode") or data.get("default")
         if isinstance(raw_mode, str) and raw_mode.strip():
-            default_mode = PermissionMode(raw_mode.strip().lower())
+            try:
+                default_mode = PermissionMode(raw_mode.strip().lower())
+            except ValueError:
+                default_mode = None
 
         return cls(
             default_mode=default_mode,
@@ -283,7 +287,7 @@ class PermissionManager:
         description = getattr(tool, "description", None) or ""
         haystack = f"{tool_name} {description}".lower()
 
-        if any(keyword in haystack for keyword in _CONFIRM_KEYWORDS):
+        if any(re.search(rf"\b{keyword}\b", haystack) for keyword in _CONFIRM_KEYWORDS):
             return PermissionDecision(
                 mode=PermissionMode.CONFIRM,
                 reason=(
@@ -291,13 +295,16 @@ class PermissionManager:
                 ),
             )
 
-        if any(keyword in haystack for keyword in _READ_ONLY_KEYWORDS):
+        if any(
+            re.search(rf"\b{keyword}\b", haystack) for keyword in _READ_ONLY_KEYWORDS
+        ):
             return PermissionDecision(
                 mode=PermissionMode.ALLOW,
                 reason=f"'{namespace}' looks read-only, so it is auto-approved.",
             )
 
+        # Fail-closed: unknown tools require confirmation rather than auto-allow
         return PermissionDecision(
-            mode=PermissionMode.ALLOW,
-            reason=f"'{namespace}' did not match any risky patterns and is allowed.",
+            mode=PermissionMode.CONFIRM,
+            reason=f"'{namespace}' did not match any known patterns and requires confirmation.",
         )
