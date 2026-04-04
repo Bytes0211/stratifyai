@@ -148,7 +148,7 @@ Reference: `developer/PRD-MCP-abstraction-layer.md`
 |---|---|---|---|---|---|
 | AL-1 | Catalog + CLI Core | https://github.com/Bytes0211/stratifyai/issues/33 | Done | 2026-04-03 | Catalog manager, CLI wizard, config generation for 4 clients, prerequisite validation verified |
 | AL-2 | Additional CLI Commands | https://github.com/Bytes0211/stratifyai/issues/34 | Done | 2026-04-03 | `mcp status/add/add-custom/remove` implemented and verified with focused CLI tests |
-| AL-3 | Web UI | https://github.com/Bytes0211/stratifyai/issues/35 | Planned | 2026-04-03 | Svelte tab, browse/toggle/configure, context-aware Apply/Export |
+| AL-3 | Web UI | https://github.com/Bytes0211/stratifyai/issues/35 | Done | 2026-04-03 | MCP API endpoints, Svelte management page, and preview/apply/export flow implemented and verified |
 | AL-4 | Inline Tool Tester | https://github.com/Bytes0211/stratifyai/issues/36 | Planned | 2026-04-03 | JSON editor, tool browser, presets, test API endpoint |
 | AL-5 | Polish | https://github.com/Bytes0211/stratifyai/issues/37 | Planned | 2026-04-03 | Health checks, custom server Web UI, tests and docs |
 
@@ -181,10 +181,10 @@ Reference: `developer/PRD-MCP-abstraction-layer.md`
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| AL3-S1 | Add API endpoints (catalog, status, configure, clients) | Planned | 2026-04-03 | - |
-| AL3-S2 | Build Svelte "MCP Servers" tab with catalog browser | Planned | 2026-04-03 | - |
-| AL3-S3 | Implement context-aware Apply/Export logic | Planned | 2026-04-03 | - |
-| AL3-S4 | Implement config preview, clipboard copy, download | Planned | 2026-04-03 | - |
+| AL3-S1 | Add API endpoints (catalog, status, configure, clients) | Done | 2026-04-03 | api/main.py (`/api/mcp/catalog`, `/api/mcp/status`, `/api/mcp/configure`, `/api/mcp/clients`); tests/test_mcp_catalog.py API coverage |
+| AL3-S2 | Build Svelte "MCP Servers" tab with catalog browser | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPServersPage.svelte; frontend/src/lib/components/layout/AppShell.svelte; frontend/src/lib/components/layout/Header.svelte |
+| AL3-S3 | Implement context-aware Apply/Export logic | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPServersPage.svelte; frontend/src/lib/api/client.ts (`configureMcp`) |
+| AL3-S4 | Implement config preview, clipboard copy, download | Done | 2026-04-03 | frontend/src/lib/components/mcp/MCPServersPage.svelte; verified by `cd frontend && npm run build` |
 
 #### AL Phase 4 - Inline Tool Tester
 

@@ -3,12 +3,12 @@
   import { Menu } from 'lucide-svelte';
   import ThemeToggle from '../shared/ThemeToggle.svelte';
   
-  export let currentPage: 'chat' | 'models' = 'chat';
-  export let navigateTo: (page: 'chat' | 'models') => void;
+  export let currentPage: 'chat' | 'models' | 'mcp' = 'chat';
+  export let navigateTo: (page: 'chat' | 'models' | 'mcp') => void;
   
   const dispatch = createEventDispatcher();
   
-  function handleNavClick(e: MouseEvent, page: 'chat' | 'models') {
+  function handleNavClick(e: MouseEvent, page: 'chat' | 'models' | 'mcp') {
     e.preventDefault();
     navigateTo(page);
   }
@@ -43,6 +43,12 @@
       class:active={currentPage === 'models'}
       on:click={(e) => handleNavClick(e, 'models')}
     >Models</a>
+    <a 
+      href="/mcp" 
+      class="nav-link" 
+      class:active={currentPage === 'mcp'}
+      on:click={(e) => handleNavClick(e, 'mcp')}
+    >MCP</a>
   </nav>
   
   <div class="header-right">
@@ -51,8 +57,8 @@
 </header>
 
 <style lang="scss">
-  @use '../../styles/tokens' as *;
-  @use '../../styles/mixins' as *;
+  @use '../../../styles/tokens' as *;
+  @use '../../../styles/mixins' as *;
   
   .header {
     display: flex;

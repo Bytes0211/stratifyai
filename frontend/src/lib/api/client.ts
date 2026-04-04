@@ -8,7 +8,12 @@ import type {
   ModelListResponse, 
   FullCatalog,
   CostSummary,
-  Provider 
+  Provider,
+  McpCatalogResponse,
+  McpClientsResponse,
+  McpStatusResponse,
+  McpConfigureRequest,
+  McpConfigureResponse
 } from './types';
 
 const API_BASE = '/api';
@@ -83,6 +88,33 @@ export async function getCosts(): Promise<CostSummary> {
 
 export async function getHealth(): Promise<{ status: string; version: string }> {
   return request<{ status: string; version: string }>('/health');
+}
+
+export async function getMcpCatalog(): Promise<McpCatalogResponse> {
+  return request<McpCatalogResponse>('/mcp/catalog');
+}
+
+export async function getMcpClients(projectRoot?: string): Promise<McpClientsResponse> {
+  const query = projectRoot ? `?project_root=${encodeURIComponent(projectRoot)}` : '';
+  return request<McpClientsResponse>(`/mcp/clients${query}`);
+}
+
+export async function getMcpStatus(
+  client: McpConfigureRequest['client'],
+  projectRoot?: string
+): Promise<McpStatusResponse> {
+  const params = new URLSearchParams({ client });
+  if (projectRoot) {
+    params.set('project_root', projectRoot);
+  }
+  return request<McpStatusResponse>(`/mcp/status?${params.toString()}`);
+}
+
+export async function configureMcp(req: McpConfigureRequest): Promise<McpConfigureResponse> {
+  return request<McpConfigureResponse>('/mcp/configure', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
 }
 
 export { ApiError };

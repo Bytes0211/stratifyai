@@ -5,29 +5,30 @@
   import ChatContainer from '../chat/ChatContainer.svelte';
   import ChatInput from '../chat/ChatInput.svelte';
   import ModelCatalog from '../catalog/ModelCatalog.svelte';
+  import MCPServersPage from '../mcp/MCPServersPage.svelte';
   
   let sidebarCollapsed = false;
-  let currentPage: 'chat' | 'models' = 'chat';
+  let currentPage: 'chat' | 'models' | 'mcp' = 'chat';
   
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
   }
   
-  function navigateTo(page: 'chat' | 'models') {
+  function navigateTo(page: 'chat' | 'models' | 'mcp') {
     currentPage = page;
-    const path = page === 'chat' ? '/' : '/models';
+    const path = page === 'chat' ? '/' : page === 'models' ? '/models' : '/mcp';
     window.history.pushState({}, '', path);
   }
   
   onMount(() => {
     function handlePopState() {
       const path = window.location.pathname;
-      currentPage = path === '/models' ? 'models' : 'chat';
+      currentPage = path === '/models' ? 'models' : path === '/mcp' ? 'mcp' : 'chat';
     }
     
     // Set initial page from URL
     const path = window.location.pathname;
-    currentPage = path === '/models' ? 'models' : 'chat';
+    currentPage = path === '/models' ? 'models' : path === '/mcp' ? 'mcp' : 'chat';
     
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -45,17 +46,21 @@
         <ChatContainer />
         <ChatInput />
       </main>
-    {:else}
+    {:else if currentPage === 'models'}
       <main class="main-content full-width">
         <ModelCatalog on:navigate={(e) => navigateTo(e.detail.page)} />
+      </main>
+    {:else}
+      <main class="main-content full-width">
+        <MCPServersPage />
       </main>
     {/if}
   </div>
 </div>
 
 <style lang="scss">
-  @use '../../styles/tokens' as *;
-  @use '../../styles/mixins' as *;
+  @use '../../../styles/tokens' as *;
+  @use '../../../styles/mixins' as *;
   
   .app-shell {
     display: flex;
