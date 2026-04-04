@@ -32,7 +32,7 @@
   let projectRoot = '';
   let selectedCategory = 'all';
   let searchQuery = '';
-  let selectedServerIds: string[] = ['stratifyai'];
+  let selectedServerIds: string[] = [];
   let envValues: Record<string, string> = {};
   let argValues: Record<string, string> = {};
   let statusData: McpStatusResponse | null = null;
@@ -149,7 +149,8 @@
       return;
     }
 
-    const blob = new Blob([renderedPreview], { type: 'application/json;charset=utf-8' });
+    const mimeType = selectedClient === 'claude-code' ? 'text/plain;charset=utf-8' : 'application/json;charset=utf-8';
+    const blob = new Blob([renderedPreview], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

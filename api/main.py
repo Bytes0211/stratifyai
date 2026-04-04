@@ -1681,6 +1681,9 @@ async def get_mcp_clients(
     return {"clients": [client.model_dump() for client in clients]}
 
 
+_VALID_MCP_CLIENTS = {"claude-desktop", "claude-code", "cursor", "vscode"}
+
+
 @app.get("/api/mcp/status", response_model=MCPStatusResponse)
 async def get_mcp_status(
     client: str,
@@ -1689,6 +1692,11 @@ async def get_mcp_status(
     _: None = Depends(verify_api_key),
 ):
     """Inspect the currently configured MCP servers for a target client."""
+    if client not in _VALID_MCP_CLIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid client '{client}'. Must be one of: {', '.join(sorted(_VALID_MCP_CLIENTS))}",
+        )
     try:
         path, configured = get_configured_servers(
             client=client,
@@ -1726,12 +1734,20 @@ async def configure_mcp(
                 payload.arg_values,
             )
             target_path = payload.output_path
-            if payload.apply and payload.output_path:
-                output_path = Path(payload.output_path)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+            applied = False
+            if payload.apply:
+                if not payload.output_path:
+                    warnings.append(
+                        "claude-code: apply requested but no output_path provided. "
+                        "Use 'claude mcp add' commands directly instead."
+                    )
+                else:
+                    output_path = Path(payload.output_path)
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+                    applied = True
             return {
-                "applied": bool(payload.apply and payload.output_path),
+                "applied": applied,
                 "config": None,
                 "commands": commands,
                 "path": target_path,
