@@ -208,7 +208,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 | CE-1 | Client Engine Core | https://github.com/Bytes0211/stratifyai/issues/38 | Done | 2026-04-04 | MCPClientEngine core, ServerManager, stdio ClientSession wrapper, config loader, and E2E tool/resource test implemented |
 | CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Done | 2026-04-04 | Namespaced ToolRegistry, per-server lifecycle registration, and verified start/stop/restart behavior |
 | CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Done | 2026-04-04 | MCP-aware LLM chat loop, tool result injection, active server selection, and API/WebSocket chat integration verified |
-| CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Planned | 2026-04-03 | Allow/deny/confirm per tool, safety defaults |
+| CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Done | 2026-04-04 | Permission manager, safety defaults, config-backed server toggles, and confirmation gating verified |
 | CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Planned | 2026-04-03 | Server dashboard, tool discovery, chat badges, permission manager |
 | CE-6 | API & Diagnostics | https://github.com/Bytes0211/stratifyai/issues/43 | Planned | 2026-04-03 | REST endpoints, health monitoring |
 | CE-7 | Tests & Documentation | https://github.com/Bytes0211/stratifyai/issues/44 | Planned | 2026-04-03 | Unit, integration, UI tests, user docs |
@@ -290,11 +290,11 @@ See Workstream B step-level tracking above.
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| CE4-S1 | Implement `permissions.py` with allow/deny/confirm rule evaluation | Planned | 2026-04-04 | - |
-| CE4-S2 | Implement safety defaults: auto-allow read-only, confirm-before-execute for write tools | Planned | 2026-04-04 | - |
-| CE4-S3 | Implement per-server enable/disable and auto-start toggles | Planned | 2026-04-04 | - |
-| CE4-S4 | Implement confirm-before-execute flow in CLI (prompt user before destructive tool calls) | Planned | 2026-04-04 | - |
-| CE4-S5 | Load/save permission config from user config file | Planned | 2026-04-04 | - |
+| CE4-S1 | Implement `permissions.py` with allow/deny/confirm rule evaluation | Done | 2026-04-04 | `stratifyai/mcp_client/permissions.py`; `tests/test_mcp_client_engine.py::test_permission_manager_applies_safety_defaults_and_overrides` |
+| CE4-S2 | Implement safety defaults: auto-allow read-only, confirm-before-execute for write tools | Done | 2026-04-04 | `stratifyai/mcp_client/engine.py` permission filtering + confirmation gating; destructive tools hidden unless approved |
+| CE4-S3 | Implement per-server enable/disable and auto-start toggles | Done | 2026-04-04 | `stratifyai/mcp_client/config.py`; `cli/stratifyai_cli.py` (`--enabled/--disabled`, `--auto-start/--manual-start`) |
+| CE4-S4 | Implement confirm-before-execute flow in CLI (prompt user before destructive tool calls) | Done | 2026-04-04 | Confirmation-aware engine hook exposed via `tool_confirmation_handler`; verified by `tests/test_mcp_client_engine.py::test_mcp_client_engine_confirmation_handler_can_approve_tool` |
+| CE4-S5 | Load/save permission config from user config file | Done | 2026-04-04 | `stratifyai/mcp_catalog/manager.py` (`get_mcp_client_settings`, `write_mcp_client_settings`); `tests/test_mcp_catalog.py::test_write_mcp_client_settings_persists_permissions_metadata` |
 
 #### Step 8: AL-4 — Inline Tool Tester
 

@@ -34,9 +34,11 @@ from stratifyai.mcp_catalog import (
     build_client_config,
     detect_client_config_path,
     get_configured_servers,
+    get_mcp_client_settings,
     remove_server_from_config,
     validate_prerequisites,
     write_client_config,
+    write_mcp_client_settings,
 )
 from stratifyai.mcp_catalog import (
     list_servers as list_mcp_servers,
@@ -183,6 +185,24 @@ def _collect_missing_mcp_values(
     return env_values, arg_values
 
 
+def _build_mcp_engine_settings(
+    server_ids: list[str],
+    *,
+    enabled: bool,
+    auto_start: bool,
+) -> dict[str, Any]:
+    """Build StratifyAI-specific MCP engine settings for one or more servers."""
+    return {
+        "servers": {
+            server_id: {
+                "enabled": enabled,
+                "auto_start": auto_start,
+            }
+            for server_id in server_ids
+        }
+    }
+
+
 @mcp_app.command("list")
 def mcp_list(
     category: str | None = typer.Option(None, "--category", help="Filter by category"),
@@ -244,6 +264,16 @@ def mcp_setup(
     output_path: Path | None = typer.Option(
         None, "--output", help="Override output config path"
     ),
+    enabled: bool = typer.Option(
+        True,
+        "--enabled/--disabled",
+        help="Enable or disable the server(s) for StratifyAI's MCP client engine",
+    ),
+    auto_start: bool = typer.Option(
+        True,
+        "--auto-start/--manual-start",
+        help="Start the server(s) automatically when the MCP client engine starts",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Preview config without writing it"
     ),
@@ -304,9 +334,17 @@ def mcp_setup(
             project_root=project_root,
         )
 
+        engine_settings = _build_mcp_engine_settings(
+            selected_servers,
+            enabled=enabled,
+            auto_start=auto_start,
+        )
+
         if dry_run:
             console.print()
             console.print_json(json.dumps(config))
+            console.print("\n[dim]StratifyAI MCP engine settings:[/dim]")
+            console.print_json(json.dumps(engine_settings))
             config_path = detect_client_config_path(selected_client, project_root)
             if config_path is not None:
                 console.print(f"\n[dim]Target path: {config_path}[/dim]")
@@ -314,6 +352,12 @@ def mcp_setup(
             written = write_client_config(
                 client=selected_client,
                 config=config,
+                project_root=project_root,
+                output_path=output_path,
+            )
+            write_mcp_client_settings(
+                client=selected_client,
+                settings=engine_settings,
                 project_root=project_root,
                 output_path=output_path,
             )
@@ -347,7 +391,7 @@ def mcp_status(
         selected_client = _resolve_mcp_client(client)
 
         if selected_client == "claude-code":
-            payload = {
+            payload: dict[str, Any] = {
                 "client": selected_client,
                 "configured": [],
                 "note": "Use `claude mcp list` to inspect Claude Code-managed servers.",
@@ -368,15 +412,24 @@ def mcp_status(
             project_root=project_root,
             output_path=output_path,
         )
+        _settings_path, engine_settings = get_mcp_client_settings(
+            client=selected_client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        settings_by_server = engine_settings.get("servers", {})
+        if not isinstance(settings_by_server, dict):
+            settings_by_server = {}
 
-        payload = {
+        status_payload: dict[str, Any] = {
             "client": selected_client,
             "path": str(path) if path is not None else None,
             "configured": servers,
+            "settings": settings_by_server,
             "count": len(servers),
         }
         if json_output:
-            typer.echo(json.dumps(payload, indent=2))
+            typer.echo(json.dumps(status_payload, indent=2))
             return
 
         console.print(
@@ -392,10 +445,15 @@ def mcp_status(
         table = Table(header_style="bold cyan")
         table.add_column("ID", style="cyan")
         table.add_column("Source", style="magenta")
+        table.add_column("Enabled", style="yellow")
+        table.add_column("Auto-start", style="yellow")
         table.add_column("Command", style="green")
         table.add_column("Args", style="white")
 
         for server_id, config in sorted(servers.items()):
+            server_settings = settings_by_server.get(server_id, {})
+            if not isinstance(server_settings, dict):
+                server_settings = {}
             try:
                 get_server(server_id)
                 source = "catalog"
@@ -404,6 +462,8 @@ def mcp_status(
             table.add_row(
                 server_id,
                 source,
+                "yes" if server_settings.get("enabled", True) else "no",
+                "yes" if server_settings.get("auto_start", True) else "no",
                 str(config.get("command", "-")),
                 " ".join(str(arg) for arg in config.get("args", [])) or "-",
             )
@@ -435,6 +495,16 @@ def mcp_add(
     ),
     output_path: Path | None = typer.Option(
         None, "--output", help="Override output config path"
+    ),
+    enabled: bool = typer.Option(
+        True,
+        "--enabled/--disabled",
+        help="Enable or disable the server for StratifyAI's MCP client engine",
+    ),
+    auto_start: bool = typer.Option(
+        True,
+        "--auto-start/--manual-start",
+        help="Start the server automatically when the MCP client engine starts",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Preview the config without writing it"
@@ -470,13 +540,26 @@ def mcp_add(
                 arg_values=arg_values,
                 project_root=project_root,
             )
+            engine_settings = _build_mcp_engine_settings(
+                [server_id],
+                enabled=enabled,
+                auto_start=auto_start,
+            )
             if dry_run:
                 console.print()
                 console.print_json(json.dumps(config))
+                console.print("\n[dim]StratifyAI MCP engine settings:[/dim]")
+                console.print_json(json.dumps(engine_settings))
             else:
                 written = write_client_config(
                     client=selected_client,
                     config=config,
+                    project_root=project_root,
+                    output_path=output_path,
+                )
+                write_mcp_client_settings(
+                    client=selected_client,
+                    settings=engine_settings,
                     project_root=project_root,
                     output_path=output_path,
                 )
@@ -509,6 +592,16 @@ def mcp_add_custom(
     ),
     output_path: Path | None = typer.Option(
         None, "--output", help="Override output config path"
+    ),
+    enabled: bool = typer.Option(
+        True,
+        "--enabled/--disabled",
+        help="Enable or disable the server for StratifyAI's MCP client engine",
+    ),
+    auto_start: bool = typer.Option(
+        True,
+        "--auto-start/--manual-start",
+        help="Start the server automatically when the MCP client engine starts",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Preview the config without writing it"
@@ -546,14 +639,28 @@ def mcp_add_custom(
                 console.print(f"  [green]{rendered_command}[/green]")
             return
 
+        engine_settings = _build_mcp_engine_settings(
+            [server_id],
+            enabled=enabled,
+            auto_start=auto_start,
+        )
+
         if dry_run:
             console.print()
             console.print_json(json.dumps(config))
+            console.print("\n[dim]StratifyAI MCP engine settings:[/dim]")
+            console.print_json(json.dumps(engine_settings))
             return
 
         written = write_client_config(
             client=selected_client,
             config=config,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        write_mcp_client_settings(
+            client=selected_client,
+            settings=engine_settings,
             project_root=project_root,
             output_path=output_path,
         )
