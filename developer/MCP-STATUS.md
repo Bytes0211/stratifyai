@@ -1,6 +1,6 @@
 # MCP Implementation Status Tracker
 
-Last Updated: 2026-04-03
+Last Updated: 2026-04-04
 Project Board: https://github.com/users/Bytes0211/projects/4
 
 ## Status Definitions
@@ -207,7 +207,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 |---|---|---|---|---|---|
 | CE-1 | Client Engine Core | https://github.com/Bytes0211/stratifyai/issues/38 | Done | 2026-04-04 | MCPClientEngine core, ServerManager, stdio ClientSession wrapper, config loader, and E2E tool/resource test implemented |
 | CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Done | 2026-04-04 | Namespaced ToolRegistry, per-server lifecycle registration, and verified start/stop/restart behavior |
-| CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Planned | 2026-04-03 | LLM tool_use with MCP tools in conversation |
+| CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Done | 2026-04-04 | MCP-aware LLM chat loop, tool result injection, active server selection, and API/WebSocket chat integration verified |
 | CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Planned | 2026-04-03 | Allow/deny/confirm per tool, safety defaults |
 | CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Planned | 2026-04-03 | Server dashboard, tool discovery, chat badges, permission manager |
 | CE-6 | API & Diagnostics | https://github.com/Bytes0211/stratifyai/issues/43 | Planned | 2026-04-03 | REST endpoints, health monitoring |
@@ -280,11 +280,11 @@ See Workstream B step-level tracking above.
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| CE3-S1 | Inject tool definitions from registry into LLM tool_use parameter | Planned | 2026-04-04 | - |
-| CE3-S2 | Intercept LLM tool_use requests and route through MCPClientEngine | Planned | 2026-04-04 | - |
-| CE3-S3 | Inject tool results back into conversation context | Planned | 2026-04-04 | - |
-| CE3-S4 | Implement active server selection per chat session | Planned | 2026-04-04 | - |
-| CE3-S5 | Implement fallback behavior when server is offline (warn + exclude tools) | Planned | 2026-04-04 | - |
+| CE3-S1 | Inject tool definitions from registry into LLM tool_use parameter | Done | 2026-04-04 | stratifyai/mcp_client/engine.py (`build_tool_definitions`, provider-specific formatting for OpenAI/Anthropic) |
+| CE3-S2 | Intercept LLM tool_use requests and route through MCPClientEngine | Done | 2026-04-04 | stratifyai/mcp_client/engine.py (`chat_with_mcp`, `_extract_tool_requests`, `_execute_tool_requests`) |
+| CE3-S3 | Inject tool results back into conversation context | Done | 2026-04-04 | stratifyai/mcp_client/engine.py (`_build_followup_messages`); tests/test_mcp_client_engine.py::test_mcp_client_engine_chat_with_mcp_executes_tool_calls |
+| CE3-S4 | Implement active server selection per chat session | Done | 2026-04-04 | api/main.py (`active_mcp_servers` in REST/WebSocket request path); stratifyai/client.py (`chat_with_mcp`) |
+| CE3-S5 | Implement fallback behavior when server is offline (warn + exclude tools) | Done | 2026-04-04 | stratifyai/mcp_client/engine.py (`build_tool_definitions` warnings); tests/test_mcp_client_engine.py::test_mcp_client_engine_build_tool_definitions_filters_active_servers |
 
 #### Step 7: CE-4 — Permissions & Safety
 

@@ -86,6 +86,35 @@ class TrackedLLMClient:
         self._post_response(response, latency_ms)
         return response
 
+    async def chat_with_mcp(
+        self,
+        model: str,
+        messages: list[Message],
+        mcp_engine,
+        active_servers: list[str] | None = None,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        **kwargs,
+    ) -> ChatResponse:
+        """Execute a tracked chat completion through the MCP client engine."""
+        self._pre_request(model, messages)
+
+        start = time.perf_counter()
+        response = await self.client.chat_with_mcp(
+            model=model,
+            messages=messages,
+            mcp_engine=mcp_engine,
+            active_servers=active_servers,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+        latency_ms = (time.perf_counter() - start) * 1000
+        response.latency_ms = latency_ms
+
+        self._post_response(response, latency_ms)
+        return response
+
     async def chat_completion_stream(
         self, request: ChatRequest
     ) -> AsyncIterator[ChatResponse]:

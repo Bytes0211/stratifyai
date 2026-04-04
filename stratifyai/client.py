@@ -304,7 +304,8 @@ class LLMClient:
             # Provider not yet initialized, no limit set
             return None
 
-        return self._providers[provider].get_concurrency_limit()
+        limit: int | None = self._providers[provider].get_concurrency_limit()
+        return limit
 
     async def chat(
         self,
@@ -363,6 +364,31 @@ class LLMClient:
             response = cast(ChatResponse, await _chat_call())
             response.latency_ms = (time.perf_counter() - start_time) * 1000
             return response
+
+    async def chat_with_mcp(
+        self,
+        model: str,
+        messages: list[Message],
+        mcp_engine: Any,
+        active_servers: list[str] | None = None,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> ChatResponse:
+        """Execute a chat completion with MCP tool-use support."""
+        self._validate_reasoning_temperature(model, temperature)
+        provider = self._detect_provider(model)
+
+        return await mcp_engine.chat_with_mcp(
+            llm_client=self,
+            provider=provider,
+            model=model,
+            messages=messages,
+            active_servers=active_servers,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
 
     async def chat_completion(
         self,
@@ -506,6 +532,32 @@ class LLMClient:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     stream=False,
+                    **kwargs,
+                )
+            ),
+        )
+
+    def chat_with_mcp_sync(
+        self,
+        model: str,
+        messages: list[Message],
+        mcp_engine: Any,
+        active_servers: list[str] | None = None,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> ChatResponse:
+        """Synchronous wrapper for MCP-enabled chat."""
+        return cast(
+            ChatResponse,
+            run_sync(
+                self.chat_with_mcp(
+                    model=model,
+                    messages=messages,
+                    mcp_engine=mcp_engine,
+                    active_servers=active_servers,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
                     **kwargs,
                 )
             ),

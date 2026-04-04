@@ -18,6 +18,7 @@ export interface ChatRequest {
   file_name?: string;
   chunked?: boolean;
   chunk_size?: number;
+  active_mcp_servers?: string[];
 }
 
 export interface UsageStats {
@@ -36,6 +37,9 @@ export interface ChatResponse {
   finish_reason: string;
   usage: UsageStats;
   cost_usd: number;
+  warnings?: string[];
+  tool_results?: Array<Record<string, unknown>>;
+  active_mcp_servers?: string[];
 }
 
 export interface ModelInfo {
@@ -210,6 +214,8 @@ export interface StreamMessage {
   done?: boolean;
   error?: string;
   usage?: UsageStats;
+  warnings?: string[];
+  tool_results?: Array<Record<string, unknown>>;
 }
 
 export type Provider = 

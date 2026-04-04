@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 from typer.testing import CliRunner
 
@@ -330,3 +332,53 @@ def test_api_mcp_test_tool_executes_list_providers() -> None:
     assert payload["tool_name"] == "list_providers"
     assert isinstance(payload["result"], list)
     assert any(item["provider"] == "openai" for item in payload["result"])
+
+
+def test_api_chat_with_active_mcp_servers_returns_tool_metadata(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+    from stratifyai.models import ChatResponse, Usage
+
+    tracked = MagicMock()
+    tracked.chat_with_mcp = AsyncMock(
+        return_value=ChatResponse(
+            id="chat-mcp-1",
+            provider="openai",
+            model="gpt-4.1-mini",
+            content="Answer with MCP help",
+            finish_reason="stop",
+            usage=Usage(prompt_tokens=11, completion_tokens=7, total_tokens=18),
+            created_at=datetime.now(),
+            raw_response={
+                "mcp_warnings": ["demo offline"],
+                "mcp_tool_results": [{"namespace": "demo.echo"}],
+                "mcp_active_servers": ["demo"],
+            },
+        )
+    )
+
+    monkeypatch.setattr("api.main.get_tracked_client", lambda _: tracked)
+
+    async def fake_get_mcp_chat_engine():
+        return object()
+
+    monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
+
+    client = TestClient(api_app)
+    response = client.post(
+        "/api/chat",
+        json={
+            "provider": "openai",
+            "model": "gpt-4.1-mini",
+            "messages": [{"role": "user", "content": "hello"}],
+            "active_mcp_servers": ["demo"],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["warnings"] == ["demo offline"]
+    assert payload["tool_results"][0]["namespace"] == "demo.echo"
+    assert payload["active_mcp_servers"] == ["demo"]
+    tracked.chat_with_mcp.assert_awaited_once()
