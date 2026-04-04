@@ -15,6 +15,7 @@
   } from '$lib/api/types';
   import Button from '../shared/Button.svelte';
   import LoadingSpinner from '../shared/LoadingSpinner.svelte';
+  import MCPToolTester from './MCPToolTester.svelte';
   import {
     AlertCircle,
     CheckCircle2,
@@ -405,6 +406,8 @@
         <pre class="preview-output">{renderedPreview || 'Select one or more servers, then click “Preview config”.'}</pre>
       </aside>
     </div>
+
+    <MCPToolTester />
   {/if}
 </div>
 

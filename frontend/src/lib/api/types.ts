@@ -183,6 +183,28 @@ export interface McpConfigureResponse {
   warnings: string[];
 }
 
+export interface McpToolInfo {
+  name: string;
+  category: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+  example_payload: Record<string, unknown>;
+}
+
+export interface McpToolsResponse {
+  tools: McpToolInfo[];
+}
+
+export interface McpToolTestRequest {
+  tool_name: string;
+  payload: Record<string, unknown>;
+}
+
+export interface McpToolTestResponse {
+  tool_name: string;
+  result: unknown;
+}
+
 export interface StreamMessage {
   content?: string;
   done?: boolean;

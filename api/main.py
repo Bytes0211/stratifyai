@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from stratifyai import ChatRequest, LLMClient, Message
+from stratifyai import ChatRequest, LLMClient, Message, Router, RoutingStrategy
 from stratifyai.api_key_helper import APIKeyHelper
 from stratifyai.caching import get_cache_stats
 from stratifyai.catalog_manager import load_catalog
@@ -1513,6 +1513,352 @@ class MCPConfigureRequest(BaseModel):
         return value
 
 
+class MCPToolInfo(BaseModel):
+    """Inline tester metadata for a registered MCP tool."""
+
+    name: str
+    category: str
+    description: str
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    example_payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class MCPToolTestRequest(BaseModel):
+    """Execute one MCP tool from the inline tester."""
+
+    tool_name: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+_MCP_TOOL_DEFINITIONS: dict[str, MCPToolInfo] = {
+    "chat_completion": MCPToolInfo(
+        name="chat_completion",
+        category="core",
+        description="Send a direct chat completion request to a provider/model.",
+        input_schema={
+            "type": "object",
+            "required": ["provider", "model", "messages"],
+            "properties": {
+                "provider": {"type": "string"},
+                "model": {"type": "string"},
+                "messages": {"type": "array"},
+                "temperature": {"type": "number"},
+                "max_tokens": {"type": "integer"},
+            },
+        },
+        example_payload={
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "messages": [
+                {"role": "user", "content": "Say hello from the tool tester."}
+            ],
+            "temperature": 0.2,
+        },
+    ),
+    "chat_with_routing": MCPToolInfo(
+        name="chat_with_routing",
+        category="core",
+        description="Route a chat request automatically using the configured strategy.",
+        input_schema={
+            "type": "object",
+            "required": ["messages"],
+            "properties": {
+                "messages": {"type": "array"},
+                "strategy": {"type": "string"},
+                "capabilities": {"type": "array"},
+                "preferred_providers": {"type": "array"},
+                "excluded_providers": {"type": "array"},
+                "max_cost_usd": {"type": "number"},
+                "max_latency_ms": {"type": "number"},
+            },
+        },
+        example_payload={
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Recommend a cheap model for summarizing markdown.",
+                }
+            ],
+            "strategy": "hybrid",
+            "capabilities": [],
+        },
+    ),
+    "list_providers": MCPToolInfo(
+        name="list_providers",
+        category="core",
+        description="List all available providers and whether they are configured.",
+        input_schema={"type": "object", "properties": {}, "required": []},
+        example_payload={},
+    ),
+    "list_models": MCPToolInfo(
+        name="list_models",
+        category="core",
+        description="List all catalog models for a provider with costs and capabilities.",
+        input_schema={
+            "type": "object",
+            "required": ["provider"],
+            "properties": {"provider": {"type": "string"}},
+        },
+        example_payload={"provider": "openai"},
+    ),
+    "get_model_info": MCPToolInfo(
+        name="get_model_info",
+        category="core",
+        description="Return full metadata for a specific provider/model pair.",
+        input_schema={
+            "type": "object",
+            "required": ["provider", "model"],
+            "properties": {
+                "provider": {"type": "string"},
+                "model": {"type": "string"},
+            },
+        },
+        example_payload={"provider": "openai", "model": "gpt-4o-mini"},
+    ),
+    "get_cost_summary": MCPToolInfo(
+        name="get_cost_summary",
+        category="cost",
+        description="Summarize MCP session cost totals, optionally filtered by provider/model.",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "provider": {"type": "string"},
+                "model": {"type": "string"},
+            },
+            "required": [],
+        },
+        example_payload={},
+    ),
+    "validate_provider": MCPToolInfo(
+        name="validate_provider",
+        category="validation",
+        description="Check whether a provider is configured and has catalog models available.",
+        input_schema={
+            "type": "object",
+            "required": ["provider"],
+            "properties": {"provider": {"type": "string"}},
+        },
+        example_payload={"provider": "openai"},
+    ),
+    "estimate_cost": MCPToolInfo(
+        name="estimate_cost",
+        category="cost",
+        description="Estimate token usage and input cost for a prompt before sending it.",
+        input_schema={
+            "type": "object",
+            "required": ["provider", "model", "message_text"],
+            "properties": {
+                "provider": {"type": "string"},
+                "model": {"type": "string"},
+                "message_text": {"type": "string"},
+            },
+        },
+        example_payload={
+            "provider": "openai",
+            "model": "gpt-4o-mini",
+            "message_text": "Estimate the cost of this request.",
+        },
+    ),
+}
+
+
+def _mcp_tool_capabilities(model_data: dict[str, Any]) -> list[str]:
+    """Extract the capability list used by the inline tester."""
+    capabilities: list[str] = []
+    if model_data.get("supports_vision"):
+        capabilities.append("vision")
+    if model_data.get("supports_tools"):
+        capabilities.append("tools")
+    if model_data.get("supports_streaming"):
+        capabilities.append("streaming")
+    if model_data.get("supports_reasoning") or model_data.get("reasoning_model"):
+        capabilities.append("reasoning")
+    return capabilities
+
+
+async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any:
+    """Execute a supported MCP tool for the inline tester."""
+    if tool_name not in _MCP_TOOL_DEFINITIONS:
+        raise HTTPException(status_code=404, detail=f"Unknown MCP tool: {tool_name}")
+
+    if tool_name == "list_providers":
+        providers = load_catalog().get("providers", {})
+        result: list[dict[str, Any]] = []
+        for name, models in providers.items():
+            env_key = APIKeyHelper.PROVIDER_ENV_KEYS.get(name)
+            configured = bool(env_key and os.environ.get(env_key)) or name in {
+                "ollama",
+                "bedrock",
+            }
+            result.append(
+                {
+                    "provider": name,
+                    "model_count": len(models),
+                    "configured": configured,
+                }
+            )
+        return result
+
+    if tool_name == "list_models":
+        provider = str(payload.get("provider", ""))
+        if provider not in MODEL_CATALOG:
+            raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+        return [
+            {
+                "model_id": model_id,
+                "context_window": int(model_data.get("context", 0)),
+                "cost_input_per_1m": float(model_data.get("cost_input", 0.0)),
+                "cost_output_per_1m": float(model_data.get("cost_output", 0.0)),
+                "capabilities": _mcp_tool_capabilities(model_data),
+            }
+            for model_id, model_data in MODEL_CATALOG[provider].items()
+        ]
+
+    if tool_name == "get_model_info":
+        provider = str(payload.get("provider", ""))
+        model = str(payload.get("model", ""))
+        if provider not in MODEL_CATALOG:
+            raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+        if model not in MODEL_CATALOG[provider]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown model '{model}' for provider '{provider}'",
+            )
+        return {
+            "provider": provider,
+            "model": model,
+            "metadata": dict(MODEL_CATALOG[provider][model]),
+        }
+
+    if tool_name == "get_cost_summary":
+        summary = cost_tracker.get_summary()
+        filter_provider: str | None = payload.get("provider")
+        filter_model: str | None = payload.get("model")
+        if filter_provider or filter_model:
+            summary = {
+                **summary,
+                "filter_provider": filter_provider,
+                "filter_model": filter_model,
+            }
+        return summary
+
+    if tool_name == "validate_provider":
+        provider = str(payload.get("provider", ""))
+        if provider not in MODEL_CATALOG:
+            return {
+                "provider": provider,
+                "configured": False,
+                "models_available": [],
+                "validation_errors": [f"Unknown provider: {provider}"],
+            }
+        env_key = APIKeyHelper.PROVIDER_ENV_KEYS.get(provider, "UNKNOWN")
+        configured = bool(os.environ.get(env_key)) or provider in {"ollama", "bedrock"}
+        validation_errors = (
+            [] if configured else [f"API key not set (expected env var: {env_key})"]
+        )
+        return {
+            "provider": provider,
+            "configured": configured,
+            "models_available": list(MODEL_CATALOG.get(provider, {}).keys()),
+            "validation_errors": validation_errors,
+        }
+
+    if tool_name == "estimate_cost":
+        from stratifyai.utils.token_counter import estimate_tokens
+
+        provider = str(payload.get("provider", ""))
+        model = str(payload.get("model", ""))
+        message_text = str(payload.get("message_text", ""))
+        if provider not in MODEL_CATALOG:
+            raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+        if model not in MODEL_CATALOG[provider]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown model '{model}' for provider '{provider}'",
+            )
+        tokens = estimate_tokens(message_text)
+        estimated_cost = (tokens / 1_000_000) * float(
+            MODEL_CATALOG[provider][model].get("cost_input", 0.0)
+        )
+        return {
+            "estimated_input_tokens": tokens,
+            "estimated_cost_usd": estimated_cost,
+            "provider": provider,
+            "model": model,
+        }
+
+    if tool_name == "chat_completion":
+        provider = str(payload.get("provider", ""))
+        model = str(payload.get("model", ""))
+        messages = payload.get("messages", [])
+        if provider not in MODEL_CATALOG:
+            raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+        if not isinstance(messages, list) or not messages:
+            raise HTTPException(
+                status_code=400, detail="messages must be a non-empty list"
+            )
+        request_messages = [
+            Message(
+                role=str(item.get("role", "user")), content=str(item.get("content", ""))
+            )
+            for item in messages
+        ]
+        client = get_tracked_client(provider)
+        response = await client.chat_completion(
+            ChatRequest(
+                model=model,
+                messages=request_messages,
+                temperature=float(payload["temperature"])
+                if payload.get("temperature") is not None
+                else None,
+                max_tokens=int(payload["max_tokens"])
+                if payload.get("max_tokens") is not None
+                else None,
+            )
+        )
+        return response.to_dict()
+
+    if tool_name == "chat_with_routing":
+        messages = payload.get("messages", [])
+        if not isinstance(messages, list) or not messages:
+            raise HTTPException(
+                status_code=400, detail="messages must be a non-empty list"
+            )
+        router = Router(
+            strategy=RoutingStrategy(str(payload.get("strategy", "hybrid"))),
+            preferred_providers=payload.get("preferred_providers"),
+            excluded_providers=payload.get("excluded_providers"),
+        )
+        request_messages = [
+            Message(
+                role=str(item.get("role", "user")), content=str(item.get("content", ""))
+            )
+            for item in messages
+        ]
+        provider, model = router.route(
+            request_messages,
+            required_capabilities=payload.get("capabilities"),
+            max_cost_per_1k_tokens=payload.get("max_cost_usd"),
+            max_latency_ms=payload.get("max_latency_ms"),
+        )
+        client = get_tracked_client(provider)
+        response = await client.chat_completion(
+            ChatRequest(
+                model=model,
+                messages=request_messages,
+                temperature=0.7,
+            )
+        )
+        return {
+            "selected_provider": provider,
+            "selected_model": model,
+            "routing_strategy": str(payload.get("strategy", "hybrid")),
+            "response": response.to_dict(),
+        }
+
+    raise HTTPException(status_code=400, detail=f"Tool '{tool_name}' is not executable")
+
+
 @app.get("/api/all-models")
 async def get_all_validated_models(_: None = Depends(verify_api_key)):
     """
@@ -1650,6 +1996,38 @@ async def get_mcp_catalog(_: None = Depends(verify_api_key)):
     """Return the curated MCP server catalog for the Web UI."""
     catalog = load_mcp_server_catalog()
     return catalog.model_dump()
+
+
+@app.get("/api/mcp/tools")
+async def get_mcp_tools(_: None = Depends(verify_api_key)):
+    """Return inline tester metadata for the registered StratifyAI MCP tools."""
+    return {
+        "tools": [
+            tool.model_dump()
+            for tool in sorted(
+                _MCP_TOOL_DEFINITIONS.values(),
+                key=lambda item: (item.category, item.name),
+            )
+        ]
+    }
+
+
+@app.post("/api/mcp/test-tool")
+async def test_mcp_tool(
+    payload: MCPToolTestRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Execute one StratifyAI MCP tool using JSON input from the Web UI tester."""
+    try:
+        result = await _execute_mcp_tool_test(payload.tool_name, payload.payload)
+        return {
+            "tool_name": payload.tool_name,
+            "result": result,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
 
 
 @app.get("/api/mcp/clients")
