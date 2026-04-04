@@ -12,6 +12,11 @@ from mcp.types import Tool
 
 from ..models import ChatRequest, ChatResponse, Message
 from .config import ConfiguredServer, load_enabled_servers
+from .permissions import (
+    PermissionManager,
+    PermissionMode,
+    ToolConfirmationHandler,
+)
 from .server_manager import ServerManager, ServerStatus
 from .tool_registry import ToolDescriptor, ToolRegistry
 
@@ -83,6 +88,7 @@ class MCPClientEngine:
         client: str = "cursor",
         project_root: str | Path | None = None,
         output_path: str | Path | None = None,
+        tool_confirmation_handler: ToolConfirmationHandler | None = None,
     ) -> None:
         self._server_manager = ServerManager()
         self._tool_registry = ToolRegistry()
@@ -96,6 +102,10 @@ class MCPClientEngine:
             )
         )
         self._server_index = {server.server_id: server for server in self._servers}
+        self._permission_manager = PermissionManager(
+            {server.server_id: server.permissions for server in self._servers}
+        )
+        self._tool_confirmation_handler = tool_confirmation_handler
 
     async def start(self) -> None:
         """Start all enabled auto-start servers and register their tools."""
@@ -113,6 +123,15 @@ class MCPClientEngine:
         config = self._server_index.get(server_id)
         if config is None:
             raise KeyError(f"Unknown server: {server_id}")
+        if not config.enabled:
+            self._server_manager._statuses[server_id] = ServerStatus(
+                server_id=server_id,
+                status="disabled",
+                error="Disabled in StratifyAI MCP client settings.",
+            )
+            raise PermissionError(
+                f"MCP server '{server_id}' is disabled in StratifyAI MCP client settings."
+            )
 
         connection = await self._server_manager.spawn(config)
         try:
@@ -180,7 +199,21 @@ class MCPClientEngine:
                     )
                     continue
 
-            descriptors.extend(self._tool_registry.list_server_tools(server_id))
+            for item in self._tool_registry.list_server_tools(server_id):
+                tool = self.find_tool(server_id, item.tool_name)
+                decision = self._permission_manager.evaluate(
+                    server_id,
+                    item.tool_name,
+                    tool,
+                )
+                if decision.mode == PermissionMode.DENY:
+                    continue
+                if (
+                    decision.mode == PermissionMode.CONFIRM
+                    and self._tool_confirmation_handler is None
+                ):
+                    continue
+                descriptors.append(item)
 
         return [
             self._format_tool_definition(provider, item) for item in descriptors
@@ -269,6 +302,15 @@ class MCPClientEngine:
 
     async def call_tool(self, server: str, tool: str, args: dict) -> dict:
         """Call one tool on a connected server."""
+        tool_info = self.find_tool(server, tool)
+        await self._permission_manager.authorize(
+            server_id=server,
+            tool_name=tool,
+            arguments=args,
+            tool=tool_info,
+            confirmation_handler=self._tool_confirmation_handler,
+        )
+
         connection = await self._require_connection(server)
         result = await connection.session.call_tool(tool, args)
         return dict(result.model_dump(mode="json"))
@@ -303,7 +345,10 @@ class MCPClientEngine:
             merged.append(
                 existing.get(
                     server.server_id,
-                    ServerStatus(server_id=server.server_id, status="stopped"),
+                    ServerStatus(
+                        server_id=server.server_id,
+                        status="disabled" if not server.enabled else "stopped",
+                    ),
                 )
             )
         return merged
@@ -502,6 +547,10 @@ class MCPClientEngine:
             config = self._server_index.get(server_id)
             if config is None:
                 raise KeyError(f"Unknown server: {server_id}")
+            if not config.enabled:
+                raise PermissionError(
+                    f"MCP server '{server_id}' is disabled in StratifyAI MCP client settings."
+                )
             connection = await self._server_manager.spawn(config)
             tools_result = await connection.session.list_tools()
             self._tool_registry.register_server_tools(server_id, tools_result.tools)

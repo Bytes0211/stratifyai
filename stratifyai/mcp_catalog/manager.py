@@ -261,6 +261,97 @@ def get_configured_servers(
     return path, dict(servers)
 
 
+def get_mcp_client_settings(
+    client: str,
+    project_root: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -> tuple[Path | None, dict[str, Any]]:
+    """Return StratifyAI-specific MCP metadata stored next to the client config."""
+    path = (
+        Path(output_path)
+        if output_path
+        else detect_client_config_path(client, project_root)
+    )
+    if path is None:
+        return None, {}
+    if not path.exists():
+        return path, {}
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    stratifyai_block = data.get("stratifyai", {})
+    if not isinstance(stratifyai_block, dict):
+        return path, {}
+
+    mcp_client_block = stratifyai_block.get("mcpClient", {})
+    if not isinstance(mcp_client_block, dict):
+        return path, {}
+
+    return path, dict(mcp_client_block)
+
+
+def write_mcp_client_settings(
+    client: str,
+    settings: dict[str, Any],
+    project_root: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -> Path:
+    """Merge and write StratifyAI-specific MCP metadata to the target config file."""
+    path = (
+        Path(output_path)
+        if output_path
+        else detect_client_config_path(client, project_root)
+    )
+    if path is None:
+        raise ValueError(
+            "Claude Code metadata should be managed via config-export flows, not a local config file."
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing: dict[str, Any] = {}
+    if path.exists():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        backup_path = Path(str(path) + ".backup")
+        backup_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
+    merged = dict(existing)
+    stratifyai_block = dict(merged.get("stratifyai", {}))
+    existing_mcp_client = dict(stratifyai_block.get("mcpClient", {}))
+
+    merged_servers = dict(existing_mcp_client.get("servers", {}))
+    new_servers = settings.get("servers", {})
+    if isinstance(new_servers, dict):
+        for server_id, server_settings in new_servers.items():
+            if not isinstance(server_settings, dict):
+                continue
+            current = merged_servers.get(server_id, {})
+            if not isinstance(current, dict):
+                current = {}
+            updated = dict(current)
+            updated.update(server_settings)
+            permissions = server_settings.get("permissions")
+            if isinstance(permissions, dict):
+                current_permissions = current.get("permissions", {})
+                if not isinstance(current_permissions, dict):
+                    current_permissions = {}
+                merged_permissions = dict(current_permissions)
+                merged_permissions.update(permissions)
+                updated["permissions"] = merged_permissions
+            merged_servers[str(server_id)] = updated
+
+    merged_settings = dict(existing_mcp_client)
+    for key, value in settings.items():
+        if key == "servers":
+            continue
+        merged_settings[key] = value
+    if merged_servers:
+        merged_settings["servers"] = merged_servers
+
+    stratifyai_block["mcpClient"] = merged_settings
+    merged["stratifyai"] = stratifyai_block
+    path.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+    return path
+
+
 def remove_server_from_config(
     client: str,
     server_id: str,

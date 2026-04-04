@@ -14,6 +14,12 @@ from mcp.types import Tool
 
 from stratifyai.mcp_client.config import ConfiguredServer, load_enabled_servers
 from stratifyai.mcp_client.engine import MCPClientEngine
+from stratifyai.mcp_client.permissions import (
+    MCPConfirmationRequiredError,
+    PermissionManager,
+    PermissionMode,
+    ServerPermissionConfig,
+)
 from stratifyai.mcp_client.server_manager import ServerStatus
 from stratifyai.mcp_client.tool_registry import ToolRegistry
 from stratifyai.models import ChatResponse, Message, Usage
@@ -31,7 +37,21 @@ def test_load_enabled_servers_from_cursor_config(tmp_path: Path) -> None:
                         "args": ["-m", "demo.server"],
                         "env": {"DEMO_TOKEN": "secret"},
                     }
-                }
+                },
+                "stratifyai": {
+                    "mcpClient": {
+                        "servers": {
+                            "demo": {
+                                "enabled": False,
+                                "auto_start": False,
+                                "permissions": {
+                                    "allow": ["read_file"],
+                                    "confirm": ["delete_*"],
+                                },
+                            }
+                        }
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -45,8 +65,10 @@ def test_load_enabled_servers_from_cursor_config(tmp_path: Path) -> None:
     assert server.command == "python"
     assert server.args == ["-m", "demo.server"]
     assert server.env["DEMO_TOKEN"] == "secret"
-    assert server.enabled is True
-    assert server.auto_start is True
+    assert server.enabled is False
+    assert server.auto_start is False
+    assert server.permissions.allow == ["read_file"]
+    assert server.permissions.confirm == ["delete_*"]
 
 
 def test_tool_registry_namespaces_server_tools() -> None:
@@ -111,15 +133,167 @@ def test_tool_registry_handles_multiple_servers_and_namespace_lookup() -> None:
     assert namespaces == ["beta.echo", "beta.sum"]
 
 
+def test_permission_manager_applies_safety_defaults_and_overrides() -> None:
+    manager = PermissionManager(
+        {
+            "filesystem": ServerPermissionConfig(
+                deny=["delete_secret"],
+                confirm=["move_*"],
+            )
+        }
+    )
+    allow_list_manager = PermissionManager(
+        {
+            "filesystem": ServerPermissionConfig(
+                allow=["write_note"],
+            )
+        }
+    )
+
+    read_tool = Tool(
+        name="read_file",
+        description="Read a file from disk",
+        inputSchema={"type": "object"},
+        annotations={"readOnlyHint": True},
+    )
+    delete_tool = Tool(
+        name="delete_file",
+        description="Delete a file from disk",
+        inputSchema={"type": "object"},
+    )
+
+    read_decision = manager.evaluate("filesystem", "read_file", read_tool)
+    assert read_decision.mode == PermissionMode.ALLOW
+
+    delete_decision = manager.evaluate("filesystem", "delete_file", delete_tool)
+    assert delete_decision.mode == PermissionMode.CONFIRM
+
+    allow_decision = allow_list_manager.evaluate("filesystem", "write_note", None)
+    assert allow_decision.mode == PermissionMode.ALLOW
+    assert (
+        allow_list_manager.evaluate("filesystem", "read_file", read_tool).mode
+        == PermissionMode.DENY
+    )
+
+    confirm_decision = manager.evaluate("filesystem", "move_file", None)
+    assert confirm_decision.mode == PermissionMode.CONFIRM
+
+    deny_decision = manager.evaluate("filesystem", "delete_secret", None)
+    assert deny_decision.mode == PermissionMode.DENY
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_blocks_destructive_tools_without_confirmation() -> (
+    None
+):
+    class FakeResult:
+        def model_dump(self, mode: str = "json") -> dict[str, object]:
+            return {"structuredContent": {"ok": True}}
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.call_tool = AsyncMock(return_value=FakeResult())
+
+    engine = MCPClientEngine(
+        servers=[ConfiguredServer(server_id="demo", command="python")]
+    )
+    engine._server_manager._connections["demo"] = type(
+        "FakeConnection", (), {"session": FakeSession()}
+    )()
+    engine._tool_registry.register_server_tools(
+        "demo",
+        [
+            Tool(
+                name="read_file",
+                description="Read a file",
+                inputSchema={"type": "object"},
+                annotations={"readOnlyHint": True},
+            ),
+            Tool(
+                name="delete_file",
+                description="Delete a file",
+                inputSchema={"type": "object"},
+                annotations={"destructiveHint": True},
+            ),
+        ],
+    )
+    engine._server_manager._statuses["demo"] = ServerStatus(
+        server_id="demo", status="connected"
+    )
+
+    definitions, _warnings = await engine.build_tool_definitions(
+        provider="openai", active_servers=["demo"]
+    )
+
+    assert [item["function"]["name"] for item in definitions] == ["demo.read_file"]
+
+    with pytest.raises(MCPConfirmationRequiredError):
+        await engine.call_tool("demo", "delete_file", {"path": "/tmp/demo.txt"})
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_confirmation_handler_can_approve_tool() -> None:
+    approvals: list[tuple[str, str, dict[str, str]]] = []
+
+    class FakeResult:
+        def model_dump(self, mode: str = "json") -> dict[str, object]:
+            return {"structuredContent": {"ok": True}}
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.call_tool = AsyncMock(return_value=FakeResult())
+
+    def confirm_handler(
+        server_id: str,
+        tool_name: str,
+        arguments: dict[str, str],
+        _decision,
+    ) -> bool:
+        approvals.append((server_id, tool_name, arguments))
+        return True
+
+    engine = MCPClientEngine(
+        servers=[ConfiguredServer(server_id="demo", command="python")],
+        tool_confirmation_handler=confirm_handler,
+    )
+    engine._server_manager._connections["demo"] = type(
+        "FakeConnection", (), {"session": FakeSession()}
+    )()
+    engine._tool_registry.register_server_tools(
+        "demo",
+        [
+            Tool(
+                name="delete_file",
+                description="Delete a file",
+                inputSchema={"type": "object"},
+                annotations={"destructiveHint": True},
+            )
+        ],
+    )
+    engine._server_manager._statuses["demo"] = ServerStatus(
+        server_id="demo", status="connected"
+    )
+
+    result = await engine.call_tool("demo", "delete_file", {"path": "/tmp/demo.txt"})
+
+    assert result["structuredContent"]["ok"] is True
+    assert approvals == [("demo", "delete_file", {"path": "/tmp/demo.txt"})]
+
+
 @pytest.mark.asyncio
 async def test_mcp_client_engine_build_tool_definitions_filters_active_servers() -> (
     None
 ):
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
         servers=[
-            ConfiguredServer(server_id="alpha", command="python"),
-            ConfiguredServer(server_id="beta", command="python"),
-        ]
+            ConfiguredServer(
+                server_id="alpha", command="python", permissions=allow_perms
+            ),
+            ConfiguredServer(
+                server_id="beta", command="python", permissions=allow_perms
+            ),
+        ],
     )
     engine._tool_registry.register_server_tools(
         "alpha",
@@ -151,8 +325,13 @@ async def test_mcp_client_engine_build_tool_definitions_filters_active_servers()
 
 @pytest.mark.asyncio
 async def test_mcp_client_engine_chat_with_mcp_executes_tool_calls() -> None:
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
-        servers=[ConfiguredServer(server_id="demo", command="python")]
+        servers=[
+            ConfiguredServer(
+                server_id="demo", command="python", permissions=allow_perms
+            )
+        ],
     )
     engine._tool_registry.register_server_tools(
         "demo",
@@ -282,6 +461,7 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
         encoding="utf-8",
     )
 
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
         servers=[
             ConfiguredServer(
@@ -289,8 +469,9 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
                 command=sys.executable,
                 args=[str(server_script)],
                 cwd=tmp_path,
+                permissions=allow_perms,
             )
-        ]
+        ],
     )
 
     try:

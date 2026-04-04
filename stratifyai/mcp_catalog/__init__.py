@@ -6,6 +6,7 @@ from .manager import (
     build_client_config,
     detect_client_config_path,
     get_configured_servers,
+    get_mcp_client_settings,
     get_server,
     list_servers,
     load_catalog,
@@ -13,6 +14,7 @@ from .manager import (
     update_catalog,
     validate_prerequisites,
     write_client_config,
+    write_mcp_client_settings,
 )
 from .schemas import MCPServerCatalog, MCPServerEntry
 
@@ -24,6 +26,7 @@ __all__ = [
     "build_claude_code_commands",
     "detect_client_config_path",
     "get_configured_servers",
+    "get_mcp_client_settings",
     "get_server",
     "list_servers",
     "load_catalog",
@@ -31,4 +34,5 @@ __all__ = [
     "update_catalog",
     "validate_prerequisites",
     "write_client_config",
+    "write_mcp_client_settings",
 ]

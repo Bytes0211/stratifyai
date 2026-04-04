@@ -219,7 +219,7 @@
 - [ ] CE-1 — Client Engine Core (spawn servers, handshake, call_tool, get_resource)
 - [ ] CE-2 — Tool Registry & Namespacing (aggregated tool list across servers)
 - [ ] CE-3 — Chat Integration (LLM tool_use with MCP tools in conversation)
-- [ ] CE-4 — Permissions & Safety (allow/deny/confirm per tool, safety defaults)
+- [x] CE-4 — Permissions & Safety (allow/deny/confirm per tool, safety defaults)
 - [ ] CE-5 — Web UI Panels (server dashboard, tool discovery, chat badges, permission manager)
 - [ ] CE-6 — API & Diagnostics (REST endpoints, health monitoring)
 - [ ] CE-7 — Tests & Documentation

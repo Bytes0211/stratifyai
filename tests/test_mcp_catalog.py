@@ -98,6 +98,43 @@ def test_write_client_config_merges_and_creates_backup(tmp_path: Path) -> None:
     assert output_path.with_suffix(".json.backup").exists()
 
 
+def test_write_mcp_client_settings_persists_permissions_metadata(
+    tmp_path: Path,
+) -> None:
+    from stratifyai.mcp_catalog.manager import (
+        get_mcp_client_settings,
+        write_mcp_client_settings,
+    )
+
+    output_path = tmp_path / ".cursor" / "mcp.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps({"mcpServers": {"github": {"command": "npx", "args": ["github"]}}}),
+        encoding="utf-8",
+    )
+
+    write_mcp_client_settings(
+        client="cursor",
+        settings={
+            "servers": {
+                "github": {
+                    "enabled": True,
+                    "auto_start": False,
+                    "permissions": {"confirm": ["create_*"], "deny": ["delete_*"]},
+                }
+            }
+        },
+        output_path=output_path,
+    )
+
+    _path, settings = get_mcp_client_settings(client="cursor", output_path=output_path)
+    assert settings["servers"]["github"]["auto_start"] is False
+    assert settings["servers"]["github"]["permissions"]["confirm"] == ["create_*"]
+    merged = json.loads(output_path.read_text(encoding="utf-8"))
+    assert "mcpServers" in merged
+    assert merged["stratifyai"]["mcpClient"]["servers"]["github"]["enabled"] is True
+
+
 def test_validate_prerequisites_warns_for_missing_npx(monkeypatch) -> None:
     from stratifyai.mcp_catalog.manager import validate_prerequisites
 
