@@ -606,21 +606,30 @@ stratifyai check-keys
   - Pydantic schemas for all inputs/outputs; centralized error mapping with sanitization
   - Docs: MCP-QUICKSTART.md, MCP-TOOLS-REFERENCE.md, MCP-CLIENT-CONFIG.md
   - SDK: `mcp[cli]>=1.25,<2` (pinned below v2 for stability)
-  - Historical snapshot at phase completion: **553 total tests passing**, 0 regressions
+  - Historical snapshot at phase completion: **632 total tests passing**, 71%+ coverage, 0 regressions
+
+- ✅ MCP Server Tests & CI (Phase 7) - Apr 3, 2026
+  - 75 MCP-specific tests: schemas (35), tools (20), resources (13), prompts (12)
+  - CI updated with `--extra mcp` install
+  - Coverage restored to 71%+ (was 64% before tests)
 
 ### In Progress
 
-- 🔧 MCP Phase 7: Tests and CI gates for `stratifyai/mcp_server/`
+- 🔧 AL-1: MCP Abstraction Layer — catalog + CLI core (`stratifyai mcp setup` wizard)
+  - Reference: `developer/PRD-MCP-abstraction-layer.md`
 
 ### Future Enhancements
 
+- 📝 AL-2 through AL-5: Additional CLI commands, Web UI, inline tool tester, polish
+- 📝 CE-1 through CE-7: MCP Client Engine — spawn external MCP servers, tool aggregation, chat integration, permissions, Web UI panels
+  - Reference: `developer/PRD-MCP-client-engine.md`
+- 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
+- ⏳ MCP Server Phase 6: Streamable HTTP transport (deferred post-GA)
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
-- 📝 MCP Server Core implementation (see `developer/PRD-MCP-implemenation.md`)
-- 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
-- 📝 MCP Client (deferred — tool orchestration loop)
+- Execution order: AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → AL-5 + CE-7
 
-See **developer/TODO.md** for detailed task breakdowns per phase.
+See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 
 ## Documentation
 
@@ -646,6 +655,9 @@ See **developer/TODO.md** for detailed task breakdowns per phase.
 - **developer/TODO.md** — Prioritized roadmap (Phases 10–15 + MCP)
 - **developer/PRD-MCP-implemenation.md** — MCP technical approach and implementation phases
 - **developer/MCP-IMPLEMENTATION-PLAN.md** — MCP detailed implementation plan with code patterns
+- **developer/MCP-STATUS.md** — MCP execution tracker across all workstreams
+- **developer/PRD-MCP-abstraction-layer.md** — MCP Abstraction Layer (catalog, config wizard, tool tester)
+- **developer/PRD-MCP-client-engine.md** — MCP Client Engine (spawn/call external servers, chat integration)
 - **docs/MCP-QUICKSTART.md** — MCP server install, configure, first tool call
 - **docs/MCP-TOOLS-REFERENCE.md** — All MCP tools, resources, and prompts with schemas
 - **docs/MCP-CLIENT-CONFIG.md** — Client config for Claude Desktop, Claude Code, Cursor, VS Code

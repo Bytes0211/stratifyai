@@ -289,7 +289,15 @@ New Svelte tab "MCP Servers" in the existing SPA:
 - Context-aware Apply/Export: detect local (localhost origin) vs remote; show Apply + Export for local, Export-only for remote
 - Config preview, clipboard copy, and download
 
-### Phase 4: Polish
+### Phase 4: Inline Tool Tester
+- Add "Test MCP" panel to Web UI that connects to local `stratifyai-mcp` server
+- Tool browser: list all registered tools with input schemas
+- JSON input editor with schema-driven field hints
+- Execute tool call and display JSON response
+- Save sample requests as reusable presets (stored in localStorage)
+- API endpoint: `POST /api/mcp/test-tool` — proxies tool call to local MCP server
+
+### Phase 5: Polish
 - Server health check (can the configured server actually start?)
 - Custom server management in Web UI
 - Tests and documentation
@@ -304,6 +312,7 @@ New Svelte tab "MCP Servers" in the existing SPA:
 - [ ] Web UI allows browse, toggle, configure, and export for all catalog servers.
 - [ ] All 20 catalog servers have accurate install commands and env var requirements.
 - [ ] No API keys are logged or persisted outside the client config file.
+- [ ] Inline tool tester can call any registered `stratifyai-mcp` tool and display the result.
 
 ---
 

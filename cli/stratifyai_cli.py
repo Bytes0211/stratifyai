@@ -1,6 +1,7 @@
 """StratifyAI CLI - Unified LLM interface via terminal."""
 
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -27,6 +28,23 @@ from stratifyai.exceptions import (
     InvalidModelError,
     InvalidProviderError,
 )
+from stratifyai.mcp_catalog import (
+    CATALOG_URL,
+    build_claude_code_commands,
+    build_client_config,
+    detect_client_config_path,
+    get_configured_servers,
+    remove_server_from_config,
+    validate_prerequisites,
+    write_client_config,
+)
+from stratifyai.mcp_catalog import (
+    list_servers as list_mcp_servers,
+)
+from stratifyai.mcp_catalog import (
+    update_catalog as update_mcp_catalog,
+)
+from stratifyai.mcp_catalog.manager import get_server
 from stratifyai.summarization import summarize_file
 from stratifyai.utils.file_analyzer import analyze_file
 from stratifyai.utils.sync_helpers import run_sync
@@ -40,6 +58,8 @@ app = typer.Typer(
     help="StratifyAI - Unified LLM CLI across 9 providers",
     add_completion=True,
 )
+mcp_app = typer.Typer(help="Manage curated MCP servers and client configuration")
+app.add_typer(mcp_app, name="mcp")
 console = Console()
 
 # Mode-specific colors and icons
@@ -56,6 +76,575 @@ def mode_prompt(text: str, mode: str = "chat") -> str:
     icon = CHAT_ICON if mode == "chat" else INTERACTIVE_ICON
     color = CHAT_ACCENT if mode == "chat" else INTERACTIVE_ACCENT
     return f"[{color}]{icon}[/{color}] {text}"
+
+
+_MCP_CLIENT_CHOICES = ["claude-desktop", "claude-code", "cursor", "vscode"]
+_MCP_CLIENT_LABELS = {
+    "claude-desktop": "Claude Desktop",
+    "claude-code": "Claude Code",
+    "cursor": "Cursor",
+    "vscode": "VS Code (Copilot Chat)",
+}
+
+
+def _parse_mcp_assignments(values: list[str] | None) -> dict[str, str]:
+    """Parse repeated KEY=VALUE CLI options into a dict."""
+    parsed: dict[str, str] = {}
+    for item in values or []:
+        if "=" not in item:
+            raise typer.BadParameter(
+                f"Expected KEY=VALUE format, got: {item!r}", param_hint="--env/--arg"
+            )
+        key, value = item.split("=", 1)
+        parsed[key.strip()] = value.strip()
+    return parsed
+
+
+def _prompt_for_mcp_client() -> str:
+    """Interactively select a supported MCP client."""
+    console.print("\n[bold cyan]Select MCP Client[/bold cyan]")
+    for index, client in enumerate(_MCP_CLIENT_CHOICES, start=1):
+        console.print(f"  {index}. {_MCP_CLIENT_LABELS[client]}")
+
+    choice = Prompt.ask(mode_prompt("Choose client", "chat"), default="1")
+    try:
+        return _MCP_CLIENT_CHOICES[int(choice) - 1]
+    except (ValueError, IndexError) as exc:
+        raise typer.BadParameter("Invalid client selection") from exc
+
+
+def _resolve_mcp_client(client: str | None) -> str:
+    """Resolve a provided or interactive MCP client selection."""
+    selected_client = client or _prompt_for_mcp_client()
+    if selected_client not in _MCP_CLIENT_CHOICES:
+        raise typer.BadParameter(
+            f"Unsupported client '{selected_client}'. Choose from: {', '.join(_MCP_CLIENT_CHOICES)}"
+        )
+    return selected_client
+
+
+def _prompt_for_mcp_servers() -> list[str]:
+    """Interactively select MCP servers via comma-separated ids."""
+    servers = list_mcp_servers()
+    table = Table(
+        title="📦 MCP Server Catalog", show_lines=False, header_style="bold cyan"
+    )
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="white")
+    table.add_column("Category", style="magenta")
+    table.add_column("Install", style="green")
+
+    for server in servers:
+        table.add_row(server.id, server.name, server.category, server.install_method)
+
+    console.print()
+    console.print(table)
+    raw = Prompt.ask(
+        mode_prompt("Select servers (comma-separated ids)", "chat"),
+        default="stratifyai",
+    )
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _collect_missing_mcp_values(
+    server_ids: list[str],
+    env_values: dict[str, str],
+    arg_values: dict[str, str],
+    dry_run: bool,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Prompt for any required env vars or user args not provided on the CLI."""
+    for server_id in server_ids:
+        server = get_server(server_id)
+
+        for env_var in server.env_vars:
+            if env_var.name in env_values or os.environ.get(env_var.name):
+                continue
+            if dry_run:
+                env_values[env_var.name] = f"<{env_var.name}>"
+                continue
+
+            prompt_text = f"{server.name} — {env_var.name}"
+            env_values[env_var.name] = Prompt.ask(prompt_text, password=env_var.secret)
+
+        for user_arg in server.user_args:
+            key = f"{server.id}.{user_arg.name}"
+            if key in arg_values or user_arg.name in arg_values:
+                continue
+            if dry_run:
+                arg_values[key] = user_arg.example or f"<{user_arg.name}>"
+                continue
+
+            prompt_text = f"{server.name} — {user_arg.description or user_arg.name}"
+            arg_values[key] = Prompt.ask(
+                prompt_text,
+                default=user_arg.example or "",
+            )
+
+    return env_values, arg_values
+
+
+@mcp_app.command("list")
+def mcp_list(
+    category: str | None = typer.Option(None, "--category", help="Filter by category"),
+    search: str | None = typer.Option(
+        None, "--search", help="Search by id, name, or tag"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON"
+    ),
+) -> None:
+    """List curated MCP servers from the local catalog."""
+    servers = list_mcp_servers(category=category, search=search)
+
+    if json_output:
+        typer.echo(json.dumps([server.model_dump() for server in servers], indent=2))
+        return
+
+    table = Table(title="📦 Curated MCP Servers", header_style="bold cyan")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="white")
+    table.add_column("Category", style="magenta")
+    table.add_column("Install", style="green")
+    table.add_column("Requires", style="yellow")
+
+    for server in servers:
+        required = ", ".join(env.name for env in server.env_vars if env.required) or "-"
+        table.add_row(
+            server.id,
+            server.name,
+            server.category,
+            server.install_method,
+            required,
+        )
+
+    console.print()
+    console.print(table)
+    console.print(f"\n[dim]{len(servers)} server(s) available[/dim]")
+
+
+@mcp_app.command("setup")
+def mcp_setup(
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    servers: str | None = typer.Option(
+        None, "--servers", help="Comma-separated server ids to enable"
+    ),
+    env: list[str] | None = typer.Option(
+        None, "--env", help="Environment variable assignment KEY=VALUE (repeatable)"
+    ),
+    arg: list[str] | None = typer.Option(
+        None, "--arg", help="User arg assignment server.arg=value (repeatable)"
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config generation"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override output config path"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview config without writing it"
+    ),
+) -> None:
+    """Interactive MCP setup wizard and config generator."""
+    try:
+        selected_client = client or _prompt_for_mcp_client()
+        if selected_client not in _MCP_CLIENT_CHOICES:
+            raise typer.BadParameter(
+                f"Unsupported client '{selected_client}'. Choose from: {', '.join(_MCP_CLIENT_CHOICES)}"
+            )
+
+        selected_servers = (
+            [item.strip() for item in servers.split(",") if item.strip()]
+            if servers
+            else _prompt_for_mcp_servers()
+        )
+        if not selected_servers:
+            selected_servers = ["stratifyai"]
+        if "stratifyai" not in selected_servers:
+            selected_servers.insert(0, "stratifyai")
+
+        env_values = _parse_mcp_assignments(env)
+        arg_values = _parse_mcp_assignments(arg)
+        env_values, arg_values = _collect_missing_mcp_values(
+            selected_servers, env_values, arg_values, dry_run=dry_run
+        )
+
+        warnings = validate_prerequisites(selected_servers)
+
+        console.print(
+            f"\n[bold cyan]MCP Setup for {_MCP_CLIENT_LABELS[selected_client]}[/bold cyan]"
+        )
+        console.print(f"[dim]Selected servers: {', '.join(selected_servers)}[/dim]")
+
+        if selected_client == "claude-code":
+            commands = build_claude_code_commands(
+                selected_servers, env_values, arg_values
+            )
+            if output_path:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+                console.print(f"\n[green]✓ Commands written to[/green] {output_path}")
+            else:
+                console.print("\n[bold]Run these commands in your terminal:[/bold]")
+                for command in commands:
+                    console.print(f"  [green]{command}[/green]")
+            if warnings:
+                for warning in warnings:
+                    console.print(f"[yellow]⚠ {warning}[/yellow]")
+            return
+
+        config = build_client_config(
+            client=selected_client,
+            server_ids=selected_servers,
+            env_values=env_values,
+            arg_values=arg_values,
+            project_root=project_root,
+        )
+
+        if dry_run:
+            console.print()
+            console.print_json(json.dumps(config))
+            config_path = detect_client_config_path(selected_client, project_root)
+            if config_path is not None:
+                console.print(f"\n[dim]Target path: {config_path}[/dim]")
+        else:
+            written = write_client_config(
+                client=selected_client,
+                config=config,
+                project_root=project_root,
+                output_path=output_path,
+            )
+            console.print(f"\n[green]✓ Config written to[/green] {written}")
+
+        if warnings:
+            for warning in warnings:
+                console.print(f"[yellow]⚠ {warning}[/yellow]")
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("status")
+def mcp_status(
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config lookup"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override config path to inspect"
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON status"),
+) -> None:
+    """Show currently configured MCP servers for a client."""
+    try:
+        selected_client = _resolve_mcp_client(client)
+
+        if selected_client == "claude-code":
+            payload = {
+                "client": selected_client,
+                "configured": [],
+                "note": "Use `claude mcp list` to inspect Claude Code-managed servers.",
+            }
+            if json_output:
+                typer.echo(json.dumps(payload, indent=2))
+            else:
+                console.print(
+                    "[yellow]Claude Code manages MCP servers via its own CLI.[/yellow]"
+                )
+                console.print(
+                    "[dim]Run `claude mcp list` to inspect the active configuration.[/dim]"
+                )
+            return
+
+        path, servers = get_configured_servers(
+            client=selected_client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+
+        payload = {
+            "client": selected_client,
+            "path": str(path) if path is not None else None,
+            "configured": servers,
+            "count": len(servers),
+        }
+        if json_output:
+            typer.echo(json.dumps(payload, indent=2))
+            return
+
+        console.print(
+            f"\n[bold cyan]Configured MCP Servers — {_MCP_CLIENT_LABELS[selected_client]}[/bold cyan]"
+        )
+        if path is not None:
+            console.print(f"[dim]Config path: {path}[/dim]")
+
+        if not servers:
+            console.print("[yellow]No MCP servers configured yet.[/yellow]")
+            return
+
+        table = Table(header_style="bold cyan")
+        table.add_column("ID", style="cyan")
+        table.add_column("Source", style="magenta")
+        table.add_column("Command", style="green")
+        table.add_column("Args", style="white")
+
+        for server_id, config in sorted(servers.items()):
+            try:
+                get_server(server_id)
+                source = "catalog"
+            except KeyError:
+                source = "custom"
+            table.add_row(
+                server_id,
+                source,
+                str(config.get("command", "-")),
+                " ".join(str(arg) for arg in config.get("args", [])) or "-",
+            )
+
+        console.print()
+        console.print(table)
+        console.print(f"\n[green]{len(servers)} configured server(s)[/green]")
+    except Exception as exc:
+        console.print(f"[red]Status check failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("add")
+def mcp_add(
+    server_id: str = typer.Argument(..., help="Catalog server id to add"),
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    env: list[str] | None = typer.Option(
+        None, "--env", help="Environment variable assignment KEY=VALUE (repeatable)"
+    ),
+    arg: list[str] | None = typer.Option(
+        None, "--arg", help="User arg assignment server.arg=value (repeatable)"
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config generation"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override output config path"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview the config without writing it"
+    ),
+) -> None:
+    """Add a single curated MCP server to a client config."""
+    try:
+        selected_client = _resolve_mcp_client(client)
+        get_server(server_id)
+
+        env_values = _parse_mcp_assignments(env)
+        arg_values = _parse_mcp_assignments(arg)
+        env_values, arg_values = _collect_missing_mcp_values(
+            [server_id], env_values, arg_values, dry_run=dry_run
+        )
+        warnings = validate_prerequisites([server_id])
+
+        if selected_client == "claude-code":
+            commands = build_claude_code_commands([server_id], env_values, arg_values)
+            if output_path:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+                console.print(f"\n[green]✓ Commands written to[/green] {output_path}")
+            else:
+                console.print("\n[bold]Run this command in your terminal:[/bold]")
+                for command in commands:
+                    console.print(f"  [green]{command}[/green]")
+        else:
+            config = build_client_config(
+                client=selected_client,
+                server_ids=[server_id],
+                env_values=env_values,
+                arg_values=arg_values,
+                project_root=project_root,
+            )
+            if dry_run:
+                console.print()
+                console.print_json(json.dumps(config))
+            else:
+                written = write_client_config(
+                    client=selected_client,
+                    config=config,
+                    project_root=project_root,
+                    output_path=output_path,
+                )
+                console.print(f"\n[green]✓ Added {server_id} to[/green] {written}")
+
+        for warning in warnings:
+            console.print(f"[yellow]⚠ {warning}[/yellow]")
+    except Exception as exc:
+        console.print(f"[red]Add failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("add-custom")
+def mcp_add_custom(
+    server_id: str = typer.Argument(..., help="Custom server id to add"),
+    command: str = typer.Option(..., "--command", help="Executable or command to run"),
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    command_arg: list[str] | None = typer.Option(
+        None, "--command-arg", help="Command argument (repeatable)"
+    ),
+    env: list[str] | None = typer.Option(
+        None, "--env", help="Environment variable assignment KEY=VALUE (repeatable)"
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config generation"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override output config path"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview the config without writing it"
+    ),
+) -> None:
+    """Add a custom, non-catalog MCP server entry to a client config."""
+    try:
+        selected_client = _resolve_mcp_client(client)
+        env_values = _parse_mcp_assignments(env)
+
+        server_config: dict[str, Any] = {"command": command}
+        if command_arg:
+            server_config["args"] = list(command_arg)
+        if env_values:
+            server_config["env"] = env_values
+
+        if selected_client == "vscode":
+            config = {"mcp": {"servers": {server_id: server_config}}}
+        else:
+            config = {"mcpServers": {server_id: server_config}}
+
+        if selected_client == "claude-code":
+            parts = ["claude", "mcp", "add", server_id, command]
+            parts.extend(list(command_arg or []))
+            for key, value in env_values.items():
+                parts.extend(["-e", f"{key}={value}"])
+            rendered_command = " ".join(parts)
+
+            if output_path:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(rendered_command + "\n", encoding="utf-8")
+                console.print(f"\n[green]✓ Command written to[/green] {output_path}")
+            else:
+                console.print("\n[bold]Run this command in your terminal:[/bold]")
+                console.print(f"  [green]{rendered_command}[/green]")
+            return
+
+        if dry_run:
+            console.print()
+            console.print_json(json.dumps(config))
+            return
+
+        written = write_client_config(
+            client=selected_client,
+            config=config,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        console.print(
+            f"\n[green]✓ Added custom server {server_id} to[/green] {written}"
+        )
+    except Exception as exc:
+        console.print(f"[red]Add custom failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("remove")
+def mcp_remove(
+    server_id: str = typer.Argument(..., help="Configured server id to remove"),
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config lookup"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override config path to modify"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview removal only"),
+) -> None:
+    """Remove a configured MCP server from a client config."""
+    try:
+        selected_client = _resolve_mcp_client(client)
+
+        if selected_client == "claude-code":
+            command = f"claude mcp remove {server_id}"
+            if output_path:
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(command + "\n", encoding="utf-8")
+                console.print(
+                    f"\n[green]✓ Removal command written to[/green] {output_path}"
+                )
+            else:
+                console.print("\n[bold]Run this command in your terminal:[/bold]")
+                console.print(f"  [green]{command}[/green]")
+            return
+
+        if dry_run:
+            path, servers = get_configured_servers(
+                client=selected_client,
+                project_root=project_root,
+                output_path=output_path,
+            )
+            preview = {
+                "client": selected_client,
+                "path": str(path) if path is not None else None,
+                "server_id": server_id,
+                "configured": server_id in servers,
+            }
+            console.print()
+            console.print_json(json.dumps(preview))
+            return
+
+        written, removed = remove_server_from_config(
+            client=selected_client,
+            server_id=server_id,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        if removed:
+            console.print(f"\n[green]✓ Removed {server_id} from[/green] {written}")
+        else:
+            console.print(
+                f"[yellow]Server '{server_id}' was not configured in {written}[/yellow]"
+            )
+    except Exception as exc:
+        console.print(f"[red]Remove failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("catalog-update")
+def mcp_catalog_update(
+    url: str = typer.Option(CATALOG_URL, "--url", help="Source URL or local file path"),
+) -> None:
+    """Update the local MCP server catalog from the canonical JSON source."""
+    try:
+        updated_path = update_mcp_catalog(url=url)
+        server_count = len(list_mcp_servers())
+        console.print(
+            f"[green]✓ Updated MCP catalog[/green] at {updated_path} [dim]({server_count} servers)[/dim]"
+        )
+    except Exception as exc:
+        console.print(f"[red]Catalog update failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
 
 
 @app.command()

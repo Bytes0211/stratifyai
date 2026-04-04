@@ -178,7 +178,7 @@
 
 ---
 
-## MCP Server Implementation (IN PROGRESS)
+## MCP Server (COMPLETE)
 
 > MCP server exposing StratifyAI via standardized tool/resource/prompt primitives.
 > Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENTATION-PLAN.md`
@@ -189,10 +189,40 @@
 - [x] Phase 3 — Cost & Validation Tools (`get_cost_summary`, `validate_provider`, `estimate_cost`)
 - [x] Phase 4 — Resource Layer (`stratifyai://catalog`, `providers`, `costs`, `router/strategies`)
 - [x] Phase 5 — Prompt Exposure (3 named prompts + dynamic registry template exposure)
-- [ ] Phase 6 — HTTP Transport (deferred, post-GA)
-- [ ] Phase 7 — Tests & CI Gates (unit, contract, integration tests; 80% coverage on `mcp_server/`)
+- [x] Phase 7 — Tests & CI Gates (75 MCP tests, 71%+ coverage, CI updated)
 - [x] Phase 8 — Docs & Client Setup (quickstart, tools reference, client config guides)
+- [ ] Phase 6 — HTTP Transport (deferred, post-GA)
+- [ ] Phase 9 — Rollout & Verification (deferred until Client Engine proves full stack)
 
-**Test Results:**
-- Existing suite: 553 passing, 4 skipped, 0 regressions
-- MCP-specific tests: Phase 7 (pending)
+**Test Results:** 632 passing, 4 skipped, 71%+ coverage
+
+---
+
+## MCP Abstraction Layer (IN PROGRESS)
+
+> Catalog, config wizard, and inline tool tester for MCP server management.
+> Reference: `developer/PRD-MCP-abstraction-layer.md`
+
+- [ ] AL-1 — Catalog + CLI Core (catalog.json, `stratifyai mcp setup` wizard, config generation, prereq validation) **← CURRENT**
+- [ ] AL-2 — Additional CLI Commands (`mcp status/add/add-custom/remove`, dry-run)
+- [ ] AL-3 — Web UI (Svelte tab, browse/toggle/configure, context-aware Apply/Export)
+- [ ] AL-4 — Inline Tool Tester (JSON editor, tool browser, presets, test API endpoint)
+- [ ] AL-5 — Polish (health checks, custom server Web UI, tests and docs)
+
+---
+
+## MCP Client Engine (FUTURE)
+
+> StratifyAI as MCP client — spawns and calls external MCP servers.
+> Reference: `developer/PRD-MCP-client-engine.md`
+
+- [ ] CE-1 — Client Engine Core (spawn servers, handshake, call_tool, get_resource)
+- [ ] CE-2 — Tool Registry & Namespacing (aggregated tool list across servers)
+- [ ] CE-3 — Chat Integration (LLM tool_use with MCP tools in conversation)
+- [ ] CE-4 — Permissions & Safety (allow/deny/confirm per tool, safety defaults)
+- [ ] CE-5 — Web UI Panels (server dashboard, tool discovery, chat badges, permission manager)
+- [ ] CE-6 — API & Diagnostics (REST endpoints, health monitoring)
+- [ ] CE-7 — Tests & Documentation
+
+**Execution order:** AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → AL-5 + CE-7
+See `developer/MCP-STATUS.md` for full rationale.

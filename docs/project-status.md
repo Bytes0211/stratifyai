@@ -27,18 +27,19 @@
 
 ## Current Focus
 
-- MCP Phase 7: Write unit and integration tests for MCP server.
-- MCP Phase 6: Streamable HTTP transport (post-GA, optional).
-- Keep runbook and onboarding docs synchronized.
+- AL Phase 1: MCP Abstraction Layer — catalog + CLI core (`stratifyai mcp setup` wizard).
+- Execution order: AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → Polish.
+- See `developer/MCP-STATUS.md` for full execution sequence and rationale.
 
 ## Recently Completed
 
-- MCP Server Phases 1-5 implemented (8 tools, 5 resources, 3 named prompts + dynamic templates).
-- MCP Phase 8 docs: quickstart, tools reference, client config guides.
-- All PR review fixes applied (PR #17: cache/concurrency safety, PR #18: CI audit + WebSocket cleanup).
-- Phase 15 security gaps closed (sanitization expanded, WebSocket validation hardened).
-- Pre-commit hooks and VS Code ruff integration configured for developer workflow.
-- 6 vulnerable dependencies updated to patched versions.
+- MCP Server Phases 0-5, 7-8 complete (8 tools, 5 resources, 13 prompts, 75 tests, 71% coverage).
+- MCP Abstraction Layer PRD finalized with resolved design decisions.
+- MCP Client Engine PRD drafted for future workstream.
+- Execution order re-sequenced: workstreams interleaved for maximum value at each step.
+- All PR review fixes applied (PR #17, #18).
+- Phase 15 security gaps closed.
+- 6 vulnerable dependencies updated.
 
 ---
 
@@ -64,9 +65,14 @@ Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENT
 
 ## Next Milestones
 
-- MCP Phase 7: Tests and CI gates for MCP server package.
-- MCP Phase 6: Streamable HTTP transport (post-GA).
-- MCP client orchestration loop (deferred, post server hardening).
+- AL-1: MCP catalog + CLI wizard (in progress)
+- AL-2: Additional CLI commands (add/remove/status)
+- CE-1: MCP Client Engine core (spawn servers, call tools)
+- CE-2: Tool registry and namespacing
+- AL-3: Web UI (catalog browser, config export)
+- CE-3 through CE-6: Chat integration, permissions, UI panels, diagnostics
+- Server Phase 6: Streamable HTTP transport (deferred post-GA)
+- Server Phase 9: Rollout and verification (deferred until Client Engine proves full stack)
 
 ---
 

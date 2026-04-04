@@ -106,10 +106,10 @@ stratifyai = "cli.stratifyai_cli:main"
 stratifyai-mcp = "stratifyai.mcp_server.__main__:main"
 
 [tool.setuptools]
-packages = ["stratifyai", "stratifyai.chat", "stratifyai.providers", "stratifyai.utils", "stratifyai.mcp_server", "cli", "api"]
+packages = ["stratifyai", "stratifyai.chat", "stratifyai.providers", "stratifyai.utils", "stratifyai.mcp_server", "stratifyai.mcp_catalog", "cli", "api"]
 
 [tool.setuptools.package-data]
-stratifyai = ["py.typed"]
+stratifyai = ["py.typed", "mcp_catalog/catalog.json"]
 api = ["static/*"]
 
 [tool.pytest.ini_options]
