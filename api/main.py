@@ -48,6 +48,7 @@ from stratifyai.mcp_catalog import (
 from stratifyai.mcp_catalog import (
     load_catalog as load_mcp_server_catalog,
 )
+from stratifyai.mcp_client import MCPClientEngine
 from stratifyai.middleware import TrackedLLMClient
 from stratifyai.observability import (
     bind_correlation_id,
@@ -95,6 +96,7 @@ _executor = ThreadPoolExecutor(max_workers=4)
 
 # Client cache for connection pooling (BUG-003)
 _client_cache: dict[str, LLMClient] = {}
+_mcp_chat_engine: MCPClientEngine | None = None
 
 
 def get_client(provider: str) -> LLMClient:
@@ -107,6 +109,15 @@ def get_client(provider: str) -> LLMClient:
 def get_tracked_client(provider: str) -> TrackedLLMClient:
     """Get a TrackedLLMClient wrapping the cached LLMClient."""
     return TrackedLLMClient(client=get_client(provider), cost_tracker=cost_tracker)
+
+
+async def get_mcp_chat_engine() -> MCPClientEngine:
+    """Get or lazily initialize the shared MCP chat engine."""
+    global _mcp_chat_engine
+    if _mcp_chat_engine is None:
+        _mcp_chat_engine = MCPClientEngine()
+        await _mcp_chat_engine.start()
+    return _mcp_chat_engine
 
 
 def _extract_bearer_token(authorization: str | None) -> str | None:
@@ -150,6 +161,11 @@ async def lifespan(app: FastAPI):
             "STRATIFYAI_API_KEY is not set. API auth is disabled (development mode)."
         )
     yield
+
+    global _mcp_chat_engine
+    if _mcp_chat_engine is not None:
+        await _mcp_chat_engine.stop()
+        _mcp_chat_engine = None
 
 
 # Initialize FastAPI app
@@ -379,6 +395,7 @@ class ChatCompletionRequest(BaseModel):
     file_name: str | None = None  # Original filename for type detection
     chunked: bool = False  # Enable smart chunking and summarization
     chunk_size: int = Field(default=50000, ge=1000, le=100000)
+    active_mcp_servers: list[str] = Field(default_factory=list)
 
 
 class StreamMessage(BaseModel):
@@ -415,6 +432,9 @@ class ChatCompletionResponse(BaseModel):
     finish_reason: str
     usage: dict
     cost_usd: float
+    warnings: list[str] = Field(default_factory=list)
+    tool_results: list[dict[str, Any]] = Field(default_factory=list)
+    active_mcp_servers: list[str] = Field(default_factory=list)
 
 
 class ProviderInfo(BaseModel):
@@ -890,7 +910,22 @@ async def chat_completion(
 
         # Initialize tracked client (middleware handles latency + cost tracking)
         tracked = get_tracked_client(payload.provider)
-        response = await tracked.chat_completion(chat_request)
+        if payload.active_mcp_servers:
+            engine = await get_mcp_chat_engine()
+            response = await tracked.chat_with_mcp(
+                model=payload.model,
+                messages=messages,
+                mcp_engine=engine,
+                active_servers=payload.active_mcp_servers,
+                temperature=temperature,
+                max_tokens=payload.max_tokens,
+            )
+        else:
+            response = await tracked.chat_completion(chat_request)
+
+        raw_response = (
+            response.raw_response if isinstance(response.raw_response, dict) else {}
+        )
 
         return ChatCompletionResponse(
             id=response.id,
@@ -906,6 +941,11 @@ async def chat_completion(
                 "latency_ms": round(response.latency_ms or 0, 2),
             },
             cost_usd=response.usage.cost_usd,
+            warnings=list(raw_response.get("mcp_warnings", [])),
+            tool_results=list(raw_response.get("mcp_tool_results", [])),
+            active_mcp_servers=list(
+                raw_response.get("mcp_active_servers", payload.active_mcp_servers)
+            ),
         )
     except HTTPException:
         # Re-raise our custom HTTP exceptions (token limits, etc.)
@@ -1052,6 +1092,7 @@ async def chat_stream(websocket: WebSocket):
         max_tokens = request_obj.max_tokens
         file_content = request_obj.file_content
         file_name = _sanitize_file_name(request_obj.file_name)
+        active_mcp_servers = request_obj.active_mcp_servers
 
         # --- Provider/model validation (WebSocket-safe) ---------------------
         if provider not in MODEL_CATALOG:
@@ -1283,6 +1324,45 @@ async def chat_stream(websocket: WebSocket):
 
         # Initialize tracked client for budget enforcement + pre-request logging
         tracked = get_tracked_client(provider)
+
+        if active_mcp_servers:
+            engine = await get_mcp_chat_engine()
+            response = await tracked.chat_with_mcp(
+                model=model,
+                messages=messages,
+                mcp_engine=engine,
+                active_servers=active_mcp_servers,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            await websocket.send_json(
+                {
+                    "content": response.content,
+                    "correlation_id": correlation_id,
+                    "done": False,
+                    "warnings": response.raw_response.get("mcp_warnings", []),
+                    "tool_results": response.raw_response.get("mcp_tool_results", []),
+                }
+            )
+            await websocket.send_json(
+                {
+                    "content": "",
+                    "done": True,
+                    "correlation_id": correlation_id,
+                    "full_content": response.content,
+                    "warnings": response.raw_response.get("mcp_warnings", []),
+                    "tool_results": response.raw_response.get("mcp_tool_results", []),
+                    "usage": {
+                        "prompt_tokens": response.usage.prompt_tokens,
+                        "completion_tokens": response.usage.completion_tokens,
+                        "total_tokens": response.usage.total_tokens,
+                        "cost_usd": response.usage.cost_usd,
+                        "latency_ms": round(response.latency_ms or 0, 2),
+                    },
+                }
+            )
+            return
 
         # Track latency
         start_time = time.perf_counter()

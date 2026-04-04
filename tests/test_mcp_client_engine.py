@@ -5,14 +5,18 @@ from __future__ import annotations
 import json
 import sys
 import textwrap
+from datetime import datetime
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from mcp.types import Tool
 
 from stratifyai.mcp_client.config import ConfiguredServer, load_enabled_servers
 from stratifyai.mcp_client.engine import MCPClientEngine
+from stratifyai.mcp_client.server_manager import ServerStatus
 from stratifyai.mcp_client.tool_registry import ToolRegistry
+from stratifyai.models import ChatResponse, Message, Usage
 
 
 def test_load_enabled_servers_from_cursor_config(tmp_path: Path) -> None:
@@ -105,6 +109,150 @@ def test_tool_registry_handles_multiple_servers_and_namespace_lookup() -> None:
     registry.unregister_server("alpha")
     namespaces = [tool.namespace for tool in registry.list_all()]
     assert namespaces == ["beta.echo", "beta.sum"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_build_tool_definitions_filters_active_servers() -> (
+    None
+):
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(server_id="alpha", command="python"),
+            ConfiguredServer(server_id="beta", command="python"),
+        ]
+    )
+    engine._tool_registry.register_server_tools(
+        "alpha",
+        [
+            Tool(
+                name="echo",
+                description="Echo alpha",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"text": {"type": "string"}},
+                },
+            )
+        ],
+    )
+    engine._server_manager._statuses["alpha"] = ServerStatus(
+        server_id="alpha", status="connected"
+    )
+    engine.start_server = AsyncMock(side_effect=RuntimeError("offline"))
+
+    definitions, warnings = await engine.build_tool_definitions(
+        provider="openai",
+        active_servers=["alpha", "beta", "missing"],
+    )
+
+    assert [item["function"]["name"] for item in definitions] == ["alpha.echo"]
+    assert any("beta" in warning and "offline" in warning for warning in warnings)
+    assert any("missing" in warning for warning in warnings)
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_chat_with_mcp_executes_tool_calls() -> None:
+    engine = MCPClientEngine(
+        servers=[ConfiguredServer(server_id="demo", command="python")]
+    )
+    engine._tool_registry.register_server_tools(
+        "demo",
+        [
+            Tool(
+                name="echo",
+                description="Echo tool",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"text": {"type": "string"}},
+                },
+            )
+        ],
+    )
+    engine._server_manager._statuses["demo"] = ServerStatus(
+        server_id="demo", status="connected"
+    )
+    engine.call_tool = AsyncMock(
+        return_value={"structuredContent": {"echo": "hello from tool"}}
+    )
+
+    first = ChatResponse(
+        id="resp-1",
+        model="gpt-4.1-mini",
+        content="Let me check a tool.",
+        finish_reason="tool_calls",
+        usage=Usage(prompt_tokens=10, completion_tokens=2, total_tokens=12),
+        provider="openai",
+        created_at=datetime.now(),
+        raw_response={
+            "id": "resp-1",
+            "model": "gpt-4.1-mini",
+            "created": 1,
+            "choices": [
+                {
+                    "message": {
+                        "content": "Let me check a tool.",
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "demo.echo",
+                                    "arguments": '{"text": "hello"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+        },
+    )
+    second = ChatResponse(
+        id="resp-2",
+        model="gpt-4.1-mini",
+        content="The tool replied with hello from tool.",
+        finish_reason="stop",
+        usage=Usage(prompt_tokens=20, completion_tokens=6, total_tokens=26),
+        provider="openai",
+        created_at=datetime.now(),
+        raw_response={
+            "id": "resp-2",
+            "model": "gpt-4.1-mini",
+            "created": 2,
+            "choices": [
+                {
+                    "message": {"content": "The tool replied with hello from tool."},
+                    "finish_reason": "stop",
+                }
+            ],
+        },
+    )
+
+    class FakeLLMClient:
+        def __init__(self) -> None:
+            self.requests = []
+            self.responses = [first, second]
+
+        async def chat_completion(self, request):
+            self.requests.append(request)
+            return self.responses.pop(0)
+
+    fake_client = FakeLLMClient()
+    response = await engine.chat_with_mcp(
+        llm_client=fake_client,
+        provider="openai",
+        model="gpt-4.1-mini",
+        messages=[Message(role="user", content="Say hello")],
+        active_servers=["demo"],
+    )
+
+    assert response.content == "The tool replied with hello from tool."
+    assert engine.call_tool.await_count == 1
+    assert (
+        fake_client.requests[0].extra_params["tools"][0]["function"]["name"]
+        == "demo.echo"
+    )
+    assert "hello from tool" in fake_client.requests[1].messages[-1].content
+    assert response.raw_response["mcp_tool_results"][0]["namespace"] == "demo.echo"
 
 
 @pytest.mark.asyncio

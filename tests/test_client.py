@@ -1,6 +1,7 @@
 """Unit tests for unified LLM client."""
 
 import asyncio
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,7 +14,7 @@ from stratifyai.exceptions import (
     ProviderAPIError,
     ValidationError,
 )
-from stratifyai.models import ChatRequest, Message
+from stratifyai.models import ChatRequest, ChatResponse, Message, Usage
 
 
 class TestLLMClient:
@@ -240,6 +241,34 @@ class TestLLMClient:
 
         assert response.latency_ms is not None
         assert response.latency_ms > 0
+
+    @pytest.mark.asyncio
+    async def test_chat_with_mcp_delegates_to_engine(self):
+        """Test MCP-enabled chat delegates through the client-engine loop."""
+        client = LLMClient()
+        response = ChatResponse(
+            id="mcp-1",
+            model="gpt-4.1-mini",
+            content="Done with MCP help",
+            finish_reason="stop",
+            usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            provider="openai",
+            created_at=datetime.now(),
+            raw_response={},
+        )
+
+        engine = MagicMock()
+        engine.chat_with_mcp = AsyncMock(return_value=response)
+
+        result = await client.chat_with_mcp(
+            model="gpt-4.1-mini",
+            messages=[Message(role="user", content="hello")],
+            mcp_engine=engine,
+            active_servers=["demo"],
+        )
+
+        assert result.content == "Done with MCP help"
+        engine.chat_with_mcp.assert_awaited_once()
 
     @patch("stratifyai.providers.anthropic.AsyncAnthropic")
     @patch("stratifyai.providers.openai.AsyncOpenAI")
