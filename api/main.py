@@ -1732,13 +1732,13 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
 
     if tool_name == "get_cost_summary":
         summary = cost_tracker.get_summary()
-        provider = payload.get("provider")
-        model = payload.get("model")
-        if provider or model:
+        filter_provider: str | None = payload.get("provider")
+        filter_model: str | None = payload.get("model")
+        if filter_provider or filter_model:
             summary = {
                 **summary,
-                "filter_provider": provider,
-                "filter_model": model,
+                "filter_provider": filter_provider,
+                "filter_model": filter_model,
             }
         return summary
 
