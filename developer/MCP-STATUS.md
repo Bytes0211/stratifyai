@@ -205,7 +205,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 
 | Phase | Scope | GitHub Issue | Status | Updated | Notes |
 |---|---|---|---|---|---|
-| CE-1 | Client Engine Core | https://github.com/Bytes0211/stratifyai/issues/38 | Planned | 2026-04-03 | Spawn servers, handshake, call_tool, get_resource |
+| CE-1 | Client Engine Core | https://github.com/Bytes0211/stratifyai/issues/38 | Done | 2026-04-04 | MCPClientEngine core, ServerManager, stdio ClientSession wrapper, config loader, and E2E tool/resource test implemented |
 | CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Planned | 2026-04-03 | Aggregated tool list across servers |
 | CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Planned | 2026-04-03 | LLM tool_use with MCP tools in conversation |
 | CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Planned | 2026-04-03 | Allow/deny/confirm per tool, safety defaults |
@@ -247,6 +247,88 @@ The re-ordered sequence interleaves the two workstreams so that each phase build
 |-------|-------|--------|--------|
 | Server Phase 6 | HTTP Transport | Deferred post-GA | stdio covers primary use case; HTTP adds complexity with auth requirements |
 | Server Phase 9 | Rollout & Verification | Deferred | Execute after Client Engine proves the full stack end-to-end |
+
+### Step-Level Tracking (Execution Order)
+
+Steps are listed in the same interleaved sequence as the execution order above. AL step-level tracking is in Workstream B above; these are the remaining CE and combined steps.
+
+#### Step 3: CE-1 — Client Engine Core
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE1-S1 | Implement `MCPClientEngine` orchestrator (start, stop, call_tool, get_resource, list_tools, list_servers) | Done | 2026-04-04 | stratifyai/mcp_client/engine.py |
+| CE1-S2 | Implement `ServerManager` — spawn/stop/restart stdio subprocesses via `asyncio.create_subprocess_exec` | Done | 2026-04-04 | stratifyai/mcp_client/server_manager.py |
+| CE1-S3 | Implement `connection.py` — `ClientSession` wrapper with reconnect and timeout logic | Done | 2026-04-04 | stratifyai/mcp_client/connection.py |
+| CE1-S4 | Implement `config.py` — load enabled servers from catalog + user config | Done | 2026-04-04 | stratifyai/mcp_client/config.py |
+| CE1-S5 | End-to-end test: spawn a real MCP server (e.g. filesystem), call a tool, verify result | Done | 2026-04-04 | tests/test_mcp_client_engine.py::test_mcp_client_engine_start_call_tool_and_get_resource |
+
+#### Step 4: CE-2 — Tool Registry & Namespacing
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE2-S1 | Implement `ToolRegistry` with register/unregister per server | Planned | 2026-04-04 | - |
+| CE2-S2 | Namespace tools as `{server_id}.{tool_name}` to prevent collisions | Planned | 2026-04-04 | - |
+| CE2-S3 | Handle server connect/disconnect events (auto register/unregister) | Planned | 2026-04-04 | - |
+| CE2-S4 | Implement `list_all()` returning merged tool list across all servers | Planned | 2026-04-04 | - |
+| CE2-S5 | Implement `find_tool(server, name)` lookup | Planned | 2026-04-04 | - |
+
+#### Step 5: AL-3 — Web UI
+
+See Workstream B step-level tracking above.
+
+#### Step 6: CE-3 — Chat Integration
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE3-S1 | Inject tool definitions from registry into LLM tool_use parameter | Planned | 2026-04-04 | - |
+| CE3-S2 | Intercept LLM tool_use requests and route through MCPClientEngine | Planned | 2026-04-04 | - |
+| CE3-S3 | Inject tool results back into conversation context | Planned | 2026-04-04 | - |
+| CE3-S4 | Implement active server selection per chat session | Planned | 2026-04-04 | - |
+| CE3-S5 | Implement fallback behavior when server is offline (warn + exclude tools) | Planned | 2026-04-04 | - |
+
+#### Step 7: CE-4 — Permissions & Safety
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE4-S1 | Implement `permissions.py` with allow/deny/confirm rule evaluation | Planned | 2026-04-04 | - |
+| CE4-S2 | Implement safety defaults: auto-allow read-only, confirm-before-execute for write tools | Planned | 2026-04-04 | - |
+| CE4-S3 | Implement per-server enable/disable and auto-start toggles | Planned | 2026-04-04 | - |
+| CE4-S4 | Implement confirm-before-execute flow in CLI (prompt user before destructive tool calls) | Planned | 2026-04-04 | - |
+| CE4-S5 | Load/save permission config from user config file | Planned | 2026-04-04 | - |
+
+#### Step 8: AL-4 — Inline Tool Tester
+
+See Workstream B step-level tracking above.
+
+#### Step 9: CE-5 — Web UI Panels
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE5-S1 | Build Server Dashboard — status cards with Start/Stop/Restart actions | Planned | 2026-04-04 | - |
+| CE5-S2 | Build Tool Discovery Panel — browse tools per server, view schemas, test inline | Planned | 2026-04-04 | - |
+| CE5-S3 | Build chat integration badges — show which server/tool was used per response | Planned | 2026-04-04 | - |
+| CE5-S4 | Build Permission Manager — table with allow/deny/confirm per tool, bulk actions | Planned | 2026-04-04 | - |
+
+#### Step 10: CE-6 — API & Diagnostics
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE6-S1 | Implement `GET /api/mcp-client/servers` and `/servers/{id}/start\|stop\|restart` | Planned | 2026-04-04 | - |
+| CE6-S2 | Implement `GET /api/mcp-client/tools` and `POST /tools/{server}/{tool}` (execute) | Planned | 2026-04-04 | - |
+| CE6-S3 | Implement `GET/PUT /api/mcp-client/permissions` | Planned | 2026-04-04 | - |
+| CE6-S4 | Implement `GET /api/mcp-client/health` with periodic ping and error reporting | Planned | 2026-04-04 | - |
+
+#### Step 11: AL-5 + CE-7 — Polish + Tests
+
+AL-5 steps: see Workstream B step-level tracking above.
+
+| Step ID | Step | Status | Updated | Evidence |
+|---|---|---|---|---|
+| CE7-S1 | Unit tests for engine, server manager, connection, tool registry, executor | Planned | 2026-04-04 | - |
+| CE7-S2 | Unit tests for permissions (allow/deny/confirm rules, safety defaults) | Planned | 2026-04-04 | - |
+| CE7-S3 | Integration test: spawn real MCP server (filesystem), call tool, verify end-to-end | Planned | 2026-04-04 | - |
+| CE7-S4 | Web UI component tests for dashboard, tool discovery, permission manager | Planned | 2026-04-04 | - |
+| CE7-S5 | User documentation and troubleshooting guide | Planned | 2026-04-04 | - |
 
 ---
 
