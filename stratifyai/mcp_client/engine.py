@@ -372,7 +372,6 @@ class MCPClientEngine:
                 function = tool_call.get("function", {})
                 if not isinstance(function, dict):
                     continue
-                arguments: dict[str, Any]
                 raw_arguments = function.get("arguments", {})
                 if isinstance(raw_arguments, str):
                     try:

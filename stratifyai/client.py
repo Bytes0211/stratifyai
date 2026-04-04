@@ -304,7 +304,8 @@ class LLMClient:
             # Provider not yet initialized, no limit set
             return None
 
-        return self._providers[provider].get_concurrency_limit()
+        limit: int | None = self._providers[provider].get_concurrency_limit()
+        return limit
 
     async def chat(
         self,
