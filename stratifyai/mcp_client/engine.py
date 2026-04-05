@@ -187,8 +187,12 @@ class MCPClientEngine:
 
         self._tool_registry.unregister_server(server_id)
         connection = await self._server_manager.restart(config)
-        tools_result = await connection.session.list_tools()
-        self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        try:
+            tools_result = await connection.session.list_tools()
+            self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        except Exception:
+            await self._server_manager.stop(server_id)
+            raise
         return self.get_server_status(server_id)
 
     async def build_tool_definitions(

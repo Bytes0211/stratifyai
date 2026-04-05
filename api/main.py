@@ -119,8 +119,9 @@ async def get_mcp_chat_engine() -> MCPClientEngine:
     """Get or lazily initialize the shared MCP chat engine."""
     global _mcp_chat_engine
     if _mcp_chat_engine is None:
-        _mcp_chat_engine = MCPClientEngine()
-        await _mcp_chat_engine.start()
+        engine = MCPClientEngine()
+        await engine.start()
+        _mcp_chat_engine = engine
     return _mcp_chat_engine
 
 
