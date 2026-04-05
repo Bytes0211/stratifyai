@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -96,6 +95,23 @@ class TestCacheKey:
         )
         assert key1 == key2
 
+    def test_generate_cache_key_includes_extra_params(self):
+        """Response-shaping extra_params must influence the cache key."""
+        messages = [Message(role="user", content="Hello")]
+        key1 = generate_cache_key(
+            model="gpt-4.1-mini",
+            messages=messages,
+            temperature=0.7,
+            extra_params={"reasoning_effort": "low"},
+        )
+        key2 = generate_cache_key(
+            model="gpt-4.1-mini",
+            messages=messages,
+            temperature=0.7,
+            extra_params={"reasoning_effort": "high"},
+        )
+        assert key1 != key2
+
 
 class TestResponseCache:
     """Tests for ResponseCache class."""
@@ -147,16 +163,17 @@ class TestResponseCache:
             raw_response={},
         )
 
-        cache.set("test-key", response)
+        with patch(
+            "stratifyai.caching.time.time",
+            side_effect=[1000.0, 1000.0, 1000.0, 1001.1],
+        ):
+            cache.set("test-key", response)
 
-        # Should be cached immediately
-        assert cache.get("test-key") is not None
+            # Should be cached immediately
+            assert cache.get("test-key") is not None
 
-        # Wait for expiration
-        time.sleep(1.1)
-
-        # Should be expired
-        assert cache.get("test-key") is None
+            # Should be expired after the mocked clock advances
+            assert cache.get("test-key") is None
 
     def test_cache_max_size(self):
         """Test cache max size eviction."""
@@ -174,7 +191,6 @@ class TestResponseCache:
                 raw_response={},
             )
             cache.set(f"key-{i}", response)
-            time.sleep(0.01)  # Ensure different timestamps
 
         # First entry should be evicted
         assert cache.get("key-0") is None

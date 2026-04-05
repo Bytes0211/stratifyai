@@ -551,7 +551,7 @@ class TestApiIntegration:
         client = TestClient(app)
         resp = client.get("/api/health")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "healthy"
+        assert resp.json() == {"status": "healthy"}
 
     def test_health_endpoint_returns_correlation_header(self):
         from fastapi.testclient import TestClient
@@ -585,6 +585,16 @@ class TestApiIntegration:
         assert "summary" in body
         assert body["providers"]["openai"]["status"] == "degraded"
         assert body["providers"]["ollama"]["client_initialized"] is True
+
+    @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "my-secret"})
+    def test_provider_health_endpoint_requires_auth_when_api_key_configured(self):
+        from fastapi.testclient import TestClient
+
+        from api.main import app
+
+        client = TestClient(app)
+        resp = client.get("/api/health/providers")
+        assert resp.status_code == 401
 
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "my-secret"})
     @patch("api.main.get_cache_stats")
@@ -739,16 +749,16 @@ class TestWebSocketStructuredErrors:
     @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "ws-secret"})
     def test_ws_auth_failure_returns_structured_error(self):
         from fastapi.testclient import TestClient
+        from starlette.websockets import WebSocketDisconnect
 
         from api.main import app
 
         client = TestClient(app)
-        with client.websocket_connect("/api/chat/stream") as ws:
-            # Send request without auth header (header already set at connect time)
-            ws.send_text('{"provider":"openai","model":"gpt-4o","messages":[]}')
-            data = ws.receive_json()
-            assert data.get("done") is True
-            assert "authentication_failed" in data.get("error", "")
+        with pytest.raises(WebSocketDisconnect) as exc:
+            with client.websocket_connect("/api/chat/stream"):
+                pass
+
+        assert exc.value.code == 1008
 
     @patch.dict("os.environ", {}, clear=False)
     def test_ws_invalid_json_returns_validation_error(self):

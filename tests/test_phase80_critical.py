@@ -45,6 +45,28 @@ def test_sanitize_error_scrubs_known_key_patterns():
     assert "REDACTED" in out
 
 
+@pytest.mark.asyncio
+async def test_retry_logs_redact_bound_api_key(caplog):
+    """Retry warnings must redact the bound object's exact api_key value."""
+
+    class DummyProvider:
+        def __init__(self):
+            self.api_key = "tenant-secret-123"
+            self.calls = 0
+
+        @with_retry(config=RetryConfig(max_retries=1, initial_delay=0, jitter=False))
+        async def fail(self):
+            self.calls += 1
+            raise ProviderAPIError(f"auth failed for {self.api_key}", "openai")
+
+    with caplog.at_level("WARNING"):
+        with pytest.raises(MaxRetriesExceededError):
+            await DummyProvider().fail()
+
+    assert "tenant-secret-123" not in caplog.text
+    assert "***REDACTED***" in caplog.text
+
+
 @patch("stratifyai.providers.openai_compatible.AsyncOpenAI")
 @pytest.mark.asyncio
 async def test_openai_compatible_text_only_message_does_not_unpack_none(

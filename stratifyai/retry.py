@@ -18,6 +18,27 @@ from .utils.sanitizer import sanitize_error
 _NON_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({400, 401, 403, 404, 405, 422})
 
 
+def _extract_api_key_for_logging(args: tuple, kwargs: dict) -> str | None:
+    """Best-effort extraction of an API key from retry call context."""
+    if "api_key" in kwargs and isinstance(kwargs["api_key"], str):
+        return kwargs["api_key"]
+
+    request = kwargs.get("request")
+    if request is not None and hasattr(request, "api_key"):
+        api_key = request.api_key
+        if isinstance(api_key, str):
+            return api_key
+
+    if args:
+        bound_self = args[0]
+        if hasattr(bound_self, "api_key"):
+            api_key = bound_self.api_key
+            if isinstance(api_key, str):
+                return api_key
+
+    return None
+
+
 def _is_retryable(exc: Exception) -> bool:
     """Return False for ProviderAPIErrors with a permanent 4xx status code."""
     if (
@@ -68,6 +89,7 @@ def with_retry(
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             last_exception = None
+            log_api_key = _extract_api_key_for_logging(args, kwargs)
 
             for attempt in range(config.max_retries + 1):
                 try:
@@ -110,7 +132,7 @@ def with_retry(
 
                     logging.warning(
                         f"Retry attempt {attempt + 1}/{config.max_retries} "
-                        f"after {delay:.2f}s delay. Error: {sanitize_error(str(e))}"
+                        f"after {delay:.2f}s delay. Error: {sanitize_error(str(e), log_api_key)}"
                     )
                     await asyncio.sleep(delay)
 
@@ -149,6 +171,8 @@ async def _try_fallback_async(
     Raises:
         MaxRetriesExceededError: If all fallbacks fail
     """
+    log_api_key = _extract_api_key_for_logging(args, kwargs)
+
     # Try fallback models first
     if fallback_models:
         for model in fallback_models:
@@ -161,7 +185,11 @@ async def _try_fallback_async(
                     kwargs["model"] = model
                 return await func(*args, **kwargs)
             except Exception as e:
-                logging.warning(f"Fallback model {model} failed: {str(e)}")
+                logging.warning(
+                    "Fallback model %s failed: %s",
+                    model,
+                    sanitize_error(str(e), log_api_key),
+                )
                 continue
 
     # Try fallback provider
@@ -172,7 +200,11 @@ async def _try_fallback_async(
                 kwargs["provider"] = fallback_provider
             return await func(*args, **kwargs)
         except Exception as e:
-            logging.warning(f"Fallback provider {fallback_provider} failed: {str(e)}")
+            logging.warning(
+                "Fallback provider %s failed: %s",
+                fallback_provider,
+                sanitize_error(str(e), log_api_key),
+            )
 
     # All fallbacks failed
     raise MaxRetriesExceededError(0, original_error)

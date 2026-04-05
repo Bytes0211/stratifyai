@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Literal, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -52,7 +52,12 @@ def _validate_tool_messages(messages: list[dict[str, str]]) -> list[Message]:
         if not content.strip():
             raise ValidationError(f"messages[{index}].content must be non-empty")
 
-        normalized.append(Message(role=role, content=content))
+        normalized.append(
+            Message(
+                role=cast(Literal["system", "user", "assistant"], role),
+                content=content,
+            )
+        )
 
     return normalized
 

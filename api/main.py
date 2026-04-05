@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import tomllib
 from dotenv import load_dotenv
@@ -1083,9 +1083,16 @@ async def chat_stream(websocket: WebSocket):
     correlation_id, token = bind_correlation_id(
         websocket.headers.get("x-correlation-id")
     )
-    await websocket.accept()
+    accepted = False
 
     try:
+        # --- Authentication before accept (timing-safe close on failure) ----
+        auth_header = websocket.headers.get("authorization")
+        verify_api_key(auth_header)
+
+        await websocket.accept()
+        accepted = True
+
         # Receive request
         data = await websocket.receive_text()
         if len(data) > _WS_MAX_PAYLOAD_CHARS:
@@ -1093,21 +1100,6 @@ async def chat_stream(websocket: WebSocket):
                 {
                     "error": "request_too_large",
                     "detail": "WebSocket payload exceeds maximum allowed size",
-                    "correlation_id": correlation_id,
-                    "done": True,
-                }
-            )
-            return
-
-        # --- Authentication (WebSocket-safe) --------------------------------
-        auth_header = websocket.headers.get("authorization")
-        try:
-            verify_api_key(auth_header)
-        except HTTPException as auth_exc:
-            await websocket.send_json(
-                {
-                    "error": "authentication_failed",
-                    "detail": auth_exc.detail,
                     "correlation_id": correlation_id,
                     "done": True,
                 }
@@ -1547,6 +1539,12 @@ async def chat_stream(websocket: WebSocket):
         logger.warning(
             "WebSocket HTTPException: %s %s", http_exc.status_code, safe_detail
         )
+        if not accepted:
+            try:
+                await websocket.close(code=1008)
+            except Exception:
+                pass
+            return
         try:
             await websocket.send_json(
                 {
@@ -2015,7 +2013,11 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
             )
         request_messages = [
             Message(
-                role=str(item.get("role", "user")), content=str(item.get("content", ""))
+                role=cast(
+                    Literal["system", "user", "assistant"],
+                    str(item.get("role", "user")),
+                ),
+                content=str(item.get("content", "")),
             )
             for item in messages
         ]
@@ -2026,7 +2028,7 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
                 messages=request_messages,
                 temperature=float(payload["temperature"])
                 if payload.get("temperature") is not None
-                else None,
+                else 0.7,
                 max_tokens=int(payload["max_tokens"])
                 if payload.get("max_tokens") is not None
                 else None,
@@ -2047,7 +2049,11 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
         )
         request_messages = [
             Message(
-                role=str(item.get("role", "user")), content=str(item.get("content", ""))
+                role=cast(
+                    Literal["system", "user", "assistant"],
+                    str(item.get("role", "user")),
+                ),
+                content=str(item.get("content", "")),
             )
             for item in messages
         ]
@@ -2822,8 +2828,8 @@ async def render_template(
 
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "version": API_VERSION}
+    """Minimal unauthenticated health check endpoint."""
+    return {"status": "healthy"}
 
 
 def _provider_health_snapshot() -> dict[str, Any]:
@@ -2907,7 +2913,7 @@ def _provider_health_snapshot() -> dict[str, Any]:
 
 @app.get("/health/providers")
 @app.get("/api/health/providers")
-async def provider_health_check():
+async def provider_health_check(_: None = Depends(verify_api_key)):
     """Return lightweight provider health information."""
     return await asyncio.to_thread(_provider_health_snapshot)
 

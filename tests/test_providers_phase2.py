@@ -104,6 +104,29 @@ class TestAnthropicProvider:
             with pytest.raises(InvalidModelError):
                 await provider.chat_completion(request)
 
+    def test_normalize_response_clamps_negative_non_cached_tokens(self):
+        """Cache reads larger than prompt tokens must not produce negative base cost."""
+        with patch("stratifyai.providers.anthropic.AsyncAnthropic"):
+            provider = AnthropicProvider(api_key="test-key")
+            response = provider._normalize_response(
+                {
+                    "id": "msg_cached",
+                    "model": "claude-3-5-sonnet-20241022",
+                    "content": [{"type": "text", "text": "cached"}],
+                    "stop_reason": "end_turn",
+                    "usage": {
+                        "input_tokens": 100,
+                        "output_tokens": 0,
+                        "cache_read_input_tokens": 250,
+                    },
+                }
+            )
+
+            breakdown = response.usage.cost_breakdown
+            assert breakdown is not None
+            assert breakdown["base_cost"] == 0.0
+            assert response.usage.cost_usd == breakdown["cache_cost"]
+
 
 class TestGoogleProvider:
     """Tests for Google Gemini provider."""

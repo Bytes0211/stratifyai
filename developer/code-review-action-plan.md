@@ -2,7 +2,7 @@
 
 **Review Date:** April 4, 2026
 **Scope:** Full codebase review — architecture, code quality, security, testing, documentation
-**Status:** Phase R1 Complete — R2/R3 Planned
+**Status:** Phase R1 Complete — R2 hardening/test coverage delivered; code-organization refactors remain
 
 ---
 
@@ -33,16 +33,16 @@ Addresses code organization, test gaps, and security improvements that reduce ri
 |------|------|-------------|-------|--------|
 | R2.1 | Code Org | Refactor `cli/stratifyai_cli.py` (154KB) into submodules — split by command group (chat, mcp, file, route, cache) | `cli/stratifyai_cli.py` → `cli/commands/*.py` | ⬜ Not Started |
 | R2.2 | Code Org | Refactor `api/main.py` (102KB) into FastAPI routers — separate chat, catalog, health, MCP, metrics endpoints | `api/main.py` → `api/routers/*.py` | ⬜ Not Started |
-| R2.3 | Testing | Add dedicated tests for `summarization.py` (currently 16% coverage) — target 80% | `tests/test_summarization.py` (new) | ⬜ Not Started |
-| R2.4 | Testing | Add end-to-end RAG pipeline test (document → chunks → embeddings → vector DB → retrieval) — currently 35% coverage | `tests/test_rag_integration.py` (new) | ⬜ Not Started |
-| R2.5 | Testing | Add API endpoint tests using FastAPI `TestClient` — cover all 40+ REST endpoints and WebSocket streaming | `tests/test_api_endpoints.py` (new) | ⬜ Not Started |
-| R2.6 | Testing | Replace `time.sleep()` assertions in caching tests with `freezegun` to eliminate flaky time-based tests | `tests/test_caching.py`, `tests/test_persistent_cache.py` | ⬜ Not Started |
-| R2.7 | Testing | Raise coverage threshold from 65% → 75% | `pyproject.toml` ([tool.pytest]), `.github/workflows/ci.yml` | ⬜ Not Started |
-| R2.8 | Security | Protect or minimize health endpoint info disclosure — remove version from `/api/health`, restrict `/health/providers` | `api/main.py:2771, 2856-2857` | ⬜ Not Started |
-| R2.9 | Security | Move WebSocket authentication before `websocket.accept()` — validate auth, then accept connection | `api/main.py:1037-1060` | ⬜ Not Started |
-| R2.10 | Security | Pass `api_key` parameter to `sanitize_error()` in retry logging to ensure all key formats are redacted | `stratifyai/retry.py:113` | ⬜ Not Started |
-| R2.11 | Bug Fix | Fix Anthropic cache token math — use `max(0, prompt_tokens - cache_read_tokens)` to prevent negative costs | `stratifyai/providers/anthropic.py:312` | ⬜ Not Started |
-| R2.12 | Bug Fix | Include `extra_params` in cache key generation to prevent cache collisions | `stratifyai/caching.py:509-519` | ⬜ Not Started |
+| R2.3 | Testing | Add dedicated tests for `summarization.py` (currently 16% coverage) — target 80% | `tests/test_summarization.py` (new) | ✅ Complete |
+| R2.4 | Testing | Add end-to-end RAG pipeline test (document → chunks → embeddings → vector DB → retrieval) — currently 35% coverage | `tests/test_rag_integration.py` (new) | ✅ Complete |
+| R2.5 | Testing | Add API endpoint tests using FastAPI `TestClient` — cover all 40+ REST endpoints and WebSocket streaming | `tests/test_api_endpoints.py` (new) | ✅ Complete |
+| R2.6 | Testing | Replace `time.sleep()` assertions in caching tests with deterministic mocked timestamps to eliminate flaky time-based tests | `tests/test_caching.py`, `tests/test_persistent_cache.py` | ✅ Complete |
+| R2.7 | Testing | Raise coverage threshold from 65% → 75% | `pyproject.toml`, `.github/workflows/ci.yml` | ✅ Complete |
+| R2.8 | Security | Protect or minimize health endpoint info disclosure — remove version from `/api/health`, restrict `/health/providers` | `api/main.py:2771, 2856-2857` | ✅ Complete |
+| R2.9 | Security | Move WebSocket authentication before `websocket.accept()` — validate auth, then accept connection | `api/main.py:1037-1060` | ✅ Complete |
+| R2.10 | Security | Pass `api_key` parameter to `sanitize_error()` in retry logging to ensure all key formats are redacted | `stratifyai/retry.py:113` | ✅ Complete |
+| R2.11 | Bug Fix | Fix Anthropic cache token math — use `max(0, prompt_tokens - cache_read_tokens)` to prevent negative costs | `stratifyai/providers/anthropic.py:312` | ✅ Complete |
+| R2.12 | Bug Fix | Include `extra_params` in cache key generation to prevent cache collisions | `stratifyai/caching.py:509-519` | ✅ Complete |
 
 ---
 
