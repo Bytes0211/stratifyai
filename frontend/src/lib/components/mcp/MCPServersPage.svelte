@@ -3,14 +3,25 @@
   import {
     configureMcp,
     getMcpCatalog,
+    getMcpClientPermissions,
+    getMcpClientServers,
+    getMcpClientTools,
     getMcpClients,
     getMcpStatus,
+    restartMcpClientServer,
+    startMcpClientServer,
+    stopMcpClientServer,
+    updateMcpClientPermissions,
   } from '$lib/api/client';
   import type {
     McpCatalogResponse,
     McpClientInfo,
+    McpClientPermissionsResponse,
+    McpClientServerInfo,
+    McpClientToolInfo,
     McpConfigureRequest,
     McpConfigureResponse,
+    McpPermissionRules,
     McpStatusResponse,
   } from '$lib/api/types';
   import Button from '../shared/Button.svelte';
@@ -21,10 +32,15 @@
     CheckCircle2,
     Copy,
     Download,
+    Play,
     PlugZap,
+    Power,
     RefreshCw,
     Server,
     Settings2,
+    Shield,
+    Square,
+    Wrench,
   } from 'lucide-svelte';
 
   let catalog: McpCatalogResponse | null = null;
@@ -37,9 +53,23 @@
   let envValues: Record<string, string> = {};
   let argValues: Record<string, string> = {};
   let statusData: McpStatusResponse | null = null;
+  let runtimeServers: McpClientServerInfo[] = [];
+  let runtimeTools: McpClientToolInfo[] = [];
+  let permissionData: McpClientPermissionsResponse | null = null;
+  let selectedRuntimeTool = '';
+  let permissionDrafts: Record<string, {
+    enabled: boolean;
+    auto_start: boolean;
+    allowInput: string;
+    denyInput: string;
+    confirmInput: string;
+  }> = {};
   let preview: McpConfigureResponse | null = null;
   let loading = true;
+  let dashboardLoading = false;
   let actionLoading = false;
+  let runtimeActionLoading = '';
+  let permissionsSaving = false;
   let error: string | null = null;
   let statusMessage = '';
   let copyMessage = '';
@@ -72,10 +102,172 @@
   async function refreshStatus() {
     try {
       statusData = await getMcpStatus(selectedClient, projectRoot || undefined);
+      await refreshRuntimePanels();
     } catch (err) {
       statusData = null;
       error = err instanceof Error ? err.message : 'Failed to load MCP client status';
     }
+  }
+
+  function joinRules(values: string[] = []): string {
+    return values.join(', ');
+  }
+
+  function splitRules(value: string): string[] {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function initializePermissionDrafts(response: McpClientPermissionsResponse) {
+    permissionDrafts = Object.fromEntries(
+      Object.entries(response.servers).map(([serverId, config]) => [
+        serverId,
+        {
+          enabled: config.enabled,
+          auto_start: config.auto_start,
+          allowInput: joinRules(config.permissions.allow),
+          denyInput: joinRules(config.permissions.deny),
+          confirmInput: joinRules(config.permissions.confirm),
+        },
+      ])
+    );
+  }
+
+  async function refreshRuntimePanels() {
+    try {
+      dashboardLoading = true;
+      const [serversResponse, toolsResponse, permissionsResponse] = await Promise.all([
+        getMcpClientServers(),
+        getMcpClientTools(),
+        getMcpClientPermissions(selectedClient, projectRoot || undefined),
+      ]);
+      runtimeServers = serversResponse.servers;
+      runtimeTools = toolsResponse.tools;
+      permissionData = permissionsResponse;
+      initializePermissionDrafts(permissionsResponse);
+
+      if (!runtimeTools.some((tool) => tool.namespace === selectedRuntimeTool)) {
+        selectedRuntimeTool = runtimeTools[0]?.namespace ?? '';
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to load live MCP client data';
+      runtimeServers = [];
+      runtimeTools = [];
+    } finally {
+      dashboardLoading = false;
+    }
+  }
+
+  async function runServerAction(serverId: string, action: 'start' | 'stop' | 'restart') {
+    try {
+      runtimeActionLoading = `${serverId}:${action}`;
+      error = null;
+      if (action === 'start') {
+        await startMcpClientServer(serverId);
+      } else if (action === 'stop') {
+        await stopMcpClientServer(serverId);
+      } else {
+        await restartMcpClientServer(serverId);
+      }
+      const verb = action === 'stop' ? 'stopped' : `${action}ed`;
+      statusMessage = `${serverId} ${verb} successfully.`;
+      await refreshRuntimePanels();
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to ${action} ${serverId}`;
+    } finally {
+      runtimeActionLoading = '';
+    }
+  }
+
+  function updatePermissionField(
+    serverId: string,
+    field: 'allowInput' | 'denyInput' | 'confirmInput',
+    value: string
+  ) {
+    const current = permissionDrafts[serverId];
+    if (!current) return;
+    permissionDrafts = {
+      ...permissionDrafts,
+      [serverId]: {
+        ...current,
+        [field]: value,
+      },
+    };
+  }
+
+  function togglePermissionFlag(serverId: string, field: 'enabled' | 'auto_start') {
+    const current = permissionDrafts[serverId];
+    if (!current) return;
+    permissionDrafts = {
+      ...permissionDrafts,
+      [serverId]: {
+        ...current,
+        [field]: !current[field],
+      },
+    };
+  }
+
+  function mergeRuleInput(currentValue: string, nextRules: string[]): string {
+    return Array.from(new Set([...splitRules(currentValue), ...nextRules])).join(', ');
+  }
+
+  function applyBulkPermissionPreset(mode: 'read' | 'write') {
+    const nextDrafts = { ...permissionDrafts };
+    for (const [serverId, draft] of Object.entries(nextDrafts)) {
+      nextDrafts[serverId] = {
+        ...draft,
+        allowInput:
+          mode === 'read'
+            ? mergeRuleInput(draft.allowInput, ['get_*', 'list_*', 'read_*', 'search_*', 'status_*', 'view_*'])
+            : draft.allowInput,
+        confirmInput:
+          mode === 'write'
+            ? mergeRuleInput(draft.confirmInput, ['create_*', 'delete_*', 'move_*', 'run_*', 'update_*', 'write_*'])
+            : draft.confirmInput,
+      };
+    }
+    permissionDrafts = nextDrafts;
+    statusMessage = mode === 'read' ? 'Added read-only allow patterns.' : 'Added write-confirm patterns.';
+  }
+
+  async function savePermissions() {
+    try {
+      permissionsSaving = true;
+      error = null;
+      const servers = Object.fromEntries(
+        Object.entries(permissionDrafts).map(([serverId, draft]) => [
+          serverId,
+          {
+            enabled: draft.enabled,
+            auto_start: draft.auto_start,
+            permissions: {
+              allow: splitRules(draft.allowInput),
+              deny: splitRules(draft.denyInput),
+              confirm: splitRules(draft.confirmInput),
+            } satisfies McpPermissionRules,
+          },
+        ])
+      );
+
+      permissionData = await updateMcpClientPermissions({
+        client: selectedClient,
+        project_root: projectRoot || undefined,
+        servers,
+      });
+      initializePermissionDrafts(permissionData);
+      statusMessage = 'Permission settings saved.';
+      await refreshStatus();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save MCP permission settings';
+    } finally {
+      permissionsSaving = false;
+    }
+  }
+
+  function formatJson(value: unknown): string {
+    return JSON.stringify(value ?? {}, null, 2);
   }
 
   function toggleServer(serverId: string) {
@@ -184,6 +376,7 @@
     .sort((a, b) => a.name.localeCompare(b.name));
 
   $: selectedClientInfo = clients.find((item) => item.id === selectedClient) ?? null;
+  $: selectedRuntimeToolInfo = runtimeTools.find((tool) => tool.namespace === selectedRuntimeTool) ?? null;
   $: renderedPreview = preview
     ? preview.commands.length > 0
       ? preview.commands.join('\n')
@@ -405,6 +598,222 @@
 
         <pre class="preview-output">{renderedPreview || 'Select one or more servers, then click “Preview config”.'}</pre>
       </aside>
+    </div>
+
+    <section class="card runtime-section">
+      <div class="section-title">
+        <Server size={18} />
+        <div>
+          <h2>Live MCP Client Dashboard</h2>
+          <p class="muted">View and control the external MCP servers currently available to StratifyAI chat.</p>
+        </div>
+      </div>
+
+      <div class="action-row secondary-actions">
+        <Button variant="secondary" size="sm" on:click={refreshRuntimePanels}>
+          <RefreshCw size={14} />
+          Refresh live data
+        </Button>
+      </div>
+
+      {#if dashboardLoading}
+        <div class="loading-state">
+          <LoadingSpinner size="lg" />
+          <span>Loading live MCP client engine state...</span>
+        </div>
+      {:else if runtimeServers.length === 0}
+        <p class="muted">No live MCP client servers are available yet. Configure one above and refresh this dashboard.</p>
+      {:else}
+        <div class="runtime-server-grid">
+          {#each runtimeServers as server (server.server_id)}
+            <article class="runtime-card">
+              <div class="runtime-card__header">
+                <div>
+                  <h3>{server.server_id}</h3>
+                  <p>{server.tool_count} discovered tool{server.tool_count === 1 ? '' : 's'}</p>
+                </div>
+                <span class={`status-pill ${server.status}`}>{server.status}</span>
+              </div>
+
+              <div class="server-meta">
+                <span class="chip">{server.enabled ? 'enabled' : 'disabled'}</span>
+                <span class="chip">{server.auto_start ? 'auto-start' : 'manual start'}</span>
+              </div>
+
+              {#if server.error}
+                <p class="error-inline">{server.error}</p>
+              {/if}
+
+              <div class="action-row secondary-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  on:click={() => runServerAction(server.server_id, 'start')}
+                  disabled={runtimeActionLoading !== '' || !server.enabled || server.status === 'connected'}
+                >
+                  <Play size={14} />
+                  Start
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  on:click={() => runServerAction(server.server_id, 'stop')}
+                  disabled={runtimeActionLoading !== '' || server.status !== 'connected'}
+                >
+                  <Square size={14} />
+                  Stop
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  on:click={() => runServerAction(server.server_id, 'restart')}
+                  disabled={runtimeActionLoading !== '' || !server.enabled}
+                >
+                  <Power size={14} />
+                  Restart
+                </Button>
+              </div>
+            </article>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    <div class="runtime-grid">
+      <section class="card tool-discovery-panel">
+        <div class="section-title">
+          <Wrench size={18} />
+          <div>
+            <h2>Tool Discovery</h2>
+            <p class="muted">Browse tools by live server, inspect schemas, and see the current permission mode.</p>
+          </div>
+        </div>
+
+        {#if runtimeTools.length === 0}
+          <p class="muted">No external MCP tools have been discovered yet. Start a server from the dashboard above to populate this panel.</p>
+        {:else}
+          <div class="tool-browser-layout">
+            <div class="tool-list">
+              {#each runtimeServers as server (server.server_id)}
+                {#if runtimeTools.some((tool) => tool.server_id === server.server_id)}
+                  <div class="tool-group">
+                    <h3>{server.server_id}</h3>
+                    {#each runtimeTools.filter((tool) => tool.server_id === server.server_id) as tool (tool.namespace)}
+                      <button
+                        class:selected={selectedRuntimeTool === tool.namespace}
+                        class="tool-link"
+                        on:click={() => selectedRuntimeTool = tool.namespace}
+                      >
+                        <span>{tool.namespace}</span>
+                        <span class={`permission-chip ${tool.permission}`}>{tool.permission}</span>
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              {/each}
+            </div>
+
+            <div class="tool-detail-panel">
+              {#if selectedRuntimeToolInfo}
+                <div class="server-meta">
+                  <span class="chip">{selectedRuntimeToolInfo.server_id}</span>
+                  <span class={`permission-chip ${selectedRuntimeToolInfo.permission}`}>{selectedRuntimeToolInfo.permission}</span>
+                </div>
+                <h3>{selectedRuntimeToolInfo.namespace}</h3>
+                <p class="muted">{selectedRuntimeToolInfo.description || 'No tool description provided.'}</p>
+                <pre class="preview-output compact">{formatJson(selectedRuntimeToolInfo.input_schema)}</pre>
+              {:else}
+                <p class="muted">Select a tool to inspect its schema and permission mode.</p>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      </section>
+
+      <section class="card permission-panel">
+        <div class="section-title">
+          <Shield size={18} />
+          <div>
+            <h2>Permission Manager</h2>
+            <p class="muted">Set enablement, auto-start, and allow/deny/confirm rules for the selected client config.</p>
+          </div>
+        </div>
+
+        <div class="action-row secondary-actions">
+          <Button variant="ghost" size="sm" on:click={() => applyBulkPermissionPreset('read')}>
+            Allow all read-only
+          </Button>
+          <Button variant="ghost" size="sm" on:click={() => applyBulkPermissionPreset('write')}>
+            Confirm write tools
+          </Button>
+          <Button variant="secondary" size="sm" on:click={savePermissions} loading={permissionsSaving}>
+            Save permissions
+          </Button>
+        </div>
+
+        {#if permissionData?.path}
+          <p class="path-text">Editing: {permissionData.path}</p>
+        {/if}
+
+        {#if Object.keys(permissionDrafts).length === 0}
+          <p class="muted">No configurable MCP permission entries found for this client yet.</p>
+        {:else}
+          <div class="permission-list">
+            {#each Object.entries(permissionDrafts) as [serverId, draft]}
+              <article class="permission-card">
+                <div class="runtime-card__header">
+                  <div>
+                    <h3>{serverId}</h3>
+                    <p>Pattern-based safety rules for this server</p>
+                  </div>
+                  <span class="chip">{draft.enabled ? 'enabled' : 'disabled'}</span>
+                </div>
+
+                <div class="toggle-grid">
+                  <label class="inline-toggle">
+                    <input type="checkbox" checked={draft.enabled} on:change={() => togglePermissionFlag(serverId, 'enabled')} />
+                    <span>Enabled</span>
+                  </label>
+                  <label class="inline-toggle">
+                    <input type="checkbox" checked={draft.auto_start} on:change={() => togglePermissionFlag(serverId, 'auto_start')} />
+                    <span>Auto-start</span>
+                  </label>
+                </div>
+
+                <div class="permission-grid">
+                  <label>
+                    <span>Allow patterns</span>
+                    <input
+                      type="text"
+                      value={draft.allowInput}
+                      placeholder="read_*, list_*"
+                      on:input={(event) => updatePermissionField(serverId, 'allowInput', (event.currentTarget as HTMLInputElement).value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Deny patterns</span>
+                    <input
+                      type="text"
+                      value={draft.denyInput}
+                      placeholder="delete_secret, shutdown_*"
+                      on:input={(event) => updatePermissionField(serverId, 'denyInput', (event.currentTarget as HTMLInputElement).value)}
+                    />
+                  </label>
+                  <label>
+                    <span>Confirm patterns</span>
+                    <input
+                      type="text"
+                      value={draft.confirmInput}
+                      placeholder="delete_*, write_*"
+                      on:input={(event) => updatePermissionField(serverId, 'confirmInput', (event.currentTarget as HTMLInputElement).value)}
+                    />
+                  </label>
+                </div>
+              </article>
+            {/each}
+          </div>
+        {/if}
+      </section>
     </div>
 
     <MCPToolTester />
@@ -690,6 +1099,174 @@
     color: #10b981;
     font-size: $text-sm;
     margin: 0;
+  }
+
+  .runtime-section,
+  .tool-discovery-panel,
+  .permission-panel {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  .runtime-grid {
+    display: grid;
+    gap: $space-4;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+
+    @media (max-width: 1200px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .runtime-server-grid {
+    display: grid;
+    gap: $space-3;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .runtime-card,
+  .permission-card {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    border: 1px solid var(--bg-elevated);
+    border-radius: $radius-lg;
+    padding: $space-3;
+    background: var(--bg-base);
+
+    h3 {
+      margin: 0;
+      color: var(--text-primary);
+      font-size: $text-base;
+    }
+
+    p {
+      margin: $space-1 0 0;
+      color: var(--text-secondary);
+      font-size: $text-sm;
+    }
+  }
+
+  .runtime-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: $space-3;
+    align-items: flex-start;
+  }
+
+  .status-pill,
+  .permission-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: $space-1 $space-2;
+    font-size: $text-xs;
+    text-transform: capitalize;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+  }
+
+  .status-pill.connected,
+  .permission-chip.allow {
+    color: #10b981;
+  }
+
+  .status-pill.starting,
+  .status-pill.stopped,
+  .permission-chip.confirm {
+    color: #f59e0b;
+  }
+
+  .status-pill.error,
+  .status-pill.disabled,
+  .permission-chip.deny {
+    color: #ef4444;
+  }
+
+  .error-inline {
+    margin: 0;
+    color: #ef4444;
+    font-size: $text-xs;
+  }
+
+  .tool-browser-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.2fr);
+    gap: $space-3;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .tool-list,
+  .tool-group,
+  .tool-detail-panel,
+  .permission-list {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+
+  .tool-group h3 {
+    margin: 0 0 $space-1;
+    color: var(--text-primary);
+    font-size: $text-sm;
+  }
+
+  .tool-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    border-radius: $radius-lg;
+    border: 1px solid var(--bg-elevated);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: $text-sm;
+    cursor: pointer;
+    text-align: left;
+
+    &.selected {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(110, 231, 255, 0.25);
+    }
+  }
+
+  .tool-detail-panel {
+    border: 1px solid var(--bg-elevated);
+    border-radius: $radius-lg;
+    padding: $space-3;
+    background: var(--bg-base);
+  }
+
+  .preview-output.compact {
+    min-height: 220px;
+    flex: initial;
+  }
+
+  .toggle-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-3;
+  }
+
+  .inline-toggle {
+    flex-direction: row;
+    align-items: center;
+    gap: $space-2;
+
+    input {
+      width: auto;
+    }
+  }
+
+  .permission-grid {
+    display: grid;
+    gap: $space-3;
   }
 
   .loading-state {

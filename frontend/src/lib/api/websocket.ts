@@ -2,11 +2,11 @@
 // WEBSOCKET CLIENT - Streaming chat
 // ============================================
 
-import type { ChatRequest, StreamMessage, UsageStats } from './types';
+import type { ChatRequest, StreamMessage } from './types';
 
 export interface StreamCallbacks {
   onContent: (content: string) => void;
-  onComplete: (usage?: UsageStats) => void;
+  onComplete: (message: StreamMessage) => void;
   onError: (error: string) => void;
 }
 
@@ -30,7 +30,7 @@ export function createChatStream(
       const data: StreamMessage = JSON.parse(event.data);
       
       if (data.error) {
-        callbacks.onError(data.error);
+        callbacks.onError(data.detail ? `${data.error}: ${data.detail}` : data.error);
         return;
       }
       
@@ -39,7 +39,7 @@ export function createChatStream(
       }
       
       if (data.done) {
-        callbacks.onComplete(data.usage);
+        callbacks.onComplete(data);
       }
     } catch (err) {
       callbacks.onError('Failed to parse stream message');

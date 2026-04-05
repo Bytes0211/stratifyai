@@ -2,10 +2,11 @@
   import ModelSelector from '../config/ModelSelector.svelte';
   import TemperatureSlider from '../config/TemperatureSlider.svelte';
   import TokenConfig from '../config/TokenConfig.svelte';
+  import MCPChatSettings from '../config/MCPChatSettings.svelte';
   import FileUpload from '../config/FileUpload.svelte';
   import CostSummary from '../dashboard/CostSummary.svelte';
   import ChatHistory from '../chat/ChatHistory.svelte';
-import { Settings, DollarSign, FileText, History } from 'lucide-svelte';
+  import { Settings, DollarSign, FileText, History } from 'lucide-svelte';
   
   export let collapsed = false;
   
@@ -58,6 +59,7 @@ import { Settings, DollarSign, FileText, History } from 'lucide-svelte';
         <ModelSelector />
         <TemperatureSlider />
         <TokenConfig />
+        <MCPChatSettings />
       </div>
     {:else if activeTab === 'files'}
       <FileUpload />

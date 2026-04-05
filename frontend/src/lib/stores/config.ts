@@ -2,7 +2,7 @@
 // CONFIG STORE - Model configuration state
 // ============================================
 
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import type { Provider, ModelInfo } from '$lib/api/types';
 
 function createConfigStore() {
@@ -13,6 +13,7 @@ function createConfigStore() {
   const chunked = writable<boolean>(false);
   const chunkSize = writable<number>(50000);
   const stream = writable<boolean>(true);
+  const activeMcpServers = writable<string[]>([]);
   const modelInfo = writable<ModelInfo | null>(null);
   const isReasoningModel = writable<boolean>(false);
   const supportsVision = writable<boolean>(false);
@@ -24,8 +25,8 @@ function createConfigStore() {
   
   // Combined store for reactive $configStore access
   const store = derived(
-    [provider, model, temperature, maxTokens, chunked, chunkSize, stream, modelInfo, isReasoningModel, supportsVision, effectiveTemperature],
-    ([$provider, $model, $temperature, $maxTokens, $chunked, $chunkSize, $stream, $modelInfo, $isReasoningModel, $supportsVision, $effectiveTemperature]) => ({
+    [provider, model, temperature, maxTokens, chunked, chunkSize, stream, activeMcpServers, modelInfo, isReasoningModel, supportsVision, effectiveTemperature],
+    ([$provider, $model, $temperature, $maxTokens, $chunked, $chunkSize, $stream, $activeMcpServers, $modelInfo, $isReasoningModel, $supportsVision, $effectiveTemperature]) => ({
       provider: $provider,
       model: $model,
       temperature: $temperature,
@@ -33,6 +34,7 @@ function createConfigStore() {
       chunked: $chunked,
       chunkSize: $chunkSize,
       stream: $stream,
+      activeMcpServers: $activeMcpServers,
       modelInfo: $modelInfo,
       isReasoningModel: $isReasoningModel,
       supportsVision: $supportsVision,
@@ -78,6 +80,18 @@ function createConfigStore() {
       
       setStream(s: boolean) {
         stream.set(s);
+      },
+
+      setActiveMcpServers(serverIds: string[]) {
+        activeMcpServers.set(Array.from(new Set(serverIds)));
+      },
+
+      toggleActiveMcpServer(serverId: string) {
+        activeMcpServers.update((current) =>
+          current.includes(serverId)
+            ? current.filter((id) => id !== serverId)
+            : [...current, serverId]
+        );
       },
     },
   };

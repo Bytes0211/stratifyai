@@ -16,7 +16,11 @@ import type {
   McpConfigureResponse,
   McpToolsResponse,
   McpToolTestRequest,
-  McpToolTestResponse
+  McpToolTestResponse,
+  McpClientServersResponse,
+  McpClientToolsResponse,
+  McpClientPermissionsResponse,
+  McpClientPermissionsUpdateRequest
 } from './types';
 
 const API_BASE = '/api';
@@ -116,6 +120,56 @@ export async function getMcpStatus(
 export async function configureMcp(req: McpConfigureRequest): Promise<McpConfigureResponse> {
   return request<McpConfigureResponse>('/mcp/configure', {
     method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function getMcpClientServers(): Promise<McpClientServersResponse> {
+  return request<McpClientServersResponse>('/mcp-client/servers');
+}
+
+export async function startMcpClientServer(serverId: string): Promise<{ server_id: string; status: string; error?: string | null }> {
+  return request(`/mcp-client/servers/${encodeURIComponent(serverId)}/start`, {
+    method: 'POST',
+  });
+}
+
+export async function stopMcpClientServer(serverId: string): Promise<{ server_id: string; status: string; error?: string | null }> {
+  return request(`/mcp-client/servers/${encodeURIComponent(serverId)}/stop`, {
+    method: 'POST',
+  });
+}
+
+export async function restartMcpClientServer(serverId: string): Promise<{ server_id: string; status: string; error?: string | null }> {
+  return request(`/mcp-client/servers/${encodeURIComponent(serverId)}/restart`, {
+    method: 'POST',
+  });
+}
+
+export async function getMcpClientTools(): Promise<McpClientToolsResponse> {
+  return request<McpClientToolsResponse>('/mcp-client/tools');
+}
+
+export async function getMcpClientPermissions(
+  client: McpConfigureRequest['client'],
+  projectRoot?: string,
+  outputPath?: string
+): Promise<McpClientPermissionsResponse> {
+  const params = new URLSearchParams({ client });
+  if (projectRoot) {
+    params.set('project_root', projectRoot);
+  }
+  if (outputPath) {
+    params.set('output_path', outputPath);
+  }
+  return request<McpClientPermissionsResponse>(`/mcp-client/permissions?${params.toString()}`);
+}
+
+export async function updateMcpClientPermissions(
+  req: McpClientPermissionsUpdateRequest
+): Promise<McpClientPermissionsResponse> {
+  return request<McpClientPermissionsResponse>('/mcp-client/permissions', {
+    method: 'PUT',
     body: JSON.stringify(req),
   });
 }

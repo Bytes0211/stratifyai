@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { configStore, configActions } from '$lib/stores/config';
   import { getModels } from '$lib/api/client';
@@ -11,32 +10,33 @@
   let models: ModelInfo[] = [];
   let loading = false;
   let error: string | null = null;
-  let validated = false;
   let apiKeySet = false;
-  
+  let _loadGeneration = 0;
+
   // Load models when provider changes
   $: loadModels($configStore.provider);
-  
+
   async function loadModels(provider: Provider) {
+    const gen = ++_loadGeneration;
     loading = true;
     error = null;
     models = [];
-    
+
     try {
       const response = await getModels(provider);
+      if (gen !== _loadGeneration) return;
       models = response.models;
-      validated = response.validation.validated;
       apiKeySet = response.validation.api_key_set;
-      
+
       // Check if current model exists in loaded models
       const config = get(configStore);
       const currentModelExists = config.model && models.some(m => m.id === config.model);
-      
+
       // Auto-select first model if none selected OR current model not in list
       if (models.length > 0 && (!config.model || !currentModelExists)) {
         // If model was set but not in list, try to find a match by display name
         if (config.model && !currentModelExists) {
-          const matchByName = models.find(m => 
+          const matchByName = models.find(m =>
             m.display_name.toLowerCase() === config.modelInfo?.display_name?.toLowerCase()
           );
           if (matchByName) {
@@ -52,9 +52,10 @@
         }
       }
     } catch (err) {
+      if (gen !== _loadGeneration) return;
       error = err instanceof Error ? err.message : 'Failed to load models';
     } finally {
-      loading = false;
+      if (gen === _loadGeneration) loading = false;
     }
   }
   

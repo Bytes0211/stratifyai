@@ -42,13 +42,16 @@ from stratifyai.mcp_catalog import (
     build_client_config,
     detect_client_config_path,
     get_configured_servers,
+    get_mcp_client_settings,
     validate_prerequisites,
     write_client_config,
+    write_mcp_client_settings,
 )
 from stratifyai.mcp_catalog import (
     load_catalog as load_mcp_server_catalog,
 )
 from stratifyai.mcp_client import MCPClientEngine
+from stratifyai.mcp_client.permissions import ServerPermissionConfig
 from stratifyai.middleware import TrackedLLMClient
 from stratifyai.observability import (
     bind_correlation_id,
@@ -1570,6 +1573,7 @@ class MCPStatusResponse(BaseModel):
     client: str
     path: str | None = None
     configured: dict[str, Any] = Field(default_factory=dict)
+    settings: dict[str, Any] = Field(default_factory=dict)
     count: int = 0
 
 
@@ -1601,6 +1605,54 @@ class MCPToolInfo(BaseModel):
     description: str
     input_schema: dict[str, Any] = Field(default_factory=dict)
     example_payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class MCPClientServerInfo(BaseModel):
+    """Live MCP client engine server state for the Web UI dashboard."""
+
+    server_id: str
+    status: str
+    error: str | None = None
+    enabled: bool = True
+    auto_start: bool = True
+    tool_count: int = 0
+    tools: list[str] = Field(default_factory=list)
+
+
+class MCPClientToolInfo(BaseModel):
+    """Discovered MCP tool metadata for the CE-5 tool discovery panel."""
+
+    server_id: str
+    name: str
+    namespace: str
+    description: str | None = None
+    input_schema: dict[str, Any] = Field(default_factory=dict)
+    permission: str = "allow"
+
+
+class MCPClientPermissionsResponse(BaseModel):
+    """Config-backed MCP permission settings for one client."""
+
+    client: str
+    path: str | None = None
+    servers: dict[str, Any] = Field(default_factory=dict)
+
+
+class MCPClientPermissionsUpdateRequest(BaseModel):
+    """Update MCP permission settings for one client config file."""
+
+    client: str = "cursor"
+    project_root: str | None = None
+    output_path: str | None = None
+    servers: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
 
 
 class MCPToolTestRequest(BaseModel):
@@ -1939,6 +1991,152 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
     raise HTTPException(status_code=400, detail=f"Tool '{tool_name}' is not executable")
 
 
+def _normalize_mcp_permission_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Normalize permission settings for API responses and config updates."""
+    if not isinstance(payload, dict):
+        payload = {}
+
+    return {
+        "default_mode": payload.get("default_mode") or payload.get("default"),
+        "allow": [
+            str(item).strip() for item in payload.get("allow", []) if str(item).strip()
+        ],
+        "deny": [
+            str(item).strip() for item in payload.get("deny", []) if str(item).strip()
+        ],
+        "confirm": [
+            str(item).strip()
+            for item in payload.get("confirm", [])
+            if str(item).strip()
+        ],
+    }
+
+
+def _build_mcp_permission_servers(
+    client: str,
+    project_root: str | None = None,
+    output_path: str | None = None,
+) -> tuple[Path | None, dict[str, Any]]:
+    """Merge configured MCP servers with StratifyAI-specific permission settings."""
+    path, configured = get_configured_servers(
+        client=client,
+        project_root=project_root,
+        output_path=output_path,
+    )
+    _settings_path, settings = get_mcp_client_settings(
+        client=client,
+        project_root=project_root,
+        output_path=output_path,
+    )
+
+    settings_by_server = (
+        settings.get("servers", {}) if isinstance(settings, dict) else {}
+    )
+    if not isinstance(settings_by_server, dict):
+        settings_by_server = {}
+
+    merged: dict[str, Any] = {}
+    for server_id in sorted(set(configured.keys()) | set(settings_by_server.keys())):
+        server_settings = settings_by_server.get(server_id, {})
+        if not isinstance(server_settings, dict):
+            server_settings = {}
+        merged[server_id] = {
+            "enabled": bool(server_settings.get("enabled", True)),
+            "auto_start": bool(server_settings.get("auto_start", True)),
+            "permissions": _normalize_mcp_permission_payload(
+                server_settings.get("permissions")
+            ),
+        }
+
+    return path, merged
+
+
+def _serialize_mcp_client_servers(engine: MCPClientEngine) -> list[dict[str, Any]]:
+    """Serialize live server state for the CE-5 dashboard."""
+    tools_by_server: dict[str, list[str]] = {}
+    for descriptor in engine.list_tools():
+        tools_by_server.setdefault(descriptor.server_id, []).append(
+            descriptor.namespace
+        )
+
+    server_index = getattr(engine, "_server_index", {})
+    serialized: list[dict[str, Any]] = []
+    for status in engine.list_servers():
+        config = server_index.get(status.server_id)
+        tool_names = sorted(tools_by_server.get(status.server_id, []))
+        serialized.append(
+            MCPClientServerInfo(
+                server_id=status.server_id,
+                status=status.status,
+                error=status.error,
+                enabled=bool(getattr(config, "enabled", True)),
+                auto_start=bool(getattr(config, "auto_start", True)),
+                tool_count=len(tool_names),
+                tools=tool_names,
+            ).model_dump()
+        )
+    return serialized
+
+
+def _serialize_mcp_client_tools(engine: MCPClientEngine) -> list[dict[str, Any]]:
+    """Serialize discovered external MCP tools with their current permission mode."""
+    permission_manager = getattr(engine, "_permission_manager", None)
+    serialized: list[dict[str, Any]] = []
+
+    for descriptor in engine.list_tools():
+        tool = engine.find_tool(descriptor.server_id, descriptor.tool_name)
+        permission = "allow"
+        if permission_manager is not None:
+            permission = permission_manager.evaluate(
+                descriptor.server_id,
+                descriptor.tool_name,
+                tool,
+            ).mode.value
+
+        serialized.append(
+            MCPClientToolInfo(
+                server_id=descriptor.server_id,
+                name=descriptor.tool_name,
+                namespace=descriptor.namespace,
+                description=descriptor.description,
+                input_schema=descriptor.input_schema,
+                permission=permission,
+            ).model_dump()
+        )
+
+    return sorted(serialized, key=lambda item: (item["server_id"], item["namespace"]))
+
+
+async def _apply_mcp_client_settings_to_engine(
+    engine: MCPClientEngine,
+    server_settings: dict[str, Any],
+) -> None:
+    """Update the in-memory MCP engine after permission changes are saved."""
+    if not isinstance(server_settings, dict):
+        return
+
+    for server_id, settings in server_settings.items():
+        if not isinstance(settings, dict):
+            continue
+        config = getattr(engine, "_server_index", {}).get(server_id)
+        if config is None:
+            continue
+
+        config.enabled = bool(settings.get("enabled", config.enabled))
+        config.auto_start = bool(settings.get("auto_start", config.auto_start))
+
+        policy = ServerPermissionConfig.from_dict(settings.get("permissions"))
+        config.permissions = policy
+        permission_manager = getattr(engine, "_permission_manager", None)
+        if permission_manager is not None:
+            permission_manager.set_policy(server_id, policy)
+
+        if not config.enabled and getattr(
+            engine._server_manager, "is_running", lambda _: False
+        )(server_id):
+            await engine.stop_server(server_id)
+
+
 @app.get("/api/all-models")
 async def get_all_validated_models(_: None = Depends(verify_api_key)):
     """
@@ -2161,11 +2359,153 @@ async def get_mcp_status(
             project_root=project_root,
             output_path=output_path,
         )
+        _settings_path, merged_settings = _build_mcp_permission_servers(
+            client=client,
+            project_root=project_root,
+            output_path=output_path,
+        )
         return MCPStatusResponse(
             client=client,
             path=str(path) if path is not None else None,
             configured=configured,
+            settings=merged_settings,
             count=len(configured),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.get("/api/mcp-client/servers")
+async def get_mcp_client_servers(_: None = Depends(verify_api_key)):
+    """Return live MCP client engine status for the server dashboard."""
+    try:
+        engine = await get_mcp_chat_engine()
+        return {"servers": _serialize_mcp_client_servers(engine)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
+
+
+@app.get("/api/mcp-client/tools")
+async def get_mcp_client_tools(_: None = Depends(verify_api_key)):
+    """Return discovered external MCP tools for the CE-5 tool browser."""
+    try:
+        engine = await get_mcp_chat_engine()
+        return {"tools": _serialize_mcp_client_tools(engine)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp-client/servers/{server_id}/start")
+async def start_mcp_client_server(
+    server_id: str,
+    _: None = Depends(verify_api_key),
+):
+    """Start one configured MCP client engine server."""
+    try:
+        engine = await get_mcp_chat_engine()
+        status = await engine.start_server(server_id)
+        return {
+            "server_id": status.server_id,
+            "status": status.status,
+            "error": status.error,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp-client/servers/{server_id}/stop")
+async def stop_mcp_client_server(
+    server_id: str,
+    _: None = Depends(verify_api_key),
+):
+    """Stop one running MCP client engine server."""
+    try:
+        engine = await get_mcp_chat_engine()
+        status = await engine.stop_server(server_id)
+        return {
+            "server_id": status.server_id,
+            "status": status.status,
+            "error": status.error,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp-client/servers/{server_id}/restart")
+async def restart_mcp_client_server(
+    server_id: str,
+    _: None = Depends(verify_api_key),
+):
+    """Restart one configured MCP client engine server."""
+    try:
+        engine = await get_mcp_chat_engine()
+        status = await engine.restart_server(server_id)
+        return {
+            "server_id": status.server_id,
+            "status": status.status,
+            "error": status.error,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.get("/api/mcp-client/permissions", response_model=MCPClientPermissionsResponse)
+async def get_mcp_client_permissions(
+    client: str = "cursor",
+    project_root: str | None = None,
+    output_path: str | None = None,
+    _: None = Depends(verify_api_key),
+):
+    """Return config-backed MCP permission settings for the permission manager."""
+    if client not in _VALID_MCP_CLIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid client '{client}'. Must be one of: {', '.join(sorted(_VALID_MCP_CLIENTS))}",
+        )
+    try:
+        path, servers = _build_mcp_permission_servers(
+            client=client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        return MCPClientPermissionsResponse(
+            client=client,
+            path=str(path) if path is not None else None,
+            servers=servers,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.put("/api/mcp-client/permissions", response_model=MCPClientPermissionsResponse)
+async def update_mcp_client_permissions(
+    payload: MCPClientPermissionsUpdateRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Persist MCP permission settings from the CE-5 permission manager."""
+    try:
+        write_mcp_client_settings(
+            client=payload.client,
+            settings={"servers": payload.servers},
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+
+        global _mcp_chat_engine
+        if _mcp_chat_engine is not None and payload.client == "cursor":
+            await _apply_mcp_client_settings_to_engine(
+                _mcp_chat_engine, payload.servers
+            )
+
+        path, servers = _build_mcp_permission_servers(
+            client=payload.client,
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+        return MCPClientPermissionsResponse(
+            client=payload.client,
+            path=str(path) if path is not None else None,
+            servers=servers,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
