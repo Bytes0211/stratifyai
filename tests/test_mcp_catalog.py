@@ -419,3 +419,138 @@ def test_api_chat_with_active_mcp_servers_returns_tool_metadata(monkeypatch) -> 
     assert payload["tool_results"][0]["namespace"] == "demo.echo"
     assert payload["active_mcp_servers"] == ["demo"]
     tracked.chat_with_mcp.assert_awaited_once()
+
+
+def test_api_mcp_client_servers_and_tools_return_runtime_metadata(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+    from stratifyai.mcp_client.config import ConfiguredServer
+    from stratifyai.mcp_client.permissions import (
+        PermissionManager,
+        ServerPermissionConfig,
+    )
+    from stratifyai.mcp_client.server_manager import ServerStatus
+    from stratifyai.mcp_client.tool_registry import ToolDescriptor
+
+    class FakeEngine:
+        def __init__(self) -> None:
+            self._servers = [
+                ConfiguredServer(
+                    server_id="demo",
+                    command="python",
+                    enabled=True,
+                    auto_start=False,
+                    permissions=ServerPermissionConfig(confirm=["delete_*"]),
+                )
+            ]
+            self._server_index = {server.server_id: server for server in self._servers}
+            self._permission_manager = PermissionManager(
+                {"demo": self._servers[0].permissions}
+            )
+            self.start_server = AsyncMock(
+                return_value=ServerStatus(server_id="demo", status="connected")
+            )
+            self.stop_server = AsyncMock(
+                return_value=ServerStatus(server_id="demo", status="stopped")
+            )
+            self.restart_server = AsyncMock(
+                return_value=ServerStatus(server_id="demo", status="connected")
+            )
+
+        def list_servers(self):
+            return [ServerStatus(server_id="demo", status="connected")]
+
+        def list_tools(self):
+            return [
+                ToolDescriptor(
+                    server_id="demo",
+                    tool_name="delete_file",
+                    namespace="demo.delete_file",
+                    description="Delete a file",
+                    input_schema={"type": "object"},
+                )
+            ]
+
+        def find_tool(self, _server_id: str, _tool_name: str):
+            return None
+
+    fake_engine = FakeEngine()
+
+    async def fake_get_mcp_chat_engine():
+        return fake_engine
+
+    monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
+
+    client = TestClient(api_app)
+
+    servers_response = client.get("/api/mcp-client/servers")
+    assert servers_response.status_code == 200
+    servers_payload = servers_response.json()
+    assert servers_payload["servers"][0]["server_id"] == "demo"
+    assert servers_payload["servers"][0]["tool_count"] == 1
+    assert servers_payload["servers"][0]["auto_start"] is False
+
+    tools_response = client.get("/api/mcp-client/tools")
+    assert tools_response.status_code == 200
+    tools_payload = tools_response.json()
+    assert tools_payload["tools"][0]["namespace"] == "demo.delete_file"
+    assert tools_payload["tools"][0]["permission"] == "confirm"
+
+    action_response = client.post("/api/mcp-client/servers/demo/restart")
+    assert action_response.status_code == 200
+    assert action_response.json()["status"] == "connected"
+    fake_engine.restart_server.assert_awaited_once_with("demo")
+
+
+def test_api_mcp_client_permissions_can_be_updated(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {"demo": {"command": "python", "args": ["-m", "demo"]}},
+                "stratifyai": {"mcpClient": {"servers": {"demo": {"enabled": True}}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    client = TestClient(api_app)
+
+    get_response = client.get(
+        "/api/mcp-client/permissions",
+        params={"client": "cursor", "output_path": str(config_path)},
+    )
+    assert get_response.status_code == 200
+    assert get_response.json()["servers"]["demo"]["enabled"] is True
+
+    put_response = client.put(
+        "/api/mcp-client/permissions",
+        json={
+            "client": "cursor",
+            "output_path": str(config_path),
+            "servers": {
+                "demo": {
+                    "enabled": False,
+                    "auto_start": False,
+                    "permissions": {
+                        "allow": ["read_*"],
+                        "confirm": ["delete_*"],
+                    },
+                }
+            },
+        },
+    )
+
+    assert put_response.status_code == 200
+    payload = put_response.json()
+    assert payload["servers"]["demo"]["enabled"] is False
+    assert payload["servers"]["demo"]["permissions"]["confirm"] == ["delete_*"]
+
+    written = json.loads(config_path.read_text(encoding="utf-8"))
+    assert written["stratifyai"]["mcpClient"]["servers"]["demo"]["auto_start"] is False

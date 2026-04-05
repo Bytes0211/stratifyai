@@ -2,7 +2,7 @@
 // COST STORE - Session cost tracking
 // ============================================
 
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 
 interface CostEntry {
   provider: string;

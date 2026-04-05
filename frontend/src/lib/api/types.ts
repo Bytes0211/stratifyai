@@ -158,6 +158,13 @@ export interface McpClientsResponse {
   clients: McpClientInfo[];
 }
 
+export interface McpPermissionRules {
+  default_mode?: string | null;
+  allow: string[];
+  deny: string[];
+  confirm: string[];
+}
+
 export interface McpStatusResponse {
   client: string;
   path?: string | null;
@@ -166,7 +173,60 @@ export interface McpStatusResponse {
     args?: string[];
     env?: Record<string, string>;
   }>;
+  settings?: Record<string, {
+    enabled: boolean;
+    auto_start: boolean;
+    permissions: McpPermissionRules;
+  }>;
   count: number;
+}
+
+export interface McpClientServerInfo {
+  server_id: string;
+  status: string;
+  error?: string | null;
+  enabled: boolean;
+  auto_start: boolean;
+  tool_count: number;
+  tools: string[];
+}
+
+export interface McpClientServersResponse {
+  servers: McpClientServerInfo[];
+}
+
+export interface McpClientToolInfo {
+  server_id: string;
+  name: string;
+  namespace: string;
+  description?: string | null;
+  input_schema: Record<string, unknown>;
+  permission: string;
+}
+
+export interface McpClientToolsResponse {
+  tools: McpClientToolInfo[];
+}
+
+export interface McpClientPermissionsResponse {
+  client: string;
+  path?: string | null;
+  servers: Record<string, {
+    enabled: boolean;
+    auto_start: boolean;
+    permissions: McpPermissionRules;
+  }>;
+}
+
+export interface McpClientPermissionsUpdateRequest {
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  project_root?: string;
+  output_path?: string;
+  servers: Record<string, {
+    enabled: boolean;
+    auto_start: boolean;
+    permissions: McpPermissionRules;
+  }>;
 }
 
 export interface McpConfigureRequest {
@@ -213,9 +273,11 @@ export interface StreamMessage {
   content?: string;
   done?: boolean;
   error?: string;
+  detail?: string;
   usage?: UsageStats;
   warnings?: string[];
   tool_results?: Array<Record<string, unknown>>;
+  active_mcp_servers?: string[];
 }
 
 export type Provider = 

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { Send, Square, Trash2, Paperclip, X, File, Image } from 'lucide-svelte';
+  import { Send, Square, Trash2, Paperclip, X, File as FileIcon, Image } from 'lucide-svelte';
   import Button from '../shared/Button.svelte';
   import { chatStore, chatActions } from '$lib/stores/chat';
   import { configStore } from '$lib/stores/config';
   import { costActions } from '$lib/stores/cost';
-  import { fileStore, fileActions } from '$lib/stores/file';
+  import { fileActions } from '$lib/stores/file';
   import { createChatStream } from '$lib/api/websocket';
   import { chat as chatApi } from '$lib/api/client';
   import type { ChatRequest } from '$lib/api/types';
@@ -16,7 +16,7 @@
   let streamController: { close: () => void } | null = null;
   
   // File attachment state
-  let attachedFile: File | null = null;
+  let attachedFile: globalThis.File | null = null;
   let fileContent = '';
   let fileError = '';
   
@@ -121,10 +121,11 @@
       model: config.model,
       messages,
       temperature: config.effectiveTemperature,
-      max_tokens: config.maxTokens,
+      max_tokens: config.maxTokens ?? undefined,
       stream: config.stream,
       chunked: config.chunked,
       chunk_size: config.chunkSize,
+      active_mcp_servers: config.activeMcpServers,
     };
     
     // Handle file attachment (local or from shared store)
@@ -173,14 +174,18 @@
         onContent: (chunk) => {
           chatActions.appendStreamingContent(chunk);
         },
-        onComplete: (usage) => {
-          chatActions.completeStreaming(usage);
-          if (usage) {
+        onComplete: (result) => {
+          chatActions.completeStreaming(result.usage, {
+            warnings: result.warnings,
+            toolResults: result.tool_results,
+            activeMcpServers: result.active_mcp_servers ?? request.active_mcp_servers,
+          });
+          if (result.usage) {
             costActions.addEntry(
               config.provider,
               config.model,
-              usage.cost_usd,
-              usage.total_tokens
+              result.usage.cost_usd,
+              result.usage.total_tokens
             );
           }
           streamController = null;
@@ -207,7 +212,11 @@
         const response = await chatApi(request);
         // Merge cost_usd into usage for per-message display
         const usageWithCost = { ...response.usage, cost_usd: response.cost_usd };
-        chatActions.addAssistantMessage(response.content, usageWithCost);
+        chatActions.addAssistantMessage(response.content, usageWithCost, {
+          warnings: response.warnings,
+          toolResults: response.tool_results,
+          activeMcpServers: response.active_mcp_servers,
+        });
         costActions.addEntry(
           response.provider,
           response.model,
@@ -275,7 +284,7 @@
         {#if attachedFile.type.startsWith('image/')}
           <Image size={14} />
         {:else}
-          <File size={14} />
+          <FileIcon size={14} />
         {/if}
         <span class="attachment-name">{attachedFile.name}</span>
         <span class="attachment-size">({(attachedFile.size / 1024).toFixed(1)} KB)</span>

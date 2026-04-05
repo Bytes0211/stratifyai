@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { configStore, configActions } from '$lib/stores/config';
   import { getModels } from '$lib/api/client';
@@ -11,7 +10,6 @@
   let models: ModelInfo[] = [];
   let loading = false;
   let error: string | null = null;
-  let validated = false;
   let apiKeySet = false;
   
   // Load models when provider changes
@@ -25,7 +23,6 @@
     try {
       const response = await getModels(provider);
       models = response.models;
-      validated = response.validation.validated;
       apiKeySet = response.validation.api_key_set;
       
       // Check if current model exists in loaded models

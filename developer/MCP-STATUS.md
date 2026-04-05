@@ -209,7 +209,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 | CE-2 | Tool Registry & Namespacing | https://github.com/Bytes0211/stratifyai/issues/39 | Done | 2026-04-04 | Namespaced ToolRegistry, per-server lifecycle registration, and verified start/stop/restart behavior |
 | CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Done | 2026-04-04 | MCP-aware LLM chat loop, tool result injection, active server selection, and API/WebSocket chat integration verified |
 | CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Done | 2026-04-04 | Permission manager, safety defaults, config-backed server toggles, and confirmation gating verified |
-| CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Planned | 2026-04-03 | Server dashboard, tool discovery, chat badges, permission manager |
+| CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Done | 2026-04-04 | Live dashboard controls, tool discovery, chat badges, and permission manager shipped and verified |
 | CE-6 | API & Diagnostics | https://github.com/Bytes0211/stratifyai/issues/43 | Planned | 2026-04-03 | REST endpoints, health monitoring |
 | CE-7 | Tests & Documentation | https://github.com/Bytes0211/stratifyai/issues/44 | Planned | 2026-04-03 | Unit, integration, UI tests, user docs |
 
@@ -304,10 +304,10 @@ See Workstream B step-level tracking above.
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| CE5-S1 | Build Server Dashboard — status cards with Start/Stop/Restart actions | Planned | 2026-04-04 | - |
-| CE5-S2 | Build Tool Discovery Panel — browse tools per server, view schemas, test inline | Planned | 2026-04-04 | - |
-| CE5-S3 | Build chat integration badges — show which server/tool was used per response | Planned | 2026-04-04 | - |
-| CE5-S4 | Build Permission Manager — table with allow/deny/confirm per tool, bulk actions | Planned | 2026-04-04 | - |
+| CE5-S1 | Build Server Dashboard — status cards with Start/Stop/Restart actions | Done | 2026-04-04 | `frontend/src/lib/components/mcp/MCPServersPage.svelte`; `/api/mcp-client/servers`; `/api/mcp-client/servers/{id}/start|stop|restart` |
+| CE5-S2 | Build Tool Discovery Panel — browse tools per server, view schemas, test inline | Done | 2026-04-04 | `frontend/src/lib/components/mcp/MCPServersPage.svelte` live tool browser; `/api/mcp-client/tools`; inline tester retained via `MCPToolTester.svelte` |
+| CE5-S3 | Build chat integration badges — show which server/tool was used per response | Done | 2026-04-04 | `frontend/src/lib/components/chat/ChatMessage.svelte`; `chat.ts`; `ChatInput.svelte`; `MCPChatSettings.svelte` |
+| CE5-S4 | Build Permission Manager — table with allow/deny/confirm per tool, bulk actions | Done | 2026-04-04 | `frontend/src/lib/components/mcp/MCPServersPage.svelte`; `/api/mcp-client/permissions`; config-backed CE-4 rules surfaced in UI |
 
 #### Step 10: CE-6 — API & Diagnostics
 

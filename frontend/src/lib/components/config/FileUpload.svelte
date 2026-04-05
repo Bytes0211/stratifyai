@@ -3,7 +3,6 @@
   import { Upload, File, X, Image } from 'lucide-svelte';
   import { configStore } from '$lib/stores/config';
   import { fileStore, fileActions } from '$lib/stores/file';
-  import Button from '../shared/Button.svelte';
   
   let fileInput: HTMLInputElement;
   

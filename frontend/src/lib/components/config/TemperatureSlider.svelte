@@ -1,6 +1,6 @@
 <script lang="ts">
   import { configStore, configActions } from '$lib/stores/config';
-  import { Lock, Unlock } from 'lucide-svelte';
+  import { Lock } from 'lucide-svelte';
   
   function handleChange(e: Event) {
     const target = e.target as HTMLInputElement;

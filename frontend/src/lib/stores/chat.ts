@@ -10,6 +10,15 @@ export interface ChatMessage extends Message {
   timestamp: Date;
   usage?: UsageStats;
   error?: boolean;
+  warnings?: string[];
+  toolResults?: Array<Record<string, unknown>>;
+  activeMcpServers?: string[];
+}
+
+interface AssistantMessageMeta {
+  warnings?: string[];
+  toolResults?: Array<Record<string, unknown>>;
+  activeMcpServers?: string[];
 }
 
 function generateId(): string {
@@ -61,7 +70,7 @@ function createChatStore() {
         return id;
       },
       
-      addAssistantMessage(content: string, usage?: UsageStats): string {
+      addAssistantMessage(content: string, usage?: UsageStats, meta?: AssistantMessageMeta): string {
         const id = generateId();
         messages.update(msgs => [...msgs, {
           id,
@@ -69,6 +78,9 @@ function createChatStore() {
           content,
           timestamp: new Date(),
           usage,
+          warnings: meta?.warnings,
+          toolResults: meta?.toolResults,
+          activeMcpServers: meta?.activeMcpServers,
         }]);
         return id;
       },
@@ -97,7 +109,7 @@ function createChatStore() {
         streamingContent.update(c => c + content);
       },
       
-      completeStreaming(usage?: UsageStats) {
+      completeStreaming(usage?: UsageStats, meta?: AssistantMessageMeta) {
         const id = get(streamingMessageId);
         const content = get(streamingContent);
         if (id) {
@@ -109,6 +121,9 @@ function createChatStore() {
             content: finalContent,
             timestamp: new Date(),
             usage,
+            warnings: meta?.warnings,
+            toolResults: meta?.toolResults,
+            activeMcpServers: meta?.activeMcpServers,
           }]);
         }
         isStreaming.set(false);
