@@ -68,7 +68,7 @@ Content-Type: application/json
 
 {
   "provider": "openai",
-  "model": "gpt-4.1-mini",
+  "model": "gpt-4o-mini",
   "messages": [
     {"role": "user", "content": "Hello!"}
   ],
@@ -85,7 +85,7 @@ const ws = new WebSocket('ws://localhost:8000/api/chat/stream');
 ws.onopen = () => {
   ws.send(JSON.stringify({
     provider: 'openai',
-    model: 'gpt-4.1-mini',
+    model: 'gpt-4o-mini',
     messages: [{role: 'user', content: 'Tell me a story'}],
     temperature: 0.7
   }));

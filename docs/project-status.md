@@ -1,10 +1,10 @@
 # StratifyAI - Project Status
 
 **Project Start:** January 30, 2026
-**Last Update:** April 3, 2026
-**Current Status:** MCP Server Phases 1-5 implemented; Phase 7 (tests) and Phase 8 (docs) complete
+**Last Update:** April 4, 2026
+**Current Status:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
 **Providers:** 9 operational (all with concurrency limit support)
-**Test Suite:** 557 tests (553 passing, 4 skipped), 69% coverage
+**Test Suite:** 669 tests (664 passing, 4 skipped, 1 deselected), 72% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ---
@@ -21,25 +21,44 @@
 - Completed: Phase 14 developer experience polish (doctor CLI, route dry-run, structured error codes, docs and tests).
 - Completed: Phase 15 security audit and hardening (sanitization expansion, rate limiting, websocket validation, CORS tightening, vulnerability scanning in CI).
 - Completed: MCP technical approach documentation (`developer/PRD-MCP-implemenation.md`) with phased execution and acceptance gates.
-- Completed: MCP Server Phases 1-5 (server scaffold, 8 tools, 5 resources, 13+ prompts, docs).
+- Completed: MCP Server Phases 1-5, 7-8 (server scaffold, 8 tools, 5 resources, 13+ prompts, 75 tests, docs).
+- Completed: MCP Abstraction Layer AL-1 to AL-4 (catalog, CLI wizard, Web UI, inline tool tester).
+- Completed: MCP Client Engine CE-1 to CE-6 (core engine, tool registry, chat integration, permissions, Web UI panels, API diagnostics).
+- Completed: Comprehensive code review with action plan (developer/code-review-action-plan.md).
 
 ---
 
 ## Current Focus
 
-- AL Phase 1: MCP Abstraction Layer — catalog + CLI core (`stratifyai mcp setup` wizard).
-- Execution order: AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → Polish.
-- See `developer/MCP-STATUS.md` for full execution sequence and rationale.
+- Code Review Action Plan Phase R2 planning: hardening, test coverage, and API/router refactors.
+- AL-5: Abstraction Layer polish.
+- CE-7: Client Engine tests and documentation.
+- See `developer/MCP-STATUS.md` for full execution history and rationale.
 
 ## Recently Completed
 
+- Code Review Action Plan Phase R1 delivered (provider/cache locking, websocket synchronization, streaming cleanup, request validation, doc corrections).
+- MCP Client Engine CE-1 to CE-6 delivered (PR #47-52, Apr 4, 2026).
+- MCP Abstraction Layer AL-1 to AL-4 delivered (20 curated servers, CLI wizard, Web UI, tool tester).
 - MCP Server Phases 0-5, 7-8 complete (8 tools, 5 resources, 13 prompts, 75 tests, 71% coverage).
-- MCP Abstraction Layer PRD finalized with resolved design decisions.
-- MCP Client Engine PRD drafted for future workstream.
-- Execution order re-sequenced: workstreams interleaved for maximum value at each step.
-- All PR review fixes applied (PR #17, #18).
+- Comprehensive code review: 32 findings across concurrency, security, testing, documentation.
+- All PR review fixes applied (PR #17, #18, #47-52).
 - Phase 15 security gaps closed.
 - 6 vulnerable dependencies updated.
+
+---
+
+## Code Review Action Plan
+
+Reference: `developer/code-review-action-plan.md`
+
+| Phase | Description | Steps | Status |
+|-------|-------------|-------|--------|
+| R1 | Critical Fixes (This Sprint) | 8 | ✅ Complete |
+| R2 | Hardening & Test Coverage (1–2 Sprints) | 12 | ⬜ Not Started |
+| R3 | Polish & Long-Term Quality (Next Quarter) | 12 | ⬜ Not Started |
+
+Covers concurrency safety, resource leaks, security gaps, test coverage expansion, code organization (CLI/API refactoring), and documentation fixes identified during the April 4, 2026 comprehensive review.
 
 ---
 
@@ -56,7 +75,7 @@ Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENT
 | 4 | Resource Layer | ✅ Complete | `stratifyai://catalog`, `providers`, `costs`, `router/strategies` |
 | 5 | Prompt Exposure | ✅ Complete | 3 named prompts + dynamic registry template exposure |
 | 6 | HTTP Transport | ⬜ Deferred (post-GA) | Streamable HTTP transport; not blocking GA |
-| 7 | Tests & CI Gates | ⬜ Not Started | Unit, contract, integration tests; 80% coverage on `mcp_server/` |
+| 7 | Tests & CI Gates | ✅ Complete | 75 MCP-specific tests; CI updated with `--extra mcp` install |
 | 8 | Docs & Client Setup | ✅ Complete | Quickstart, tools reference, client config guides |
 
 **GA Checklist:** Zero P0/P1 defects, all MCP tests green, integration verified against 2+ MCP clients, schema version frozen, docs complete.
@@ -65,12 +84,9 @@ Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENT
 
 ## Next Milestones
 
-- AL-1: MCP catalog + CLI wizard (in progress)
-- AL-2: Additional CLI commands (add/remove/status)
-- CE-1: MCP Client Engine core (spawn servers, call tools)
-- CE-2: Tool registry and namespacing
-- AL-3: Web UI (catalog browser, config export)
-- CE-3 through CE-6: Chat integration, permissions, UI panels, diagnostics
+- Code Review Action Plan Phase R1: Critical concurrency and security fixes (8 steps)
+- AL-5: Abstraction Layer polish
+- CE-7: Client Engine tests and documentation
 - Server Phase 6: Streamable HTTP transport (deferred post-GA)
 - Server Phase 9: Rollout and verification (deferred until Client Engine proves full stack)
 

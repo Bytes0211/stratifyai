@@ -1,5 +1,78 @@
 # Developer Journal
 
+## April 4, 2026 - MCP Ecosystem Complete (AL-1 to AL-4, CE-1 to CE-6, Code Review)
+
+Completed all planned MCP workstreams and performed a comprehensive codebase review.
+
+### MCP Abstraction Layer (AL-1 to AL-4)
+
+- **AL-1**: MCP catalog + CLI core — `stratifyai mcp setup` wizard, curated catalog of 20 MCP servers
+- **AL-2**: Additional CLI commands — `mcp add`, `mcp remove`, `mcp status`
+- **AL-3**: Web UI — MCP catalog browser, config export for Claude Desktop/Code/Cursor/VS Code
+- **AL-4**: Inline tool tester — JSON input editor, tool schema display, execution panel, preset save/load
+
+**Files created:**
+
+- `stratifyai/mcp_catalog/manager.py` (445 lines) — catalog discovery, config generation, prerequisite validation
+- `stratifyai/mcp_catalog/catalog.json` — 20 curated MCP servers (filesystem, github, git, brave, postgres, etc.)
+- `stratifyai/mcp_catalog/schemas.py` — server/tool/resource schema definitions
+
+### MCP Client Engine (CE-1 to CE-6)
+
+- **CE-1**: Client Engine core — spawn/stop servers, execute tools, build LLM tool definitions
+- **CE-2**: Tool registry and namespacing — `{server_id}.{tool_name}` pattern
+- **CE-3**: Chat integration — inject namespaced tools into LLM flow, result injection back into conversation
+- **CE-4**: Permissions and safety — allow/deny/confirm rules, destructive tool gating, safety defaults
+- **CE-5**: Web UI panels — MCPServersPage (1,281 lines), MCPToolTester (421 lines), live status dashboard
+- **CE-6**: API and diagnostics — REST endpoints for server lifecycle, tool execution, health monitoring
+
+**Files created:**
+
+- `stratifyai/mcp_client/engine.py` (674 lines) — core orchestrator
+- `stratifyai/mcp_client/server_manager.py` (135 lines) — subprocess management
+- `stratifyai/mcp_client/connection.py` (66 lines) — session wrapper
+- `stratifyai/mcp_client/tool_registry.py` (59 lines) — tool namespace registry
+- `stratifyai/mcp_client/permissions.py` (310 lines) — permission framework
+- `stratifyai/mcp_client/config.py` (88 lines) — server config loading
+- `frontend/src/lib/components/mcp/MCPServersPage.svelte` (1,281 lines)
+- `frontend/src/lib/components/mcp/MCPToolTester.svelte` (421 lines)
+
+**New API endpoints:**
+
+- `GET /api/mcp/catalog`, `GET /api/mcp/clients`, `POST /api/mcp/configure`
+- `GET /api/mcp/status`, `GET /api/mcp/tools`, `POST /api/mcp/test-tool`
+- `GET /api/mcp-client/servers`, `POST /api/mcp-client/servers/{id}/start|stop|restart`
+- `GET /api/mcp-client/tools`, `POST /api/mcp-client/tools/{server}/{tool}`
+- `GET /api/mcp-client/health`, `GET|PUT /api/mcp-client/permissions`
+
+**New test files:**
+
+- `tests/test_mcp_catalog.py` (657 lines) — catalog manager, CLI, API, E2E config flow
+- `tests/test_mcp_client_engine.py` (542 lines) — engine lifecycle, tool registry, permissions, chat integration
+
+### Comprehensive Code Review
+
+Performed full codebase review covering architecture, code quality, security, testing, and documentation.
+
+Key findings documented in `developer/code-review-action-plan.md`:
+- **Phase R1** (8 steps): Critical concurrency fixes, resource leak prevention, input validation
+- **Phase R2** (12 steps): CLI/API refactoring, test coverage expansion, security hardening
+- **Phase R3** (12 steps): Code quality polish, documentation consolidation, long-term hardening
+
+### Validation Summary
+
+- Tests: 669 collected, 664 passed, 4 skipped, 1 deselected — 72% coverage
+- All MCP workstreams feature-complete through planned phases
+- PR #47 through #52 merged (CE-1, CE-2, CE-3, Permissions, Web UI Panels, API & Diagnostics)
+
+### Remaining
+
+- AL-5: Abstraction Layer polish
+- CE-7: Client Engine tests and docs
+- Code Review Action Plan execution (R1 → R2 → R3)
+
+---
+
 ## April 3, 2026 - MCP Server Implementation (Phases 1-5, 8)
 
 Implemented the StratifyAI MCP server, delivering Phases 1-5 and Phase 8 from the implementation plan.

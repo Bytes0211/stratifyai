@@ -1,6 +1,8 @@
 """Unit tests for unified LLM client."""
 
 import asyncio
+import threading
+import time
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -452,3 +454,82 @@ class TestLLMClient:
                 messages=messages,
                 cancel_event=cancel_event,
             )
+
+    def test_provider_pool_singleton_under_thread_race(self, monkeypatch):
+        """Concurrent client initialization should reuse one pooled provider."""
+        import stratifyai.client as client_module
+
+        client_module._provider_pool.clear()
+        init_count = 0
+        init_count_lock = threading.Lock()
+
+        class DummyProvider:
+            def __init__(self, api_key: str, config=None):
+                nonlocal init_count
+                with init_count_lock:
+                    init_count += 1
+                time.sleep(0.02)
+
+        monkeypatch.setattr(LLMClient, "_validate_provider_auth", lambda *_: None)
+        monkeypatch.setitem(LLMClient._provider_registry, "openai", DummyProvider)
+
+        created_provider_ids: list[int] = []
+
+        def build_client() -> None:
+            client = LLMClient(provider="openai", api_key="test-key")
+            created_provider_ids.append(id(client._provider_instance))
+
+        threads = [threading.Thread(target=build_client) for _ in range(6)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert init_count == 1
+        assert len(set(created_provider_ids)) == 1
+        client_module._provider_pool.clear()
+
+    @pytest.mark.asyncio
+    async def test_chat_completion_stream_closes_underlying_generator(self):
+        """Closing the outer stream should explicitly close the provider stream."""
+        client = LLMClient()
+        stream_closed = False
+
+        chunk = ChatResponse(
+            id="chunk-1",
+            model="gpt-4.1-mini",
+            content="partial",
+            finish_reason="stop",
+            usage=Usage(prompt_tokens=1, completion_tokens=1, total_tokens=2),
+            provider="openai",
+            created_at=datetime.now(),
+            raw_response={},
+        )
+
+        class FakeProvider:
+            def chat_completion_stream(self, request: ChatRequest):
+                async def generator():
+                    nonlocal stream_closed
+                    try:
+                        yield chunk
+                        await asyncio.sleep(0.01)
+                        yield chunk
+                    finally:
+                        stream_closed = True
+
+                return generator()
+
+        client._providers["openai"] = FakeProvider()
+        request = ChatRequest(
+            model="gpt-4.1-mini",
+            messages=[Message(role="user", content="hello")],
+            stream=True,
+        )
+
+        stream = client.chat_completion_stream(request)
+        first = await anext(stream)
+        assert first.content == "partial"
+        assert stream_closed is False
+
+        await stream.aclose()
+        assert stream_closed is True

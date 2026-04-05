@@ -236,6 +236,42 @@ class TestGetCostSummary:
         }
 
 
+class TestToolValidation:
+    @pytest.mark.asyncio
+    async def test_chat_completion_rejects_empty_messages(self):
+        with pytest.raises(ValueError) as exc_info:
+            await _get_tool("chat_completion")(
+                provider="openai",
+                model="gpt-4o-mini",
+                messages=[],
+            )
+
+        payload = json.loads(str(exc_info.value))
+        assert payload["error_code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_chat_completion_rejects_invalid_temperature_and_max_tokens(self):
+        with pytest.raises(ValueError) as exc_info:
+            await _get_tool("chat_completion")(
+                provider="openai",
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "hello"}],
+                temperature=2.5,
+                max_tokens=0,
+            )
+
+        payload = json.loads(str(exc_info.value))
+        assert payload["error_code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_chat_with_routing_rejects_empty_messages(self):
+        with pytest.raises(ValueError) as exc_info:
+            await _get_tool("chat_with_routing")(messages=[])
+
+        payload = json.loads(str(exc_info.value))
+        assert payload["error_code"] == "validation_error"
+
+
 class TestToolRegistration:
     def test_all_expected_tools_registered(self):
         expected = [

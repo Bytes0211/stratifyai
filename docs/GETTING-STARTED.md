@@ -405,8 +405,8 @@ python -m cli.stratifyai_cli chat "Explain AI in one sentence" \
   --model gpt-4o-mini
 
 # Or use environment variables
-export STRATUMAI_PROVIDER=openai
-export STRATUMAI_MODEL=gpt-4o-mini
+export STRATIFYAI_PROVIDER=openai
+export STRATIFYAI_MODEL=gpt-4o-mini
 python -m cli.stratifyai_cli chat "Explain AI in one sentence"
 ```
 
@@ -844,8 +844,8 @@ python -m cli.stratifyai_cli route "Complex question" --strategy quality
 
 ```bash
 # Set defaults
-export STRATUMAI_PROVIDER=anthropic
-export STRATUMAI_MODEL=claude-sonnet-4-5-20250929
+export STRATIFYAI_PROVIDER=anthropic
+export STRATIFYAI_MODEL=claude-sonnet-4-5-20250929
 
 # Now you can omit --provider and --model
 python -m cli.stratifyai_cli chat "Hello"

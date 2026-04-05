@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import logging
 import os
+import threading
 import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
@@ -100,14 +101,18 @@ _executor = ThreadPoolExecutor(max_workers=4)
 
 # Client cache for connection pooling (BUG-003)
 _client_cache: dict[str, LLMClient] = {}
+_client_cache_lock = threading.Lock()
 _mcp_chat_engine: MCPClientEngine | None = None
+_mcp_chat_engine_lock: asyncio.Lock | None = None
+_mcp_chat_engine_lock_loop: asyncio.AbstractEventLoop | None = None
 
 
 def get_client(provider: str) -> LLMClient:
     """Get or create a cached LLMClient for connection pooling."""
-    if provider not in _client_cache:
-        _client_cache[provider] = LLMClient(provider=provider)
-    return _client_cache[provider]
+    with _client_cache_lock:
+        if provider not in _client_cache:
+            _client_cache[provider] = LLMClient(provider=provider)
+        return _client_cache[provider]
 
 
 def get_tracked_client(provider: str) -> TrackedLLMClient:
@@ -115,13 +120,25 @@ def get_tracked_client(provider: str) -> TrackedLLMClient:
     return TrackedLLMClient(client=get_client(provider), cost_tracker=cost_tracker)
 
 
+def _get_mcp_chat_engine_lock() -> asyncio.Lock:
+    """Return a loop-local async lock for lazy MCP engine initialization."""
+    global _mcp_chat_engine_lock, _mcp_chat_engine_lock_loop
+    loop = asyncio.get_running_loop()
+    if _mcp_chat_engine_lock is None or _mcp_chat_engine_lock_loop is not loop:
+        _mcp_chat_engine_lock = asyncio.Lock()
+        _mcp_chat_engine_lock_loop = loop
+    return _mcp_chat_engine_lock
+
+
 async def get_mcp_chat_engine() -> MCPClientEngine:
     """Get or lazily initialize the shared MCP chat engine."""
     global _mcp_chat_engine
     if _mcp_chat_engine is None:
-        engine = MCPClientEngine()
-        await engine.start()
-        _mcp_chat_engine = engine
+        async with _get_mcp_chat_engine_lock():
+            if _mcp_chat_engine is None:
+                engine = MCPClientEngine()
+                await engine.start()
+                _mcp_chat_engine = engine
     return _mcp_chat_engine
 
 
@@ -299,6 +316,7 @@ _WS_MAX_PAYLOAD_CHARS = 2_000_000
 # _WS_RATE_LIMIT_MAX_IPS caps the total number of tracked IPs so that
 # a long-running server doesn't leak memory from unique visitors.
 _ws_rate_limit: dict[str, deque] = defaultdict(deque)
+_ws_rate_limit_lock = threading.RLock()
 _WS_RATE_LIMIT_MAX_IPS = 10_000
 _WS_RATE_LIMIT_WINDOW_SECS = 60
 
@@ -309,26 +327,27 @@ def _evict_stale_ws_entries() -> None:
     Called once per WebSocket connection before the per-IP check so that
     the dict never grows unboundedly.
     """
-    now = time.time()
-    stale_ips: list[str] = []
-    for ip, window in _ws_rate_limit.items():
-        # Drop timestamps older than the window
-        while window and now - window[0] > _WS_RATE_LIMIT_WINDOW_SECS:
-            window.popleft()
-        # Mark empty windows for removal
-        if not window:
-            stale_ips.append(ip)
-    for ip in stale_ips:
-        del _ws_rate_limit[ip]
-
-    # Hard cap: if still too many IPs, drop the oldest half
-    if len(_ws_rate_limit) > _WS_RATE_LIMIT_MAX_IPS:
-        sorted_ips = sorted(
-            _ws_rate_limit,
-            key=lambda k: _ws_rate_limit[k][0] if _ws_rate_limit[k] else 0,
-        )
-        for ip in sorted_ips[: len(sorted_ips) // 2]:
+    with _ws_rate_limit_lock:
+        now = time.time()
+        stale_ips: list[str] = []
+        for ip, window in list(_ws_rate_limit.items()):
+            # Drop timestamps older than the window
+            while window and now - window[0] > _WS_RATE_LIMIT_WINDOW_SECS:
+                window.popleft()
+            # Mark empty windows for removal
+            if not window:
+                stale_ips.append(ip)
+        for ip in stale_ips:
             del _ws_rate_limit[ip]
+
+        # Hard cap: if still too many IPs, drop the oldest half
+        if len(_ws_rate_limit) > _WS_RATE_LIMIT_MAX_IPS:
+            sorted_ips = sorted(
+                _ws_rate_limit,
+                key=lambda k: _ws_rate_limit[k][0] if _ws_rate_limit[k] else 0,
+            )
+            for ip in sorted_ips[: len(sorted_ips) // 2]:
+                del _ws_rate_limit[ip]
 
 
 def verify_api_key(authorization: str | None = Header(default=None)) -> None:
@@ -401,6 +420,36 @@ class ChatCompletionRequest(BaseModel):
     chunked: bool = False  # Enable smart chunking and summarization
     chunk_size: int = Field(default=50000, ge=1000, le=100000)
     active_mcp_servers: list[str] = Field(default_factory=list)
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, value: str) -> str:
+        if value not in MODEL_CATALOG:
+            raise ValueError(
+                f"provider must be one of: {', '.join(sorted(MODEL_CATALOG))}"
+            )
+        return value
+
+    @field_validator("messages")
+    @classmethod
+    def validate_messages(cls, value: list[dict]) -> list[dict]:
+        if not value:
+            raise ValueError("messages must be a non-empty list")
+        return value
+
+    @field_validator("temperature")
+    @classmethod
+    def validate_temperature(cls, value: float | None) -> float | None:
+        if value is not None and not 0.0 <= value <= 2.0:
+            raise ValueError("temperature must be between 0.0 and 2.0")
+        return value
+
+    @field_validator("max_tokens")
+    @classmethod
+    def validate_max_tokens(cls, value: int | None) -> int | None:
+        if value is not None and not 1 <= value <= 4_000_000:
+            raise ValueError("max_tokens must be between 1 and 4000000")
+        return value
 
 
 class StreamMessage(BaseModel):
@@ -1066,16 +1115,20 @@ async def chat_stream(websocket: WebSocket):
             return
 
         # --- Rate limiting with TTL eviction --------------------------------
-        _evict_stale_ws_entries()
         auth_token = _extract_bearer_token(auth_header)
         client_ip = websocket.client.host if websocket.client else "unknown"
         ws_key = f"key:{_hash_token(auth_token)}" if auth_token else f"ip:{client_ip}"
         now = time.time()
-        window = _ws_rate_limit[ws_key]
-        # Per-IP window cleanup (fast path — global eviction already ran)
-        while window and now - window[0] > _WS_RATE_LIMIT_WINDOW_SECS:
-            window.popleft()
-        if len(window) >= 30:
+        with _ws_rate_limit_lock:
+            _evict_stale_ws_entries()
+            window = _ws_rate_limit[ws_key]
+            # Per-IP window cleanup (fast path — global eviction already ran)
+            while window and now - window[0] > _WS_RATE_LIMIT_WINDOW_SECS:
+                window.popleft()
+            exceeded_rate_limit = len(window) >= 30
+            if not exceeded_rate_limit:
+                window.append(now)
+        if exceeded_rate_limit:
             await websocket.send_json(
                 {
                     "error": "rate_limit_exceeded",
@@ -1085,7 +1138,6 @@ async def chat_stream(websocket: WebSocket):
                 }
             )
             return
-        window.append(now)
 
         # --- Pydantic validation --------------------------------------------
         request_obj = ChatCompletionRequest.model_validate_json(data)

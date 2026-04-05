@@ -3,11 +3,11 @@
 
 # StratifyAI — Unified Multi‑Provider LLM Interface
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-536%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-669%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Production Ready (Phase 15 Complete - Security Hardening)
+**Status:** Production Ready — MCP Ecosystem Complete (Server + Client Engine + Abstraction Layer)
 **Providers:** 9 Operational
-**Features:** Routing • RAG • Caching • Streaming • Observability • Security Hardening • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits**
+**Features:** Routing • RAG • Caching • Streaming • Observability • Security Hardening • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits** • **MCP Server & Client Engine**
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
 
@@ -36,6 +36,10 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - **Vision support** for image analysis (GPT-4o, Claude, Gemini, Nova)
 - **Prompt templates** with 10 built-in templates (code review, summarization, translation, etc.)
 - User-defined template support via `~/.stratifyai/prompts/`
+- **MCP Server** with 8 tools, 5 resources, 13+ prompts
+- **MCP Client Engine** — spawn and manage external MCP servers, tool aggregation, chat integration
+- **MCP Abstraction Layer** — curated server catalog, CLI wizard, inline tool tester
+- **Permission system** for MCP tool safety (allow/deny/confirm, destructive tool gating)
 
 ### Advanced
 
@@ -94,11 +98,21 @@ environment settings, verification commands, and incident response), see:
 
 - `developer/runbook/phase15-security-runbook.md`
 
-### MCP Technical Approach
+### MCP Ecosystem
 
-The MCP implementation blueprint, interface contracts, and phase-by-phase execution plan are documented in:
+StratifyAI includes a complete MCP (Model Context Protocol) implementation:
 
-- `developer/PRD-MCP-implemenation.md`
+- **MCP Server**: Exposes StratifyAI capabilities (chat, routing, cost tracking) as MCP tools
+- **MCP Client Engine**: Spawns and manages external MCP servers, aggregates tools into chat
+- **MCP Abstraction Layer**: Curated catalog of 20 MCP servers, CLI setup wizard, config generation
+- **Permission System**: Safety defaults, destructive tool confirmation, per-server toggles
+
+Documentation:
+
+- `docs/MCP-QUICKSTART.md` — Install, configure, first tool call
+- `docs/MCP-TOOLS-REFERENCE.md` — All tools, resources, and prompts
+- `docs/MCP-CLIENT-CONFIG.md` — Client config for Claude Desktop, Claude Code, Cursor, VS Code
+- `developer/PRD-MCP-implemenation.md` — Technical blueprint
 
 ---
 
@@ -311,6 +325,11 @@ stratifyai/
 │   ├── router.py         # Intelligent routing
 │   ├── models.py         # Data models
 │   ├── chat/             # Simplified chat modules with builder
+│   ├── mcp_server/       # MCP server (8 tools, 5 resources, 13+ prompts)
+│   ├── mcp_client/       # MCP client engine (spawn/manage external servers)
+│   ├── mcp_catalog/      # MCP server catalog (20 curated servers)
+│   ├── prompts/          # Prompt template system (10 built-in)
+│   ├── profiles/         # Configuration profiles
 │   └── utils/            # Utilities (token counting, extraction)
 ├── cli/                  # Typer CLI
 ├── examples/             # Usage examples
@@ -348,7 +367,7 @@ pytest           # Run all tests
 pytest -v        # Verbose output
 ```
 
-**Test Coverage:** 531 tests across all modules (69% code coverage)
+**Test Coverage:** 669 tests across all modules (72% code coverage)
 
 ---
 
