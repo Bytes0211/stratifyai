@@ -56,16 +56,23 @@ class TestPersistentCacheBasics:
     def test_ttl_expiration(self, tmp_path: Path):
         cache = PersistentResponseCache(db_path=str(tmp_path / "cache.db"), ttl=1)
 
-        with patch(
-            "stratifyai.caching.time.time",
-            side_effect=[1000.0, 1000.0, 1000.0, 1001.1],
-        ):
+        # set() calls time.time() once (line 418)
+        # get() calls time.time() once for expiry check (line 368)
+        # A hit also triggers get_entries/stats paths that may call time.time()
+        # Use a mutable clock to avoid running out of side_effect values
+        clock = [1000.0]
+
+        def fake_time():
+            return clock[0]
+
+        with patch("stratifyai.caching.time.time", side_effect=fake_time):
             cache.set("k1", _make_response())
 
-            # Available immediately
+            # Available immediately (still at t=1000)
             assert cache.get("k1") is not None
 
-            # Expired after mocked time advances
+            # Advance past TTL
+            clock[0] = 1001.1
             assert cache.get("k1") is None
 
 
@@ -92,10 +99,15 @@ class TestPersistentCacheEviction:
 
     def test_evicts_oldest(self, tmp_path: Path):
         cache = PersistentResponseCache(db_path=str(tmp_path / "cache.db"), max_size=2)
-        with patch(
-            "stratifyai.caching.time.time",
-            side_effect=[1000.0, 1000.1, 1000.2, 1000.3, 1000.4, 1000.5, 1000.6],
-        ):
+
+        # Use incrementing clock so each set() gets a distinct timestamp
+        clock = [1000.0]
+
+        def fake_time():
+            clock[0] += 0.1
+            return clock[0]
+
+        with patch("stratifyai.caching.time.time", side_effect=fake_time):
             cache.set("k0", _make_response("r0"))
             cache.set("k1", _make_response("r1"))
             cache.set("k2", _make_response("r2"))  # should evict k0

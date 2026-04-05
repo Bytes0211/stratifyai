@@ -2,7 +2,7 @@
 
 **Review Date:** April 4, 2026
 **Scope:** Full codebase review — architecture, code quality, security, testing, documentation
-**Status:** Phase R1 Complete — R2 hardening/test coverage delivered; code-organization refactors remain
+**Status:** Phase R1 complete — R2 hardening/test coverage and R3 polish delivered; code-organization refactors and the 85% coverage stretch remain
 
 ---
 
@@ -52,18 +52,18 @@ Addresses design improvements, documentation consolidation, and forward-looking 
 
 | Step | Area | Description | Files | Status |
 |------|------|-------------|-------|--------|
-| R3.1 | Code Quality | Extract reasoning model detection to shared method — eliminate duplication between `chat_completion()` and `chat_completion_stream()` | `stratifyai/providers/openai.py:133-152, 248-264` | ⬜ Not Started |
-| R3.2 | Code Quality | Add response validation in provider normalize functions — check for empty `choices`, missing `content` fields | `stratifyai/providers/openai.py:312`, `stratifyai/providers/anthropic.py:299` | ⬜ Not Started |
-| R3.3 | Security | Add file size limits before API file processing — prevent OOM/DoS from oversized uploads | `api/main.py:787-860, 1101-1276` | ⬜ Not Started |
-| R3.4 | Security | Add memory bounds or LRU cleanup to global `CostTracker` — prevent unbounded growth in long-running servers | `api/main.py:293`, `stratifyai/mcp_server/tools.py:31-32` | ⬜ Not Started |
-| R3.5 | API Design | Add API versioning (`/v1/` prefix) to REST endpoints for stability across releases | `api/main.py` (all route definitions) | ⬜ Not Started |
-| R3.6 | Docs | Consolidate getting-started documentation — merge README, GETTING-STARTED, quick-start-guide, local-installation-guide into single flow | `docs/GETTING-STARTED.md`, `docs/quick-start-guide.md`, `docs/local-installation-guide.md` | ⬜ Not Started |
-| R3.7 | Docs | Add `examples/README.md` with quick reference and recommended learning order for each example | `examples/README.md` (new) | ⬜ Not Started |
-| R3.8 | Docs | Document Vision support with usage examples — feature exists in providers but has no user-facing guide | `docs/` (new or extend API-REFERENCE.md) | ⬜ Not Started |
-| R3.9 | Docs | Update test count badges — README (536 → 669), ENTERPRISE_README (300+ → 669) | `README.md:6`, `ENTERPRISE_README.md:5` | ⬜ Not Started |
-| R3.10 | Testing | Add tests for `bedrock_validator.py` (0% coverage) and `provider_validator.py` (0% coverage) | `tests/test_bedrock_validator.py` (new), `tests/test_provider_validator.py` (new) | ⬜ Not Started |
-| R3.11 | Testing | Raise coverage threshold from 75% → 85% after R2 test additions stabilize | `pyproject.toml`, `.github/workflows/ci.yml` | ⬜ Not Started |
-| R3.12 | Config | Make `ThreadPoolExecutor` max_workers configurable via env var (currently hardcoded to 4) | `api/main.py:98-99` | ⬜ Not Started |
+| R3.1 | Code Quality | Extract reasoning model detection to shared method — eliminate duplication between `chat_completion()` and `chat_completion_stream()` | `stratifyai/providers/openai.py:133-152, 248-264` | ✅ Complete |
+| R3.2 | Code Quality | Add response validation in provider normalize functions — check for empty `choices`, missing `content` fields | `stratifyai/providers/openai.py:312`, `stratifyai/providers/anthropic.py:299` | ✅ Complete |
+| R3.3 | Security | Add file size limits before API file processing — prevent OOM/DoS from oversized uploads | `api/main.py:787-860, 1101-1276` | ✅ Complete |
+| R3.4 | Security | Add memory bounds or LRU cleanup to global `CostTracker` — prevent unbounded growth in long-running servers | `api/main.py:293`, `stratifyai/mcp_server/tools.py:31-32` | ✅ Complete |
+| R3.5 | API Design | Add API versioning (`/v1/` prefix) to REST endpoints for stability across releases | `api/main.py` (all route definitions) | ✅ Complete |
+| R3.6 | Docs | Consolidate getting-started documentation — merge README, GETTING-STARTED, quick-start-guide, local-installation-guide into single flow | `docs/GETTING-STARTED.md`, `docs/quick-start-guide.md`, `docs/local-installation-guide.md` | ✅ Complete |
+| R3.7 | Docs | Add `examples/README.md` with quick reference and recommended learning order for each example | `examples/README.md` (new) | ✅ Complete |
+| R3.8 | Docs | Document Vision support with usage examples — feature exists in providers but has no user-facing guide | `docs/` (new or extend API-REFERENCE.md) | ✅ Complete |
+| R3.9 | Docs | Update test count badges — README (536 → 669), ENTERPRISE_README (300+ → 669) | `README.md:6`, `ENTERPRISE_README.md:5` | ✅ Complete |
+| R3.10 | Testing | Add tests for `bedrock_validator.py` (0% coverage) and `provider_validator.py` (0% coverage) | `tests/test_bedrock_validator.py` (new), `tests/test_provider_validator.py` (new) | ✅ Complete |
+| R3.11 | Testing | Raise coverage threshold from 75% → 85% after R2 test additions stabilize | `pyproject.toml`, `.github/workflows/ci.yml` | ✅ Complete |
+| R3.12 | Config | Make `ThreadPoolExecutor` max_workers configurable via env var (currently hardcoded to 4) | `api/main.py:98-99` | ✅ Complete |
 
 ---
 
