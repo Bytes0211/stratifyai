@@ -269,7 +269,7 @@ client = LLMClient(provider="openai")
 
 # Create request
 request = ChatRequest(
-    model="gpt-4.1-mini",
+    model="gpt-4o-mini",
     messages=[
         Message(role="user", content="Explain quantum computing in one sentence")
     ]
@@ -349,24 +349,24 @@ import subprocess
 load_dotenv()
 
 # Example: Simple chat via CLI
-# Run: stratifyai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
+# Run: stratifyai chat "Explain Python decorators" -p openai -m gpt-4o-mini
 result = subprocess.run(
-    ["stratifyai", "chat", "Explain Python decorators", "-p", "openai", "-m", "gpt-4.1-mini"],
+    ["stratifyai", "chat", "Explain Python decorators", "-p", "openai", "-m", "gpt-4o-mini"],
     capture_output=True,
     text=True
 )
 print(result.stdout)
 
 # Example: Using CLI with streaming
-# Run: stratifyai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
+# Run: stratifyai chat "Tell me a story" -p openai -m gpt-4o-mini --stream
 subprocess.run(
-    ["stratifyai", "chat", "Tell me a story", "-p", "openai", "-m", "gpt-4.1-mini", "--stream"]
+    ["stratifyai", "chat", "Tell me a story", "-p", "openai", "-m", "gpt-4o-mini", "--stream"]
 )
 
 # Example: Chat with file input
-# Run: stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
+# Run: stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4o-mini
 subprocess.run(
-    ["stratifyai", "chat", "Summarize this:", "-f", "document.txt", "-p", "openai", "-m", "gpt-4.1-mini"]
+    ["stratifyai", "chat", "Summarize this:", "-f", "document.txt", "-p", "openai", "-m", "gpt-4o-mini"]
 )
 ```
 
@@ -374,7 +374,7 @@ subprocess.run(
 
 ```bash
 # Quick chat
-stratifyai chat "Explain Python decorators" -p openai -m gpt-4.1-mini
+stratifyai chat "Explain Python decorators" -p openai -m gpt-4o-mini
 
 # Interactive mode with conversation history
 stratifyai interactive -p anthropic -m claude-3-5-sonnet-20241022
@@ -383,13 +383,13 @@ stratifyai interactive -p anthropic -m claude-3-5-sonnet-20241022
 stratifyai route "Complex analysis task" --strategy quality --execute
 
 # Stream response in real-time
-stratifyai chat "Tell me a story" -p openai -m gpt-4.1-mini --stream
+stratifyai chat "Tell me a story" -p openai -m gpt-4o-mini --stream
 
 # With file input
-stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4.1-mini
+stratifyai chat "Summarize this:" -f document.txt -p openai -m gpt-4o-mini
 
 # With system message and custom temperature
-stratifyai chat "Explain quantum physics" -p openai -m gpt-4.1-mini -s "You are a physics professor" -t 0.3
+stratifyai chat "Explain quantum physics" -p openai -m gpt-4o-mini -s "You are a physics professor" -t 0.3
 
 # List available providers
 stratifyai providers

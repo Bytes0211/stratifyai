@@ -105,7 +105,7 @@ stratifyai/                             # Project root
 ├── .venv/                              # Virtual environment (git-ignored)
 ├── .github/
 │   └── workflows/
-│       └── validate-catalog.yml        # Catalog validation CI on PRs
+│       └── ci.yml                      # CI pipeline (ruff, mypy, pytest, pip-audit, frontend build)
 ├── api/                                # FastAPI REST API + WebSocket
 │   ├── __init__.py
 │   ├── main.py                         # API endpoints, WebSocket streaming
@@ -149,7 +149,7 @@ stratifyai/                             # Project root
 │   └── README.md                       # Catalog contribution guidelines
 ├── cli/
 │   ├── __init__.py
-│   └── stratifyai_cli.py               # Typer CLI (chat, route, interactive, analyze, cache-stats, cache-clear, check-keys)
+│   └── stratifyai_cli.py               # Typer CLI (chat, route, interactive, analyze, cache-stats, cache-clear, check-keys, mcp)
 ├── docs/                               # Documentation (see Documentation section)
 ├── examples/
 │   ├── auto_selection_demo.py
@@ -163,16 +163,24 @@ stratifyai/                             # Project root
 │   └── web_server.py
 ├── scripts/
 │   └── validate_catalog.py             # Catalog validation tool (schema + content checks)
-├── tests/                              # Test suite (536+ tests)
+├── tests/                              # Test suite (669 tests, 72% coverage)
 │   ├── conftest.py                     # Shared fixtures (provider pool cleanup)
 │   ├── test_async_operations.py
 │   ├── test_bedrock_provider.py
+│   ├── test_cache_optimization.py      # LRU cache performance tests
 │   ├── test_caching.py
+│   ├── test_caching_concurrency.py     # WAL mode, concurrent writes
 │   ├── test_chat_builder.py
 │   ├── test_cli_auth_error.py
 │   ├── test_cli_chat.py
 │   ├── test_cli_file_loading.py
 │   ├── test_client.py
+│   ├── test_mcp_catalog.py             # MCP catalog manager + CLI + API
+│   ├── test_mcp_client_engine.py       # MCP client engine lifecycle + chat integration
+│   ├── test_mcp_prompts.py             # MCP prompt exposure
+│   ├── test_mcp_resources.py           # MCP resource layer
+│   ├── test_mcp_schemas.py             # MCP schema validation
+│   ├── test_mcp_tools.py              # MCP tool registration
 │   ├── test_middleware.py              # TrackedLLMClient middleware tests
 │   ├── test_model_selector.py
 │   ├── test_models.py
@@ -181,13 +189,17 @@ stratifyai/                             # Project root
 │   ├── test_phase71.py
 │   ├── test_phase72_extractors.py
 │   ├── test_phase74_caching.py
+│   ├── test_phase80_hardening.py       # Security hardening tests
 │   ├── test_phase83_new.py             # Provider pooling & ChatResponse.to_dict tests
+│   ├── test_profile_registry.py        # Profile system tests
 │   ├── test_prompts.py                 # Prompt template system tests (30 tests)
+│   ├── test_provider_concurrency.py    # Semaphore concurrency tests
 │   ├── test_providers_phase2.py
 │   ├── test_router.py
 │   ├── test_router_extraction.py
 │   ├── test_temperature_unit.py
-│   └── test_temperature_validation.py
+│   ├── test_temperature_validation.py
+│   └── test_token_limit_and_ttl.py     # TTL and token limit tests
 └── stratifyai/                         # Main Python package
     ├── __init__.py                     # Package exports (LLMClient, Router, etc.)
     ├── api_key_helper.py               # API key discovery and validation
@@ -232,6 +244,19 @@ stratifyai/                             # Project root
     │   ├── openrouter.py
     │   ├── ollama.py
     │   └── bedrock.py
+    ├── mcp_client/                     # MCP client engine (spawn/manage external servers)
+    │   ├── __init__.py                 # Package exports
+    │   ├── engine.py                   # MCPClientEngine orchestrator
+    │   ├── server_manager.py           # Spawn/stop stdio MCP subprocesses
+    │   ├── connection.py               # ClientSession wrapper with reconnect
+    │   ├── tool_registry.py            # Namespace and register tools per server
+    │   ├── permissions.py              # Permission rules (allow/deny/confirm)
+    │   └── config.py                   # Load enabled servers from catalog + user config
+    ├── mcp_catalog/                    # MCP server catalog management
+    │   ├── __init__.py                 # Package exports
+    │   ├── manager.py                  # Catalog discovery, config generation
+    │   ├── catalog.json                # 20 curated MCP servers
+    │   └── schemas.py                  # Server/tool/resource schema definitions
     ├── profiles/                       # Profile configuration system
     │   ├── models.py                   # Profile, ProfileParameter, PARAMETER_DEFINITIONS
     │   └── profiles.yaml               # 6 built-in profiles (fast, balanced, reasoning, vision, json, cheap)
@@ -366,10 +391,10 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** MCP Server Implementation (Phases 1-5 complete, Phase 7 pending)
-**Progress:** Phases 1-15 complete; MCP server core delivered (8 tools, 5 resources, 13+ prompts)
-**Latest Updates:** MCP server scaffold, tools, resources, prompts, and docs implemented (Apr 3, 2026)
-**Test Suite:** 553 passed, 4 skipped (69% coverage)
+**Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
+**Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4)
+**Latest Updates:** Client Engine chat integration, permissions/safety, Web UI panels, API diagnostics (Apr 4, 2026)
+**Test Suite:** 669 tests (664 passed, 4 skipped, 1 deselected), 72% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -613,21 +638,31 @@ stratifyai check-keys
   - CI updated with `--extra mcp` install
   - Coverage restored to 71%+ (was 64% before tests)
 
-### In Progress
+- ✅ MCP Abstraction Layer (AL-1 to AL-4) - Apr 4, 2026
+  - AL-1: Catalog + CLI core (`stratifyai mcp setup` wizard)
+  - AL-2: Additional CLI commands (add/remove/status)
+  - AL-3: Web UI (catalog browser, config export)
+  - AL-4: Inline tool tester (JSON input editor, execution panel, presets)
+  - MCP catalog with 20 curated servers, config generation for Claude Desktop/Code/Cursor/VS Code
 
-- 🔧 AL-1: MCP Abstraction Layer — catalog + CLI core (`stratifyai mcp setup` wizard)
-  - Reference: `developer/PRD-MCP-abstraction-layer.md`
+- ✅ MCP Client Engine (CE-1 to CE-6) - Apr 4, 2026
+  - CE-1: Client Engine core (spawn servers, call tools)
+  - CE-2: Tool registry and namespacing
+  - CE-3: Chat integration (inject namespaced tools into LLM flow)
+  - CE-4: Permissions and safety (allow/deny/confirm, destructive tool gating)
+  - CE-5: Web UI panels (MCPServersPage, live status, tool browser, permission manager)
+  - CE-6: API and diagnostics (REST endpoints for server lifecycle, tool execution, health)
+  - Reference: `developer/PRD-MCP-client-engine.md`
 
 ### Future Enhancements
 
-- 📝 AL-2 through AL-5: Additional CLI commands, Web UI, inline tool tester, polish
-- 📝 CE-1 through CE-7: MCP Client Engine — spawn external MCP servers, tool aggregation, chat integration, permissions, Web UI panels
-  - Reference: `developer/PRD-MCP-client-engine.md`
+- 📝 AL-5: Abstraction Layer polish
+- 📝 CE-7: Client Engine tests and docs
 - 📝 MCP Server Extended (RAG tools, prompt exposure, subscriptions)
 - ⏳ MCP Server Phase 6: Streamable HTTP transport (deferred post-GA)
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
-- Execution order: AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → AL-5 + CE-7
+- 📝 Code Review Action Plan: concurrency fixes, test coverage, code organization (see `developer/code-review-action-plan.md`)
 
 See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 
@@ -661,6 +696,7 @@ See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 - **docs/MCP-QUICKSTART.md** — MCP server install, configure, first tool call
 - **docs/MCP-TOOLS-REFERENCE.md** — All MCP tools, resources, and prompts with schemas
 - **docs/MCP-CLIENT-CONFIG.md** — Client config for Claude Desktop, Claude Code, Cursor, VS Code
+- **developer/code-review-action-plan.md** — Code review findings and remediation phases (R1-R3)
 - **AGENTS.md** — This file (AI agent guidance)
 
 ## Troubleshooting

@@ -71,8 +71,8 @@ Cost: $0.000045 | Tokens: 28
 ### Example 3: Using environment variables
 
 ```bash
-$ export STRATUMAI_PROVIDER=groq
-$ export STRATUMAI_MODEL=llama-3.3-70b
+$ export STRATIFYAI_PROVIDER=groq
+$ export STRATIFYAI_MODEL=llama-3.3-70b
 $ python -m cli.stratifyai_cli chat
 
 Temperature (0.0-2.0, default 0.7) [0.7]: 0.9

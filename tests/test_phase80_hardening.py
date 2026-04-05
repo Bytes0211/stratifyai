@@ -11,6 +11,7 @@ Covers:
 - verify_api_key with various header formats
 """
 
+import asyncio
 import time
 from collections import deque
 from pathlib import Path
@@ -345,6 +346,65 @@ class TestEnforceBudget:
 # ---------------------------------------------------------------------------
 # WebSocket rate-limit TTL eviction
 # ---------------------------------------------------------------------------
+
+
+class TestGlobalInitializationLocks:
+    """Verify lazy singleton initialization is safe under concurrency."""
+
+    @pytest.mark.asyncio
+    async def test_get_mcp_chat_engine_initializes_once_under_concurrency(
+        self, monkeypatch
+    ):
+        import api.main as api_main
+
+        api_main._mcp_chat_engine = None
+        start_calls = 0
+
+        class FakeEngine:
+            async def start(self):
+                nonlocal start_calls
+                start_calls += 1
+                await asyncio.sleep(0.01)
+
+        monkeypatch.setattr(api_main, "MCPClientEngine", FakeEngine)
+
+        engines = await asyncio.gather(
+            api_main.get_mcp_chat_engine(),
+            api_main.get_mcp_chat_engine(),
+            api_main.get_mcp_chat_engine(),
+        )
+
+        assert start_calls == 1
+        assert len({id(engine) for engine in engines}) == 1
+        api_main._mcp_chat_engine = None
+
+    def test_chat_completion_request_rejects_invalid_ranges(self):
+        from pydantic import ValidationError as PydanticValidationError
+
+        from api.main import ChatCompletionRequest
+
+        with pytest.raises(PydanticValidationError):
+            ChatCompletionRequest(
+                provider="not-a-provider",
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "hi"}],
+            )
+
+        with pytest.raises(PydanticValidationError):
+            ChatCompletionRequest(
+                provider="openai",
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "hi"}],
+                temperature=2.5,
+            )
+
+        with pytest.raises(PydanticValidationError):
+            ChatCompletionRequest(
+                provider="openai",
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": "hi"}],
+                max_tokens=0,
+            )
 
 
 class TestWsRateLimitEviction:

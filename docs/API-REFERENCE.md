@@ -390,7 +390,7 @@ list_models(provider: str) -> List[str]
 **Example:**
 ```python
 models = client.list_models("openai")
-print(models)  # ['gpt-4.1', 'gpt-4.1-mini', 'o1', ...]
+print(models)  # ['gpt-4o', 'gpt-4o-mini', 'o1', ...]
 ```
 
 ##### `get_provider()`
@@ -521,7 +521,7 @@ All providers implement the `BaseProvider` abstract interface.
 
 | Provider | Models | Notes |
 |----------|--------|-------|
-| OpenAI | GPT-4.1, GPT-4.1-mini, o1, o3-mini, GPT-5 | Full support, prompt caching |
+| OpenAI | GPT-4o, GPT-4o-mini, o1, o3-mini, GPT-5 | Full support, prompt caching |
 | Anthropic | Claude Sonnet 4/3.5, Haiku 4, Opus 4 | Messages API, prompt caching |
 | Google | Gemini 2.5 Flash, Pro, Ultra | OpenAI-compatible, prompt caching |
 | DeepSeek | DeepSeek Chat, Reasoner | OpenAI-compatible |
@@ -1036,7 +1036,7 @@ config = RetryConfig(
 
 @with_retry(config)
 def robust_chat(messages):
-    return client.chat(model="gpt-4.1", messages=messages)
+    return client.chat(model="gpt-4o", messages=messages)
 
 # Automatically retries on failure, falls back to cheaper models
 response = robust_chat([{"role": "user", "content": "Hello"}])
@@ -1164,8 +1164,8 @@ python -m cli.stratifyai_cli cache-stats
 
 ```bash
 # Set default provider and model
-export STRATUMAI_PROVIDER=anthropic
-export STRATUMAI_MODEL=claude-sonnet-4-5-20250929
+export STRATIFYAI_PROVIDER=anthropic
+export STRATIFYAI_MODEL=claude-sonnet-4-5-20250929
 
 # Now you can omit --provider and --model
 python -m cli.stratifyai_cli chat "Hello"
@@ -1187,14 +1187,14 @@ client = LLMClient()
 
 config = RetryConfig(
     max_retries=3,
-    fallback_models=["gpt-4.1", "claude-sonnet-4-5-20250929", "gpt-4o-mini"]
+    fallback_models=["gpt-4o", "claude-sonnet-4-5-20250929", "gpt-4o-mini"]
 )
 
 @with_retry(config)
 def resilient_chat(messages):
-    return client.chat(model="gpt-4.1", messages=messages)
+    return client.chat(model="gpt-4o", messages=messages)
 
-# Tries gpt-4.1, falls back to claude, then gpt-4o-mini
+# Tries gpt-4o, falls back to claude, then gpt-4o-mini
 response = resilient_chat([{"role": "user", "content": "Hello"}])
 print(f"Model used: {response.model}")
 ```

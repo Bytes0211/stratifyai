@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import logging
+import threading
 import time
 from collections.abc import AsyncIterator
 from enum import Enum
@@ -54,6 +55,7 @@ class ProviderType(str, Enum):
 # Prevents creating duplicate SDK clients (AsyncOpenAI, AsyncAnthropic, …)
 # when multiple LLMClient objects target the same provider.
 _provider_pool: dict[str, BaseProvider] = {}
+_provider_pool_lock = threading.Lock()
 
 
 def _pool_key(provider: str, api_key: str | None) -> str:
@@ -74,8 +76,20 @@ def close_all_providers() -> None:
 
     Call this during application shutdown to clean up SDK clients.
     """
-    _provider_pool.clear()
+    with _provider_pool_lock:
+        _provider_pool.clear()
     logger.debug("All pooled provider instances released")
+
+
+async def _safe_aclose_async_iterator(iterator: Any) -> None:
+    """Explicitly close async generators/iterators when supported."""
+    aclose = getattr(iterator, "aclose", None)
+    if not callable(aclose):
+        return
+
+    result = aclose()
+    if asyncio.iscoroutine(result):
+        await result
 
 
 class LLMClient:
@@ -205,15 +219,15 @@ class LLMClient:
             )
 
         key = _pool_key(provider, self.api_key)
-        if key in _provider_pool:
-            provider_instance = _provider_pool[key]
-        else:
-            provider_class = self._provider_registry[provider]
-            provider_instance = provider_class(
-                api_key=self.api_key or "",
-                config=self._build_provider_config(provider),
-            )
-            _provider_pool[key] = provider_instance
+        with _provider_pool_lock:
+            provider_instance = _provider_pool.get(key)
+            if provider_instance is None:
+                provider_class = self._provider_registry[provider]
+                provider_instance = provider_class(
+                    api_key=self.api_key or "",
+                    config=self._build_provider_config(provider),
+                )
+                _provider_pool[key] = provider_instance
 
         self._providers[provider] = provider_instance
         self._provider_instance = provider_instance
@@ -447,12 +461,16 @@ class LLMClient:
         await self._check_cancellation(cancel_event, model=request.model)
         self._validate_reasoning_temperature(request.model, request.temperature)
         provider = self._get_provider_for_model(request.model)
-        async for chunk in self._stream_with_retry(
+        stream = self._stream_with_retry(
             provider,
             request,
             cancel_event=cancel_event,
-        ):
-            yield chunk
+        )
+        try:
+            async for chunk in stream:
+                yield chunk
+        finally:
+            await _safe_aclose_async_iterator(stream)
 
     async def _stream_with_retry(
         self,
@@ -469,12 +487,19 @@ class LLMClient:
         chunks_yielded = 0
 
         for attempt in range(cfg.max_retries + 1):
+            stream = None
             try:
                 await self._check_cancellation(cancel_event, model=request.model)
-                async for chunk in provider.chat_completion_stream(request):
-                    await self._check_cancellation(cancel_event, model=request.model)
-                    chunks_yielded += 1
-                    yield chunk
+                stream = provider.chat_completion_stream(request)
+                try:
+                    async for chunk in stream:
+                        await self._check_cancellation(
+                            cancel_event, model=request.model
+                        )
+                        chunks_yielded += 1
+                        yield chunk
+                finally:
+                    await _safe_aclose_async_iterator(stream)
                 return
             except asyncio.CancelledError:
                 raise
@@ -577,9 +602,10 @@ class LLMClient:
 
     def close(self) -> None:
         """Release this client's provider from the shared pool."""
-        for prov_name, _prov_inst in list(self._providers.items()):
-            key = _pool_key(prov_name, self.api_key)
-            _provider_pool.pop(key, None)
+        with _provider_pool_lock:
+            for prov_name, _prov_inst in list(self._providers.items()):
+                key = _pool_key(prov_name, self.api_key)
+                _provider_pool.pop(key, None)
         self._providers.clear()
         self._provider_instance = None
 

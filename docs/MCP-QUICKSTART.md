@@ -70,8 +70,8 @@ Once connected, ask your MCP client:
 
 - "List all available providers" (calls `list_providers`)
 - "What models does OpenAI offer?" (calls `list_models`)
-- "Estimate the cost of sending 1000 words to gpt-4.1" (calls `estimate_cost`)
-- "Send 'Hello world' to openai/gpt-4.1-mini" (calls `chat_completion`)
+- "Estimate the cost of sending 1000 words to gpt-4o" (calls `estimate_cost`)
+- "Send 'Hello world' to openai/gpt-4o-mini" (calls `chat_completion`)
 
 ## Available Tools
 

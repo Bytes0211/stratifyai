@@ -23,8 +23,8 @@ python -m cli.stratifyai_cli chat -p openai
 python -m cli.stratifyai_cli chat "Hello, world!"
 
 # Or set environment variables
-export STRATUMAI_PROVIDER=openai
-export STRATUMAI_MODEL=gpt-4o-mini
+export STRATIFYAI_PROVIDER=openai
+export STRATIFYAI_MODEL=gpt-4o-mini
 python -m cli.stratifyai_cli chat
 
 # Or fully non-interactive
@@ -43,8 +43,8 @@ python -m cli.stratifyai_cli chat [OPTIONS] [MESSAGE]
 ```
 
 **Options:**
-- `--provider, -p TEXT`: LLM provider (env: `STRATUMAI_PROVIDER`) *[will prompt if not provided]*
-- `--model, -m TEXT`: Model name (env: `STRATUMAI_MODEL`) *[will prompt if not provided]*
+- `--provider, -p TEXT`: LLM provider (env: `STRATIFYAI_PROVIDER`) *[will prompt if not provided]*
+- `--model, -m TEXT`: Model name (env: `STRATIFYAI_MODEL`) *[will prompt if not provided]*
 - `--temperature, -t FLOAT`: Temperature 0.0-2.0 *[will prompt if not provided, default: 0.7]*
 - `--max-tokens INTEGER`: Maximum tokens to generate
 - `--stream`: Stream response in real-time
@@ -91,8 +91,8 @@ python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 1.5 \
   "Write a creative poem"
 
 # Using environment variables
-export STRATUMAI_PROVIDER=anthropic
-export STRATUMAI_MODEL=claude-sonnet-4-5
+export STRATIFYAI_PROVIDER=anthropic
+export STRATIFYAI_MODEL=claude-sonnet-4-5
 python -m cli.stratifyai_cli chat "What is the capital of France?"
 ```
 
@@ -128,7 +128,7 @@ python -m cli.stratifyai_cli models -p anthropic
 ┃ Provider     ┃ Model                                    ┃    Context ┃
 ┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
 │ openai       │ gpt-4o-mini                              │    128,000 │
-│ openai       │ gpt-4.1                                  │    128,000 │
+│ openai       │ gpt-4o                                   │    128,000 │
 │ anthropic    │ claude-sonnet-4-5                        │    200,000 │
 │ google       │ gemini-2.0-flash-exp                     │  1,000,000 │
 └──────────────┴──────────────────────────────────────────┴────────────┘
@@ -189,7 +189,7 @@ python -m cli.stratifyai_cli route [OPTIONS] MESSAGE
 
 **Routing Strategies:**
 - `cost`: Select cheapest models (Groq, Google Flash, DeepSeek)
-- `quality`: Select best models (GPT-4.1, o3-mini, Claude Sonnet 4.5, Gemini 2.0 Pro)
+- `quality`: Select best models (GPT-4o, o3-mini, Claude Sonnet 4.5, Gemini 2.0 Pro)
 - `latency`: Select fastest models (Groq, Ollama local models)
 - `hybrid`: Dynamically balance based on prompt complexity
 
@@ -282,8 +282,8 @@ python -m cli.stratifyai_cli interactive [OPTIONS]
 ```
 
 **Options:**
-- `--provider, -p TEXT`: LLM provider (env: `STRATUMAI_PROVIDER`)
-- `--model, -m TEXT`: Model name (env: `STRATUMAI_MODEL`)
+- `--provider, -p TEXT`: LLM provider (env: `STRATIFYAI_PROVIDER`)
+- `--model, -m TEXT`: Model name (env: `STRATIFYAI_MODEL`)
 
 **Examples:**
 
@@ -295,8 +295,8 @@ python -m cli.stratifyai_cli interactive
 python -m cli.stratifyai_cli interactive -p anthropic -m claude-sonnet-4-5
 
 # Using environment variables
-export STRATUMAI_PROVIDER=openai
-export STRATUMAI_MODEL=gpt-4o-mini
+export STRATIFYAI_PROVIDER=openai
+export STRATIFYAI_MODEL=gpt-4o-mini
 python -m cli.stratifyai_cli interactive
 ```
 
@@ -328,8 +328,8 @@ Goodbye!
 Set these to avoid specifying provider/model on every command:
 
 ```bash
-export STRATUMAI_PROVIDER=openai        # Default provider
-export STRATUMAI_MODEL=gpt-4o-mini      # Default model
+export STRATIFYAI_PROVIDER=openai       # Default provider
+export STRATIFYAI_MODEL=gpt-4o-mini     # Default model
 
 # API keys (required for each provider you use)
 export OPENAI_API_KEY=your-key-here
@@ -403,8 +403,8 @@ echo "Explain docker" | xargs python -m cli.stratifyai_cli chat -p anthropic -m 
 python -m cli.stratifyai_cli route --strategy cost --execute "Simple question"
 
 # Set a low-cost model as default
-export STRATUMAI_PROVIDER=groq
-export STRATUMAI_MODEL=llama-3.3-70b-versatile
+export STRATIFYAI_PROVIDER=groq
+export STRATIFYAI_MODEL=llama-3.3-70b-versatile
 ```
 
 ### 4. Streaming for Long Responses
@@ -422,13 +422,13 @@ python -m cli.stratifyai_cli chat --stream -p anthropic -m claude-sonnet-4-5 \
 ### Provider/Model Required Error
 
 ```
-Error: --provider (-p) is required or set STRATUMAI_PROVIDER
+Error: --provider (-p) is required or set STRATIFYAI_PROVIDER
 ```
 
 **Solution:** Set environment variables or provide flags:
 ```bash
-export STRATUMAI_PROVIDER=openai
-export STRATUMAI_MODEL=gpt-4o-mini
+export STRATIFYAI_PROVIDER=openai
+export STRATIFYAI_MODEL=gpt-4o-mini
 ```
 
 ### API Key Not Found

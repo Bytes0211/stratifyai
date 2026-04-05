@@ -761,11 +761,15 @@ def chat(
         None,
         "--provider",
         "-p",
-        envvar="STRATUMAI_PROVIDER",
+        envvar=["STRATIFYAI_PROVIDER", "STRATUMAI_PROVIDER"],
         help="LLM provider (openai, anthropic, google, deepseek, groq, grok, ollama, openrouter, bedrock)",
     ),
     model: str | None = typer.Option(
-        None, "--model", "-m", envvar="STRATUMAI_MODEL", help="Model name"
+        None,
+        "--model",
+        "-m",
+        envvar=["STRATIFYAI_MODEL", "STRATUMAI_MODEL"],
+        help="Model name",
     ),
     temperature: float | None = typer.Option(
         None, "--temperature", "-t", min=0.0, max=2.0, help="Temperature (0.0-2.0)"
@@ -1853,10 +1857,18 @@ def route(
 @app.command()
 def interactive(
     provider: str | None = typer.Option(
-        None, "--provider", "-p", envvar="STRATUMAI_PROVIDER", help="LLM provider"
+        None,
+        "--provider",
+        "-p",
+        envvar=["STRATIFYAI_PROVIDER", "STRATUMAI_PROVIDER"],
+        help="LLM provider",
     ),
     model: str | None = typer.Option(
-        None, "--model", "-m", envvar="STRATUMAI_MODEL", help="Model name"
+        None,
+        "--model",
+        "-m",
+        envvar=["STRATIFYAI_MODEL", "STRATUMAI_MODEL"],
+        help="Model name",
     ),
     file: Path | None = typer.Option(
         None,

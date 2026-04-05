@@ -12,6 +12,7 @@ from stratifyai.catalog_manager import load_catalog
 from stratifyai.client import LLMClient
 from stratifyai.config import MODEL_CATALOG
 from stratifyai.cost_tracker import CostTracker
+from stratifyai.exceptions import ValidationError
 from stratifyai.models import ChatRequest, Message
 from stratifyai.router import Router, RoutingStrategy
 from stratifyai.utils.token_counter import estimate_tokens
@@ -30,6 +31,41 @@ from .schemas import (
 
 # Module-level cost tracker shared across tool calls in a session
 _mcp_cost_tracker = CostTracker()
+
+
+def _validate_tool_messages(messages: list[dict[str, str]]) -> list[Message]:
+    """Validate MCP tool message payloads before any provider work begins."""
+    if not messages:
+        raise ValidationError("messages must be a non-empty list")
+
+    normalized: list[Message] = []
+    for index, message in enumerate(messages):
+        if not isinstance(message, dict):
+            raise ValidationError(f"messages[{index}] must be an object")
+
+        role = str(message.get("role", "")).strip()
+        content = str(message.get("content", ""))
+        if role not in {"system", "user", "assistant"}:
+            raise ValidationError(
+                f"messages[{index}].role must be one of: system, user, assistant"
+            )
+        if not content.strip():
+            raise ValidationError(f"messages[{index}].content must be non-empty")
+
+        normalized.append(Message(role=role, content=content))
+
+    return normalized
+
+
+def _validate_generation_params(
+    temperature: float | None,
+    max_tokens: int | None,
+) -> None:
+    """Validate generation parameter ranges for exposed MCP tools."""
+    if temperature is not None and not 0.0 <= temperature <= 2.0:
+        raise ValidationError("temperature must be between 0.0 and 2.0")
+    if max_tokens is not None and not 1 <= max_tokens <= 4_000_000:
+        raise ValidationError("max_tokens must be between 1 and 4000000")
 
 
 def _track_response_cost(response: Any) -> None:
@@ -119,8 +155,9 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Returns the response content, token usage, cost, and latency.
         """
         try:
+            _validate_generation_params(temperature, max_tokens)
+            msgs = _validate_tool_messages(messages)
             client = LLMClient(provider=provider)
-            msgs = [Message(role=m["role"], content=m["content"]) for m in messages]
             request = ChatRequest(
                 model=model,
                 messages=msgs,
@@ -167,13 +204,13 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Returns the selected provider/model, response content, usage, and cost.
         """
         try:
+            msgs = _validate_tool_messages(messages)
             routing_strategy = RoutingStrategy(strategy)
             router = Router(
                 strategy=routing_strategy,
                 preferred_providers=preferred_providers,
                 excluded_providers=excluded_providers,
             )
-            msgs = [Message(role=m["role"], content=m["content"]) for m in messages]
             selected_provider, selected_model = router.route(
                 msgs,
                 required_capabilities=capabilities,
