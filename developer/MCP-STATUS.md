@@ -210,7 +210,7 @@ Reference: `developer/PRD-MCP-client-engine.md`
 | CE-3 | Chat Integration | https://github.com/Bytes0211/stratifyai/issues/40 | Done | 2026-04-04 | MCP-aware LLM chat loop, tool result injection, active server selection, and API/WebSocket chat integration verified |
 | CE-4 | Permissions & Safety | https://github.com/Bytes0211/stratifyai/issues/41 | Done | 2026-04-04 | Permission manager, safety defaults, config-backed server toggles, and confirmation gating verified |
 | CE-5 | Web UI Panels | https://github.com/Bytes0211/stratifyai/issues/42 | Done | 2026-04-04 | Live dashboard controls, tool discovery, chat badges, and permission manager shipped and verified |
-| CE-6 | API & Diagnostics | https://github.com/Bytes0211/stratifyai/issues/43 | Planned | 2026-04-03 | REST endpoints, health monitoring |
+| CE-6 | API & Diagnostics | https://github.com/Bytes0211/stratifyai/issues/43 | Done | 2026-04-04 | Tool execution/resource endpoints and health diagnostics verified |
 | CE-7 | Tests & Documentation | https://github.com/Bytes0211/stratifyai/issues/44 | Planned | 2026-04-03 | Unit, integration, UI tests, user docs |
 
 ---
@@ -313,10 +313,10 @@ See Workstream B step-level tracking above.
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| CE6-S1 | Implement `GET /api/mcp-client/servers` and `/servers/{id}/start\|stop\|restart` | Planned | 2026-04-04 | - |
-| CE6-S2 | Implement `GET /api/mcp-client/tools` and `POST /tools/{server}/{tool}` (execute) | Planned | 2026-04-04 | - |
-| CE6-S3 | Implement `GET/PUT /api/mcp-client/permissions` | Planned | 2026-04-04 | - |
-| CE6-S4 | Implement `GET /api/mcp-client/health` with periodic ping and error reporting | Planned | 2026-04-04 | - |
+| CE6-S1 | Implement `GET /api/mcp-client/servers` and `/servers/{id}/start\|stop\|restart` | Done | 2026-04-04 | `api/main.py` (`/api/mcp-client/servers*`); `tests/test_mcp_catalog.py::test_api_mcp_client_servers_and_tools_return_runtime_metadata` |
+| CE6-S2 | Implement `GET /api/mcp-client/tools` and `POST /tools/{server}/{tool}` (execute) | Done | 2026-04-04 | `api/main.py` (`/api/mcp-client/tools`, `/api/mcp-client/tools/{server}/{tool}`, `/api/mcp-client/resources/{server}/{uri}`); `tests/test_mcp_catalog.py::test_api_mcp_client_tool_execution_and_resource_fetch` |
+| CE6-S3 | Implement `GET/PUT /api/mcp-client/permissions` | Done | 2026-04-04 | `api/main.py` (`/api/mcp-client/permissions`); `tests/test_mcp_catalog.py::test_api_mcp_client_permissions_can_be_updated` |
+| CE6-S4 | Implement `GET /api/mcp-client/health` with periodic ping and error reporting | Done | 2026-04-04 | `stratifyai/mcp_client/engine.py`; `stratifyai/mcp_client/server_manager.py`; `tests/test_mcp_catalog.py::test_api_mcp_client_health_reports_diagnostics` |
 
 #### Step 11: AL-5 + CE-7 — Polish + Tests
 

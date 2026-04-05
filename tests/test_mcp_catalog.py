@@ -554,3 +554,104 @@ def test_api_mcp_client_permissions_can_be_updated(tmp_path: Path) -> None:
 
     written = json.loads(config_path.read_text(encoding="utf-8"))
     assert written["stratifyai"]["mcpClient"]["servers"]["demo"]["auto_start"] is False
+
+
+def test_api_mcp_client_tool_execution_and_resource_fetch(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    class FakeEngine:
+        def __init__(self) -> None:
+            self.call_tool = AsyncMock(
+                return_value={"content": [{"type": "text", "text": "ok"}]}
+            )
+            self.get_resource = AsyncMock(return_value="resource body")
+
+    fake_engine = FakeEngine()
+
+    async def fake_get_mcp_chat_engine():
+        return fake_engine
+
+    monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
+
+    client = TestClient(api_app)
+
+    tool_response = client.post(
+        "/api/mcp-client/tools/demo/list_files",
+        json={"path": "/tmp"},
+    )
+    assert tool_response.status_code == 200
+    tool_payload = tool_response.json()
+    assert tool_payload["server_id"] == "demo"
+    assert tool_payload["tool_name"] == "list_files"
+    assert tool_payload["arguments"] == {"path": "/tmp"}
+    assert tool_payload["result"]["content"][0]["text"] == "ok"
+    fake_engine.call_tool.assert_awaited_once_with(
+        "demo", "list_files", {"path": "/tmp"}
+    )
+
+    resource_response = client.get(
+        "/api/mcp-client/resources/demo/stratifyai%3A%2F%2Fcatalog"
+    )
+    assert resource_response.status_code == 200
+    resource_payload = resource_response.json()
+    assert resource_payload["server_id"] == "demo"
+    assert resource_payload["uri"] == "stratifyai://catalog"
+    assert resource_payload["content"] == "resource body"
+    fake_engine.get_resource.assert_awaited_once_with("demo", "stratifyai://catalog")
+
+
+def test_api_mcp_client_health_reports_diagnostics(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    class FakeEngine:
+        def __init__(self) -> None:
+            self.get_health_snapshot = AsyncMock(
+                return_value={
+                    "status": "degraded",
+                    "checked_at": "2026-04-04T12:00:00Z",
+                    "summary": {
+                        "total": 2,
+                        "connected": 1,
+                        "degraded": 1,
+                        "stopped": 0,
+                        "disabled": 0,
+                    },
+                    "servers": [
+                        {
+                            "server_id": "demo",
+                            "status": "connected",
+                            "latency_ms": 12.5,
+                            "last_checked_at": "2026-04-04T12:00:00Z",
+                            "error": None,
+                        },
+                        {
+                            "server_id": "broken",
+                            "status": "error",
+                            "latency_ms": None,
+                            "last_checked_at": "2026-04-04T12:00:00Z",
+                            "error": "boom",
+                        },
+                    ],
+                }
+            )
+
+    fake_engine = FakeEngine()
+
+    async def fake_get_mcp_chat_engine():
+        return fake_engine
+
+    monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
+
+    client = TestClient(api_app)
+    response = client.get("/api/mcp-client/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "degraded"
+    assert payload["summary"]["connected"] == 1
+    assert payload["servers"][1]["error"] == "boom"
+    fake_engine.get_health_snapshot.assert_awaited_once_with()

@@ -19,6 +19,9 @@ import type {
   McpToolTestResponse,
   McpClientServersResponse,
   McpClientToolsResponse,
+  McpClientToolExecuteResponse,
+  McpClientResourceResponse,
+  McpClientHealthResponse,
   McpClientPermissionsResponse,
   McpClientPermissionsUpdateRequest
 } from './types';
@@ -148,6 +151,33 @@ export async function restartMcpClientServer(serverId: string): Promise<{ server
 
 export async function getMcpClientTools(): Promise<McpClientToolsResponse> {
   return request<McpClientToolsResponse>('/mcp-client/tools');
+}
+
+export async function executeMcpClientTool(
+  serverId: string,
+  toolName: string,
+  payload: Record<string, unknown> = {}
+): Promise<McpClientToolExecuteResponse> {
+  return request<McpClientToolExecuteResponse>(
+    `/mcp-client/tools/${encodeURIComponent(serverId)}/${encodeURIComponent(toolName)}`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function getMcpClientResource(
+  serverId: string,
+  uri: string
+): Promise<McpClientResourceResponse> {
+  return request<McpClientResourceResponse>(
+    `/mcp-client/resources/${encodeURIComponent(serverId)}/${encodeURIComponent(uri)}`
+  );
+}
+
+export async function getMcpClientHealth(): Promise<McpClientHealthResponse> {
+  return request<McpClientHealthResponse>('/mcp-client/health');
 }
 
 export async function getMcpClientPermissions(
