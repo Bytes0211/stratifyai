@@ -15,6 +15,7 @@ from typing import Any, cast
 import tomllib
 from dotenv import load_dotenv
 from fastapi import (
+    Body,
     Depends,
     FastAPI,
     Header,
@@ -118,8 +119,9 @@ async def get_mcp_chat_engine() -> MCPClientEngine:
     """Get or lazily initialize the shared MCP chat engine."""
     global _mcp_chat_engine
     if _mcp_chat_engine is None:
-        _mcp_chat_engine = MCPClientEngine()
-        await _mcp_chat_engine.start()
+        engine = MCPClientEngine()
+        await engine.start()
+        _mcp_chat_engine = engine
     return _mcp_chat_engine
 
 
@@ -1617,6 +1619,10 @@ class MCPClientServerInfo(BaseModel):
     auto_start: bool = True
     tool_count: int = 0
     tools: list[str] = Field(default_factory=list)
+    transport: str = "stdio"
+    latency_ms: float | None = None
+    last_checked_at: str | None = None
+    last_connected_at: str | None = None
 
 
 class MCPClientToolInfo(BaseModel):
@@ -1628,6 +1634,32 @@ class MCPClientToolInfo(BaseModel):
     description: str | None = None
     input_schema: dict[str, Any] = Field(default_factory=dict)
     permission: str = "allow"
+
+
+class MCPClientToolExecutionResponse(BaseModel):
+    """Structured response for a direct external MCP tool execution."""
+
+    server_id: str
+    tool_name: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    result: dict[str, Any] = Field(default_factory=dict)
+
+
+class MCPClientResourceResponse(BaseModel):
+    """Structured response for reading an external MCP resource."""
+
+    server_id: str
+    uri: str
+    content: str
+
+
+class MCPClientHealthResponse(BaseModel):
+    """Health and diagnostics summary for the MCP client engine."""
+
+    status: str
+    checked_at: str | None = None
+    summary: dict[str, int] = Field(default_factory=dict)
+    servers: list[MCPClientServerInfo] = Field(default_factory=list)
 
 
 class MCPClientPermissionsResponse(BaseModel):
@@ -2073,6 +2105,10 @@ def _serialize_mcp_client_servers(engine: MCPClientEngine) -> list[dict[str, Any
                 auto_start=bool(getattr(config, "auto_start", True)),
                 tool_count=len(tool_names),
                 tools=tool_names,
+                transport=getattr(status, "transport", "stdio"),
+                latency_ms=getattr(status, "latency_ms", None),
+                last_checked_at=getattr(status, "last_checked_at", None),
+                last_connected_at=getattr(status, "last_connected_at", None),
             ).model_dump()
         )
     return serialized
@@ -2391,6 +2427,71 @@ async def get_mcp_client_tools(_: None = Depends(verify_api_key)):
     try:
         engine = await get_mcp_chat_engine()
         return {"tools": _serialize_mcp_client_tools(engine)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post(
+    "/api/mcp-client/tools/{server_id}/{tool_name}",
+    response_model=MCPClientToolExecutionResponse,
+)
+async def execute_mcp_client_tool(
+    server_id: str,
+    tool_name: str,
+    tool_args: dict[str, Any] = Body(default_factory=dict),
+    _: None = Depends(verify_api_key),
+):
+    """Execute one tool on an external MCP server using the shared client engine."""
+    try:
+        engine = await get_mcp_chat_engine()
+        result = await engine.call_tool(server_id, tool_name, tool_args)
+        return MCPClientToolExecutionResponse(
+            server_id=server_id,
+            tool_name=tool_name,
+            arguments=tool_args,
+            result=result,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=sanitize_error(str(exc))) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=sanitize_error(str(exc))) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.get(
+    "/api/mcp-client/resources/{server_id}/{resource_uri:path}",
+    response_model=MCPClientResourceResponse,
+)
+async def get_mcp_client_resource(
+    server_id: str,
+    resource_uri: str,
+    _: None = Depends(verify_api_key),
+):
+    """Read one external MCP resource through the shared client engine."""
+    try:
+        engine = await get_mcp_chat_engine()
+        content = await engine.get_resource(server_id, resource_uri)
+        return MCPClientResourceResponse(
+            server_id=server_id,
+            uri=resource_uri,
+            content=content,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=sanitize_error(str(exc))) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=sanitize_error(str(exc))) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.get("/api/mcp-client/health", response_model=MCPClientHealthResponse)
+async def get_mcp_client_health(_: None = Depends(verify_api_key)):
+    """Return a live MCP client engine health and diagnostics summary."""
+    try:
+        engine = await get_mcp_chat_engine()
+        snapshot = await engine.get_health_snapshot()
+        return MCPClientHealthResponse(**snapshot)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
 

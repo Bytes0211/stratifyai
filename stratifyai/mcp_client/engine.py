@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -79,6 +81,17 @@ def _render_tool_payload(value: Any) -> str:
     return rendered
 
 
+def _format_timestamp(value: float | None) -> str | None:
+    """Format UNIX timestamps as UTC ISO-8601 strings for API responses."""
+    if value is None:
+        return None
+    return (
+        datetime.fromtimestamp(value, tz=timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 class MCPClientEngine:
     """Manage MCP client server lifecycle and tool/resource calls."""
 
@@ -106,6 +119,8 @@ class MCPClientEngine:
             {server.server_id: server.permissions for server in self._servers}
         )
         self._tool_confirmation_handler = tool_confirmation_handler
+        self._health_check_interval_seconds = 30.0
+        self._health_monitor_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
         """Start all enabled auto-start servers and register their tools."""
@@ -113,6 +128,9 @@ class MCPClientEngine:
             if not server.enabled or not server.auto_start:
                 continue
             await self.start_server(server.server_id)
+
+        if self._health_monitor_task is None or self._health_monitor_task.done():
+            self._health_monitor_task = asyncio.create_task(self._health_monitor_loop())
 
     async def start_server(self, server_id: str) -> ServerStatus:
         """Start one configured server and register its tools.
@@ -144,6 +162,14 @@ class MCPClientEngine:
 
     async def stop(self) -> None:
         """Stop all running servers and clear tool registry state."""
+        if self._health_monitor_task is not None:
+            self._health_monitor_task.cancel()
+            try:
+                await self._health_monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._health_monitor_task = None
+
         for server_id in list(self._server_index.keys()):
             await self.stop_server(server_id)
 
@@ -161,8 +187,12 @@ class MCPClientEngine:
 
         self._tool_registry.unregister_server(server_id)
         connection = await self._server_manager.restart(config)
-        tools_result = await connection.session.list_tools()
-        self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        try:
+            tools_result = await connection.session.list_tools()
+            self._tool_registry.register_server_tools(server_id, tools_result.tools)
+        except Exception:
+            await self._server_manager.stop(server_id)
+            raise
         return self.get_server_status(server_id)
 
     async def build_tool_definitions(
@@ -364,6 +394,79 @@ class MCPClientEngine:
         """Find one registered tool by server-local name."""
         return self._tool_registry.find_tool(server_id, tool_name)
 
+    async def get_health_snapshot(self) -> dict[str, Any]:
+        """Return an on-demand health and diagnostics snapshot for all servers."""
+        tools_by_server: dict[str, list[str]] = {}
+        for descriptor in self.list_tools():
+            tools_by_server.setdefault(descriptor.server_id, []).append(
+                descriptor.namespace
+            )
+
+        summary = {
+            "total": len(self._servers),
+            "connected": 0,
+            "degraded": 0,
+            "stopped": 0,
+            "disabled": 0,
+            "error": 0,
+            "starting": 0,
+        }
+        servers: list[dict[str, Any]] = []
+
+        for config in self._servers:
+            status = self.get_server_status(config.server_id)
+            if self._server_manager.is_running(config.server_id):
+                status = await self._server_manager.check_health(config.server_id)
+
+            normalized_status = status.status.lower()
+            tool_names = sorted(tools_by_server.get(config.server_id, []))
+
+            if normalized_status == "connected":
+                summary["connected"] += 1
+            elif normalized_status == "disabled":
+                summary["disabled"] += 1
+            elif normalized_status == "stopped":
+                summary["stopped"] += 1
+                if config.enabled:
+                    summary["degraded"] += 1
+            elif normalized_status == "error":
+                summary["error"] += 1
+                summary["degraded"] += 1
+            elif normalized_status == "starting":
+                summary["starting"] += 1
+                summary["degraded"] += 1
+            else:
+                summary["degraded"] += 1
+
+            servers.append(
+                {
+                    "server_id": config.server_id,
+                    "status": status.status,
+                    "error": status.error,
+                    "enabled": config.enabled,
+                    "auto_start": config.auto_start,
+                    "transport": status.transport,
+                    "tool_count": len(tool_names),
+                    "tools": tool_names,
+                    "latency_ms": status.latency_ms,
+                    "last_checked_at": _format_timestamp(status.last_checked_at),
+                    "last_connected_at": _format_timestamp(status.last_connected_at),
+                }
+            )
+
+        overall_status = "healthy"
+        if summary["degraded"] > 0:
+            overall_status = "degraded"
+        elif summary["connected"] == 0 and summary["total"] > 0:
+            overall_status = "idle"
+
+        return {
+            "status": overall_status,
+            "checked_at": _format_timestamp(time.time()),
+            "summary": summary,
+            "servers": servers,
+        }
+
     def _format_tool_definition(
         self,
         provider: str,
@@ -555,3 +658,17 @@ class MCPClientEngine:
             tools_result = await connection.session.list_tools()
             self._tool_registry.register_server_tools(server_id, tools_result.tools)
         return connection
+
+    async def _health_monitor_loop(self) -> None:
+        """Continuously refresh diagnostics for connected servers in the background."""
+        while True:
+            await asyncio.sleep(self._health_check_interval_seconds)
+            for config in self._servers:
+                if not config.enabled or not self._server_manager.is_running(
+                    config.server_id
+                ):
+                    continue
+                try:
+                    await self._server_manager.check_health(config.server_id)
+                except Exception:
+                    continue

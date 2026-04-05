@@ -189,6 +189,10 @@ export interface McpClientServerInfo {
   auto_start: boolean;
   tool_count: number;
   tools: string[];
+  transport?: string;
+  latency_ms?: number | null;
+  last_checked_at?: string | null;
+  last_connected_at?: string | null;
 }
 
 export interface McpClientServersResponse {
@@ -206,6 +210,26 @@ export interface McpClientToolInfo {
 
 export interface McpClientToolsResponse {
   tools: McpClientToolInfo[];
+}
+
+export interface McpClientToolExecuteResponse {
+  server_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
+export interface McpClientResourceResponse {
+  server_id: string;
+  uri: string;
+  content: string;
+}
+
+export interface McpClientHealthResponse {
+  status: string;
+  checked_at?: string | null;
+  summary: Record<string, number>;
+  servers: McpClientServerInfo[];
 }
 
 export interface McpClientPermissionsResponse {

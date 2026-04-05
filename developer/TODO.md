@@ -221,7 +221,7 @@
 - [ ] CE-3 — Chat Integration (LLM tool_use with MCP tools in conversation)
 - [x] CE-4 — Permissions & Safety (allow/deny/confirm per tool, safety defaults)
 - [x] CE-5 — Web UI Panels (server dashboard, tool discovery, chat badges, permission manager)
-- [ ] CE-6 — API & Diagnostics (REST endpoints, health monitoring)
+- [x] CE-6 — API & Diagnostics (REST endpoints, health monitoring)
 - [ ] CE-7 — Tests & Documentation
 
 **Execution order:** AL-1 → AL-2 → CE-1 → CE-2 → AL-3 → CE-3 → CE-4 → AL-4 → CE-5 → CE-6 → AL-5 + CE-7

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from contextlib import AsyncExitStack
 
 from mcp import ClientSession
@@ -49,6 +50,12 @@ class MCPServerConnection:
         self._stack = stack
         self._session = session
         return session
+
+    async def probe(self) -> float:
+        """Perform a lightweight health probe and return latency in milliseconds."""
+        start = time.perf_counter()
+        await self.session.list_tools()
+        return (time.perf_counter() - start) * 1000
 
     async def close(self) -> None:
         stack = self._stack
