@@ -367,8 +367,9 @@ class AnthropicProvider(BaseProvider):
         cost_input = float(model_info.get("cost_input", 0.0))
         cost_output = float(model_info.get("cost_output", 0.0))
 
-        # Calculate non-cached prompt tokens
-        non_cached_prompt_tokens = usage.prompt_tokens - usage.cache_read_tokens
+        # Calculate non-cached prompt tokens, clamped to zero so cache-read
+        # reporting anomalies cannot create a negative base prompt cost.
+        non_cached_prompt_tokens = max(0, usage.prompt_tokens - usage.cache_read_tokens)
 
         # Costs are per 1M tokens
         input_cost = (non_cached_prompt_tokens / 1_000_000) * cost_input

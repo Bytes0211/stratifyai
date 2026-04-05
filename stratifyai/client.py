@@ -393,15 +393,18 @@ class LLMClient:
         self._validate_reasoning_temperature(model, temperature)
         provider = self._detect_provider(model)
 
-        return await mcp_engine.chat_with_mcp(
-            llm_client=self,
-            provider=provider,
-            model=model,
-            messages=messages,
-            active_servers=active_servers,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **kwargs,
+        return cast(
+            ChatResponse,
+            await mcp_engine.chat_with_mcp(
+                llm_client=self,
+                provider=provider,
+                model=model,
+                messages=messages,
+                active_servers=active_servers,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            ),
         )
 
     async def chat_completion(

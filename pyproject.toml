@@ -125,6 +125,10 @@ markers = [
     "asyncio: marks tests as async tests",
 ]
 
+[tool.coverage.report]
+fail_under = 75
+show_missing = true
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"

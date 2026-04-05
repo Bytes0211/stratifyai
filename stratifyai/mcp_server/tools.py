@@ -52,7 +52,12 @@ def _validate_tool_messages(messages: list[dict[str, str]]) -> list[Message]:
         if not content.strip():
             raise ValidationError(f"messages[{index}].content must be non-empty")
 
-        normalized.append(Message(role=role, content=content))
+        normalized.append(
+            Message(
+                role=role,  # type: ignore[arg-type]
+                content=content,
+            )
+        )
 
     return normalized
 

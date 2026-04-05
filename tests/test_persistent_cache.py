@@ -1,8 +1,8 @@
 """Tests for PersistentResponseCache (SQLite backend)."""
 
-import time
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -55,15 +55,18 @@ class TestPersistentCacheBasics:
 
     def test_ttl_expiration(self, tmp_path: Path):
         cache = PersistentResponseCache(db_path=str(tmp_path / "cache.db"), ttl=1)
-        cache.set("k1", _make_response())
 
-        # Available immediately
-        assert cache.get("k1") is not None
+        with patch(
+            "stratifyai.caching.time.time",
+            side_effect=[1000.0, 1000.0, 1000.0, 1001.1],
+        ):
+            cache.set("k1", _make_response())
 
-        time.sleep(1.1)
+            # Available immediately
+            assert cache.get("k1") is not None
 
-        # Expired
-        assert cache.get("k1") is None
+            # Expired after mocked time advances
+            assert cache.get("k1") is None
 
 
 class TestPersistentCachePersistence:
@@ -89,15 +92,17 @@ class TestPersistentCacheEviction:
 
     def test_evicts_oldest(self, tmp_path: Path):
         cache = PersistentResponseCache(db_path=str(tmp_path / "cache.db"), max_size=2)
-        cache.set("k0", _make_response("r0"))
-        time.sleep(0.01)
-        cache.set("k1", _make_response("r1"))
-        time.sleep(0.01)
-        cache.set("k2", _make_response("r2"))  # should evict k0
+        with patch(
+            "stratifyai.caching.time.time",
+            side_effect=[1000.0, 1000.1, 1000.2, 1000.3, 1000.4, 1000.5, 1000.6],
+        ):
+            cache.set("k0", _make_response("r0"))
+            cache.set("k1", _make_response("r1"))
+            cache.set("k2", _make_response("r2"))  # should evict k0
 
-        assert cache.get("k0") is None
-        assert cache.get("k1") is not None
-        assert cache.get("k2") is not None
+            assert cache.get("k0") is None
+            assert cache.get("k1") is not None
+            assert cache.get("k2") is not None
 
 
 class TestPersistentCacheStats:

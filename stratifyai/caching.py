@@ -513,9 +513,11 @@ def generate_cache_key(
         "max_tokens": max_tokens,
     }
 
-    # Add any additional kwargs that affect the response
+    # Add any additional kwargs that affect the response.
+    # Only the live streaming flag is intentionally excluded because it does
+    # not change the semantic response content.
     for key in sorted(kwargs.keys()):
-        if key not in ["stream", "extra_params"]:  # Skip non-deterministic params
+        if key != "stream":
             cache_data[key] = kwargs[key]
 
     # Generate hash
