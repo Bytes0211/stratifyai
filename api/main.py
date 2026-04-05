@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 import tomllib
 from dotenv import load_dotenv
@@ -319,6 +319,8 @@ _ws_rate_limit: dict[str, deque] = defaultdict(deque)
 _ws_rate_limit_lock = threading.RLock()
 _WS_RATE_LIMIT_MAX_IPS = 10_000
 _WS_RATE_LIMIT_WINDOW_SECS = 60
+
+_VALID_MESSAGE_ROLES = frozenset({"system", "user", "assistant"})
 
 
 def _evict_stale_ws_entries() -> None:
@@ -2011,16 +2013,16 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
             raise HTTPException(
                 status_code=400, detail="messages must be a non-empty list"
             )
-        request_messages = [
-            Message(
-                role=cast(
-                    Literal["system", "user", "assistant"],
-                    str(item.get("role", "user")),
-                ),
-                content=str(item.get("content", "")),
+        request_messages = []
+        for item in messages:
+            raw_role = str(item.get("role", "user"))
+            if raw_role not in _VALID_MESSAGE_ROLES:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid message role: {raw_role!r}"
+                )
+            request_messages.append(
+                Message(role=raw_role, content=str(item.get("content", "")))  # type: ignore[arg-type]
             )
-            for item in messages
-        ]
         client = get_tracked_client(provider)
         response = await client.chat_completion(
             ChatRequest(
@@ -2047,16 +2049,16 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
             preferred_providers=payload.get("preferred_providers"),
             excluded_providers=payload.get("excluded_providers"),
         )
-        request_messages = [
-            Message(
-                role=cast(
-                    Literal["system", "user", "assistant"],
-                    str(item.get("role", "user")),
-                ),
-                content=str(item.get("content", "")),
+        request_messages = []
+        for item in messages:
+            raw_role = str(item.get("role", "user"))
+            if raw_role not in _VALID_MESSAGE_ROLES:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid message role: {raw_role!r}"
+                )
+            request_messages.append(
+                Message(role=raw_role, content=str(item.get("content", "")))  # type: ignore[arg-type]
             )
-            for item in messages
-        ]
         provider, model = router.route(
             request_messages,
             required_capabilities=payload.get("capabilities"),
