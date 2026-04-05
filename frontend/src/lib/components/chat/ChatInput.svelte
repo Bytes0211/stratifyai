@@ -56,6 +56,9 @@
         fileContent = e.target?.result as string;
         attachedFile = file;
       };
+      reader.onerror = () => {
+        fileError = 'Failed to read file. Please try again.';
+      };
       reader.readAsDataURL(file);
     } else {
       // Handle text files
@@ -63,6 +66,9 @@
       reader.onload = (e) => {
         fileContent = e.target?.result as string;
         attachedFile = file;
+      };
+      reader.onerror = () => {
+        fileError = 'Failed to read file. Please try again.';
       };
       reader.readAsText(file);
     }

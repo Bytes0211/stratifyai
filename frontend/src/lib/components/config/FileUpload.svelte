@@ -41,6 +41,9 @@
         const content = e.target?.result as string;
         fileActions.setFile(file, content, content, true);
       };
+      reader.onerror = () => {
+        fileActions.setError('Failed to read file. Please try again.');
+      };
       reader.readAsDataURL(file);
     } else {
       // Handle text files
@@ -49,6 +52,9 @@
         const text = e.target?.result as string;
         const preview = text.slice(0, 500) + (text.length > 500 ? '...' : '');
         fileActions.setFile(file, text, preview, false);
+      };
+      reader.onerror = () => {
+        fileActions.setError('Failed to read file. Please try again.');
       };
       reader.readAsText(file);
     }

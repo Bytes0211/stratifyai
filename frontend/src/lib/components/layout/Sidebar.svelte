@@ -6,7 +6,7 @@
   import FileUpload from '../config/FileUpload.svelte';
   import CostSummary from '../dashboard/CostSummary.svelte';
   import ChatHistory from '../chat/ChatHistory.svelte';
-import { Settings, DollarSign, FileText, History } from 'lucide-svelte';
+  import { Settings, DollarSign, FileText, History } from 'lucide-svelte';
   
   export let collapsed = false;
   
