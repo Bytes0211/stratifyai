@@ -5,6 +5,38 @@
 import { writable, derived } from 'svelte/store';
 import type { Provider, ModelInfo } from '$lib/api/types';
 
+const ACTIVE_MCP_SERVERS_STORAGE_KEY = 'stratifyai-active-mcp-servers';
+
+function loadStoredActiveMcpServers(): string[] | null {
+  if (typeof window === 'undefined') return null;
+
+  const raw = window.localStorage.getItem(ACTIVE_MCP_SERVERS_STORAGE_KEY);
+  if (raw === null) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((value): value is string => typeof value === 'string');
+  } catch {
+    return [];
+  }
+}
+
+function persistActiveMcpServers(serverIds: string[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(
+    ACTIVE_MCP_SERVERS_STORAGE_KEY,
+    JSON.stringify(Array.from(new Set(serverIds)))
+  );
+}
+
+export function hasStoredActiveMcpServersPreference(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(ACTIVE_MCP_SERVERS_STORAGE_KEY) !== null;
+}
+
 function createConfigStore() {
   const provider = writable<Provider>('anthropic');
   const model = writable<string>('claude-sonnet-4-20250514');
@@ -13,7 +45,7 @@ function createConfigStore() {
   const chunked = writable<boolean>(false);
   const chunkSize = writable<number>(50000);
   const stream = writable<boolean>(true);
-  const activeMcpServers = writable<string[]>([]);
+  const activeMcpServers = writable<string[]>(loadStoredActiveMcpServers() ?? []);
   const modelInfo = writable<ModelInfo | null>(null);
   const isReasoningModel = writable<boolean>(false);
   const supportsVision = writable<boolean>(false);
@@ -83,15 +115,19 @@ function createConfigStore() {
       },
 
       setActiveMcpServers(serverIds: string[]) {
-        activeMcpServers.set(Array.from(new Set(serverIds)));
+        const uniqueIds = Array.from(new Set(serverIds));
+        activeMcpServers.set(uniqueIds);
+        persistActiveMcpServers(uniqueIds);
       },
 
       toggleActiveMcpServer(serverId: string) {
-        activeMcpServers.update((current) =>
-          current.includes(serverId)
+        activeMcpServers.update((current) => {
+          const next = current.includes(serverId)
             ? current.filter((id) => id !== serverId)
-            : [...current, serverId]
-        );
+            : [...current, serverId];
+          persistActiveMcpServers(next);
+          return next;
+        });
       },
     },
   };

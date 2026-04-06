@@ -21,7 +21,9 @@
       on:click={() => activeTab = 'config'}
       aria-label="Configuration"
     >
-      <Settings size={18} />
+      <span class="tab-icon" aria-hidden="true">
+        <Settings />
+      </span>
       <span class="tab-label">Config</span>
     </button>
     <button 
@@ -30,7 +32,9 @@
       on:click={() => activeTab = 'files'}
       aria-label="File Upload"
     >
-      <FileText size={18} />
+      <span class="tab-icon" aria-hidden="true">
+        <FileText />
+      </span>
       <span class="tab-label">Files</span>
     </button>
     <button 
@@ -39,7 +43,9 @@
       on:click={() => activeTab = 'history'}
       aria-label="Chat History"
     >
-      <History size={18} />
+      <span class="tab-icon" aria-hidden="true">
+        <History />
+      </span>
       <span class="tab-label">History</span>
     </button>
     <button 
@@ -48,8 +54,10 @@
       on:click={() => activeTab = 'costs'}
       aria-label="Cost Tracking"
     >
-      <DollarSign size={18} />
-      <span class="tab-label">Costs</span>
+      <span class="tab-icon" aria-hidden="true">
+        <DollarSign />
+      </span>
+      <span class="tab-label">Cost</span>
     </button>
   </div>
   
@@ -115,11 +123,12 @@
   
   .tab {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: $space-2;
-    padding: $space-3;
+    gap: $space-1;
+    padding: $space-2;
     color: var(--text-secondary);
     transition: all $transition-fast;
     @include focus-visible-ring;
@@ -133,6 +142,21 @@
       color: var(--accent);
       border-bottom: 2px solid var(--accent);
       margin-bottom: -1px;
+    }
+  }
+
+  .tab-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+
+    :global(svg) {
+      width: 1.125rem;
+      height: 1.125rem;
+      stroke-width: 2;
     }
   }
   

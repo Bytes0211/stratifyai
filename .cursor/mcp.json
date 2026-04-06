@@ -1,22 +1,17 @@
 {
   "mcpServers": {
-    "postgresql": {
+    "filesystem": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://scotton:4tressBytes@localhost:5432/dvdrental"
+        "@modelcontextprotocol/server-filesystem",
+        "/home/scoton/dev/projects/"
       ]
-    },
-    "tavily": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "tavily-mcp@latest"
-      ],
-      "env": {
-        "TAVILY_API_KEY": "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"
-      }
+    }
+  },
+  "stratifyai": {
+    "mcpClient": {
+      "servers": {}
     }
   }
 }

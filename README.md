@@ -119,12 +119,15 @@ Documentation:
 #### Local MCP chat integration notes
 
 - StratifyAI can auto-discover enabled MCP servers from **Claude Desktop**, **Cursor**, and **VS Code** configs for chat use.
+- The Web UI now **persists the active MCP chat selection** and auto-enables newly discovered servers on first load, so MCP access survives refreshes after the shared-state unification work.
 - The MCP dashboard and chat settings now support live refresh from disk and show the config source client for each discovered server.
 - **Reset config** in the MCP tab can now clear selected or all applied MCP server entries, including the matching `stratifyai.mcpClient` metadata.
 - Anthropic-backed chats automatically receive **provider-safe MCP tool aliases**, so namespaced tools such as `postgresql.query` remain callable without hitting Anthropic's tool-name regex limits.
+- The PostgreSQL MCP `query` tool is now treated as **read-only** by default, so chat sessions can execute safe SQL lookups without extra confirmation prompts.
 - If a tool appears in the UI but is never used, verify the server permission allow-list matches the **actual tool names**. Common examples:
   - PostgreSQL MCP: `"allow": ["query"]`
   - Brave MCP: `"allow": ["brave_*"]`
+- If PostgreSQL shows **connected** but the model still says it is unavailable, inspect the returned `tool_results` or server logs for a database auth error such as `password authentication failed`. In that case the MCP transport is healthy, but the configured connection string credentials still need to be corrected.
 
 ---
 

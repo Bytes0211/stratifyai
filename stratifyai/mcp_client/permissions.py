@@ -287,6 +287,14 @@ class PermissionManager:
         description = getattr(tool, "description", None) or ""
         haystack = f"{tool_name} {description}".lower()
 
+        if re.search(r"\bread(?:-|\s)?only\b", haystack):
+            return PermissionDecision(
+                mode=PermissionMode.ALLOW,
+                reason=(
+                    f"'{namespace}' is explicitly described as read-only, so it is auto-approved."
+                ),
+            )
+
         if any(re.search(rf"\b{keyword}\b", haystack) for keyword in _CONFIRM_KEYWORDS):
             return PermissionDecision(
                 mode=PermissionMode.CONFIRM,

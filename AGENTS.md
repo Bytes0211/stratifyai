@@ -393,7 +393,7 @@ stratifyai check-keys
 
 **Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
 **Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4)
-**Latest Updates:** Per-tool/server removal (issue #59), stdio connection fix, coverage boost to 85%, CI threshold set to 80% (Apr 5, 2026)
+**Latest Updates:** Per-tool/server removal (issue #59), stdio connection fix, shared MCP chat-state persistence, PostgreSQL read-only permission fix, coverage boost to 85%, CI threshold set to 80% (Apr 5, 2026)
 **Test Suite:** 881 tests (877 passed, 4 skipped), 85% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
@@ -744,8 +744,11 @@ curl 'http://127.0.0.1:8000/api/mcp-client/permissions?client=claude-desktop'
 ```
 - `@modelcontextprotocol/server-postgres` expects the raw database URL as a CLI arg, not a `psql 'postgresql://...'` shell command string.
 - Allow-list patterns must match real tool names. Typical local examples: PostgreSQL → `query`; Brave → `brave_*`.
+- The Web UI now persists the active MCP chat selection and auto-enables newly discovered servers on first load, so MCP-enabled chats survive refreshes after the shared runtime-store work.
+- PostgreSQL `query` is treated as a read-only MCP tool and should now be auto-approved in chat; if the model still says it cannot access Postgres, inspect the returned `tool_results` for the real DB error.
 - In `client="auto"` mode, duplicate server IDs prefer the Claude Desktop config source.
 - Anthropic chat requests now use safe MCP tool aliases automatically; if a tool still does not appear, verify it is enabled and not denied by permissions.
+- If PostgreSQL shows `connected` but the chat result says it is unavailable, the transport is likely healthy and the remaining problem is the DSN credentials (for example `password authentication failed`).
 - The MCP dashboard now supports **Reset config** to remove selected or all applied MCP entries and the corresponding `stratifyai.mcpClient.servers` metadata.
 
 ## Development Best Practices

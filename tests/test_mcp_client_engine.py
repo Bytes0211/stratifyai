@@ -203,9 +203,17 @@ def test_permission_manager_applies_safety_defaults_and_overrides() -> None:
         description="Delete a file from disk",
         inputSchema={"type": "object"},
     )
+    query_tool = Tool(
+        name="query",
+        description="Run a read-only SQL query",
+        inputSchema={"type": "object"},
+    )
 
     read_decision = manager.evaluate("filesystem", "read_file", read_tool)
     assert read_decision.mode == PermissionMode.ALLOW
+
+    query_decision = manager.evaluate("postgresql", "query", query_tool)
+    assert query_decision.mode == PermissionMode.ALLOW
 
     delete_decision = manager.evaluate("filesystem", "delete_file", delete_tool)
     assert delete_decision.mode == PermissionMode.CONFIRM

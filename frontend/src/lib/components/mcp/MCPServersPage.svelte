@@ -4,15 +4,9 @@
     configureMcp,
     getMcpCatalog,
     getMcpClientPermissions,
-    getMcpClientServers,
-    getMcpClientTools,
     getMcpClients,
     getMcpStatus,
-    restartMcpClientServer,
-    removeMcpClientTool,
     resetMcpConfig,
-    startMcpClientServer,
-    stopMcpClientServer,
     updateMcpClientPermissions,
   } from '$lib/api/client';
   import type {
@@ -26,6 +20,7 @@
     McpPermissionRules,
     McpStatusResponse,
   } from '$lib/api/types';
+  import { mcpRuntimeActions, mcpRuntimeStore } from '$lib/stores/mcp';
   import Button from '../shared/Button.svelte';
   import LoadingSpinner from '../shared/LoadingSpinner.svelte';
   import MCPToolTester from './MCPToolTester.svelte';
@@ -140,26 +135,15 @@
 
   async function refreshRuntimePanels() {
     try {
-      dashboardLoading = true;
-      const [serversResponse, toolsResponse, permissionsResponse] = await Promise.all([
-        getMcpClientServers(true),
-        getMcpClientTools(true),
+      error = null;
+      const [, permissionsResponse] = await Promise.all([
+        mcpRuntimeActions.refresh(true),
         getMcpClientPermissions(selectedClient, projectRoot || undefined),
       ]);
-      runtimeServers = serversResponse.servers;
-      runtimeTools = toolsResponse.tools;
       permissionData = permissionsResponse;
       initializePermissionDrafts(permissionsResponse);
-
-      if (!runtimeTools.some((tool) => tool.namespace === selectedRuntimeTool)) {
-        selectedRuntimeTool = runtimeTools[0]?.namespace ?? '';
-      }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load live MCP client data';
-      // Preserve the last successful dashboard state so configured MCP servers
-      // do not disappear from the UI during a transient refresh failure.
-    } finally {
-      dashboardLoading = false;
+      error = err instanceof Error ? err.message : 'Failed to load MCP client status';
     }
   }
 
@@ -168,15 +152,14 @@
       runtimeActionLoading = `${serverId}:${action}`;
       error = null;
       if (action === 'start') {
-        await startMcpClientServer(serverId);
+        await mcpRuntimeActions.startServer(serverId);
       } else if (action === 'stop') {
-        await stopMcpClientServer(serverId);
+        await mcpRuntimeActions.stopServer(serverId);
       } else {
-        await restartMcpClientServer(serverId);
+        await mcpRuntimeActions.restartServer(serverId);
       }
       const verb = action === 'stop' ? 'stopped' : `${action}ed`;
       statusMessage = `${serverId} ${verb} successfully.`;
-      await refreshRuntimePanels();
     } catch (err) {
       error = err instanceof Error ? err.message : `Failed to ${action} ${serverId}`;
     } finally {
@@ -185,19 +168,22 @@
   }
 
   async function removeServer(serverId: string) {
-    if (typeof window !== 'undefined' && !window.confirm(`Remove server "${serverId}" from the live dashboard? It will reappear on next refresh if still configured.`)) {
+    if (typeof window !== 'undefined' && !window.confirm(`Permanently remove server "${serverId}" from your MCP configs? Use Apply config to restore it later.`)) {
       return;
     }
     try {
       runtimeActionLoading = `${serverId}:remove`;
       error = null;
-      await stopMcpClientServer(serverId);
-      runtimeServers = runtimeServers.filter((s) => s.server_id !== serverId);
-      runtimeTools = runtimeTools.filter((t) => t.server_id !== serverId);
+      await mcpRuntimeActions.removeServer(serverId, {
+        client: selectedClient,
+        projectRoot: projectRoot || undefined,
+      });
+      selectedServerIds = selectedServerIds.filter((id) => id !== serverId);
       if (selectedRuntimeTool.startsWith(`${serverId}.`)) {
         selectedRuntimeTool = '';
       }
-      statusMessage = `Removed server "${serverId}" from dashboard.`;
+      statusMessage = `Removed server "${serverId}" from the saved MCP config.`;
+      await refreshStatus();
     } catch (err) {
       error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
     } finally {
@@ -398,8 +384,7 @@
     try {
       actionLoading = true;
       error = null;
-      await removeMcpClientTool(server_id, name);
-      runtimeTools = runtimeTools.filter((t) => t.namespace !== namespace);
+      await mcpRuntimeActions.removeTool(server_id, name);
       selectedRuntimeTool = '';
       statusMessage = `Removed tool "${namespace}". Restart server "${server_id}" to restore it.`;
     } catch (err) {
@@ -462,6 +447,13 @@
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  $: runtimeServers = $mcpRuntimeStore.servers;
+  $: runtimeTools = $mcpRuntimeStore.tools;
+  $: dashboardLoading = $mcpRuntimeStore.loading;
+  $: displayError = error ?? $mcpRuntimeStore.error;
+  $: if (!runtimeTools.some((tool) => tool.namespace === selectedRuntimeTool)) {
+    selectedRuntimeTool = runtimeTools[0]?.namespace ?? '';
+  }
   $: selectedClientInfo = clients.find((item) => item.id === selectedClient) ?? null;
   $: selectedRuntimeToolInfo = runtimeTools.find((tool) => tool.namespace === selectedRuntimeTool) ?? null;
   $: renderedPreview = preview
@@ -574,10 +566,10 @@
       </div>
     </section>
 
-    {#if error}
+    {#if displayError}
       <div class="error-banner card">
         <AlertCircle size={18} />
-        <span>{error}</span>
+        <span>{displayError}</span>
       </div>
     {/if}
 

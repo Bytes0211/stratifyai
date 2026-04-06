@@ -1,5 +1,30 @@
 # Developer Journal
 
+## April 5, 2026 - MCP Chat Selection Persistence and PostgreSQL Permission Fix
+
+Restored reliable MCP usage in chat after the shared-state unification changes and fixed a PostgreSQL-specific permission regression.
+
+### Root Causes Identified
+
+- The unified Svelte MCP runtime store no longer preserved the chat-side `activeMcpServers` selection across refreshes, so MCPs could appear connected in the UI while not actually being sent with chat requests.
+- The PostgreSQL MCP `query` tool was being classified as `confirm` instead of `allow`, which prevented the model from executing safe read-only SQL through chat.
+- A connected PostgreSQL MCP server can still fail at query time if the configured connection string has bad credentials; this surfaced as `password authentication failed for user "scotton"` in live tool results.
+
+### Changes
+
+- Updated `frontend/src/lib/stores/config.ts` to persist `activeMcpServers` in localStorage.
+- Updated `frontend/src/lib/stores/mcp.ts` to auto-enable newly discovered servers on first load and keep the chat selection pruned to valid live servers.
+- Updated `stratifyai/mcp_client/permissions.py` so explicitly read-only tools like PostgreSQL `query` are auto-approved by the MCP safety defaults.
+- Added a regression assertion in `tests/test_mcp_client_engine.py` covering PostgreSQL `query` permission behavior.
+
+### Validation Summary
+
+- `uv run pytest tests/test_mcp_client_engine.py -q` → **13 passed**
+- Live `/api/chat` call with `active_mcp_servers: ["postgresql"]` returned real `tool_results`, proving the model now reaches `postgresql.query`
+- Live response still surfaced the remaining database-auth issue cleanly (`password authentication failed`), confirming the MCP integration path is fixed and the remaining blocker is credentials
+
+---
+
 ## April 5, 2026 - Per-Tool Removal, Stdio Fix, Coverage Boost (Issue #59, PR #58)
 
 Implemented per-tool and per-server removal, fixed the MCP stdio connection lifecycle, boosted test coverage to 85%, and aligned CI thresholds.

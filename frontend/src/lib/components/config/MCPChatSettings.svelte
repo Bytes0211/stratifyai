@@ -1,45 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
-  import { getMcpClientServers, stopMcpClientServer } from '$lib/api/client';
   import type { McpClientServerInfo } from '$lib/api/types';
   import { configActions, configStore } from '$lib/stores/config';
+  import { mcpRuntimeActions, mcpRuntimeStore } from '$lib/stores/mcp';
   import Button from '../shared/Button.svelte';
   import LoadingSpinner from '../shared/LoadingSpinner.svelte';
   import { Bot, RefreshCw, ShieldCheck, Trash2 } from 'lucide-svelte';
 
-  let servers: McpClientServerInfo[] = [];
-  let loading = false;
-  let error: string | null = null;
-
   onMount(() => {
-    void loadServers();
+    void mcpRuntimeActions.ensureLoaded();
   });
-
-  async function loadServers() {
-    try {
-      loading = true;
-      error = null;
-      const response = await getMcpClientServers(true);
-      servers = response.servers;
-
-      const availableIds = new Set(
-        response.servers
-          .filter((server) => server.enabled && server.status !== 'disabled')
-          .map((server) => server.server_id)
-      );
-      const currentSelection = get(configStore).activeMcpServers;
-      const filtered = currentSelection.filter((serverId) => availableIds.has(serverId));
-      if (filtered.length !== currentSelection.length) {
-        configActions.setActiveMcpServers(filtered);
-      }
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load MCP chat servers';
-      servers = [];
-    } finally {
-      loading = false;
-    }
-  }
 
   function toggleServer(serverId: string) {
     configActions.toggleActiveMcpServer(serverId);
@@ -50,21 +20,19 @@
   }
 
   async function removeServer(serverId: string) {
-    if (typeof window !== 'undefined' && !window.confirm(`Remove "${serverId}" from chat? Refresh to restore.`)) {
+    const server = availableServers.find((item) => item.server_id === serverId);
+    const source = server?.source_client ? ` from ${server.source_client}` : '';
+    if (typeof window !== 'undefined' && !window.confirm(`Permanently remove "${serverId}"${source}? Use Apply config to add it back.`)) {
       return;
     }
     try {
-      await stopMcpClientServer(serverId);
-      configActions.setActiveMcpServers(
-        get(configStore).activeMcpServers.filter((id) => id !== serverId)
-      );
-      servers = servers.filter((s) => s.server_id !== serverId);
-    } catch (err) {
-      error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
+      await mcpRuntimeActions.removeServer(serverId);
+    } catch {
+      // Shared store already surfaces the error state.
     }
   }
 
-  $: availableServers = servers.filter((server) => server.enabled);
+  $: availableServers = $mcpRuntimeStore.servers.filter((server) => server.enabled);
 </script>
 
 <div class="mcp-chat-settings">
@@ -73,19 +41,19 @@
       <h3>MCP Tools in Chat</h3>
       <p>Select which live MCP servers the assistant may use in this conversation.</p>
     </div>
-    <Button variant="ghost" size="sm" on:click={loadServers}>
+    <Button variant="ghost" size="sm" on:click={() => mcpRuntimeActions.refresh(true)}>
       <RefreshCw size={14} />
       Refresh
     </Button>
   </div>
 
-  {#if loading}
+  {#if $mcpRuntimeStore.loading}
     <div class="loading-state">
       <LoadingSpinner size="sm" />
       <span>Loading MCP servers...</span>
     </div>
-  {:else if error}
-    <p class="error-text">{error}</p>
+  {:else if $mcpRuntimeStore.error}
+    <p class="error-text">{$mcpRuntimeStore.error}</p>
   {:else if availableServers.length === 0}
     <div class="empty-state">
       <ShieldCheck size={16} />
@@ -105,7 +73,7 @@
             <div class="server-title-row">
               <strong>{server.server_id}</strong>
               <span class={`status-chip ${server.status}`}>{server.status}</span>
-              <button class="remove-btn" title="Remove from chat" on:click|preventDefault|stopPropagation={() => removeServer(server.server_id)}>
+              <button class="remove-btn" title="Permanently remove from MCP config" on:click|preventDefault|stopPropagation={() => removeServer(server.server_id)}>
                 <Trash2 size={12} />
               </button>
             </div>

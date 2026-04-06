@@ -138,6 +138,12 @@ Production-ready **Single Page Application** with modern features:
 - **WebSocket**: Real-time bidirectional communication
 - **Client-side Routing**: SPA navigation with fallback support
 
+### Enterprise MCP Operations Notes
+- Local MCP chat selections now persist in the Web UI and survive refreshes, reducing operator confusion during multi-server troubleshooting.
+- Anthropic-backed chat automatically uses provider-safe MCP tool aliases for namespaced tools such as `postgresql.query`.
+- The PostgreSQL MCP `query` tool is classified as **read-only** and can execute in chat without an extra approval gate.
+- If PostgreSQL is marked **connected** but chat still reports it unavailable, the next place to check is the database credential in the configured connection string; transport health and database authentication are separate failure modes.
+
 ---
 
 # **5. Architecture Overview**
