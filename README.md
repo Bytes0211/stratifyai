@@ -129,6 +129,20 @@ Documentation:
   - Brave MCP: `"allow": ["brave_*"]`
 - If PostgreSQL shows **connected** but the model still says it is unavailable, inspect the returned `tool_results` or server logs for a database auth error such as `password authentication failed`. In that case the MCP transport is healthy, but the configured connection string credentials still need to be corrected.
 
+#### Add a custom MCP server
+
+If the server you want is not in the curated catalog (for example, an Excel connector), you can add it directly:
+
+```bash
+uv run stratifyai mcp add-custom excel \
+  --client claude-desktop \
+  --command npx \
+  --command-arg -y \
+  --command-arg your-excel-mcp-package
+```
+
+You can also pass `--env KEY=VALUE` and extra `--command-arg ...` values for custom servers, then refresh the MCP dashboard or restart the client.
+
 ---
 
 ## Quick Start
@@ -388,8 +402,4 @@ pytest -v        # Verbose output
 **Test Coverage:** 877 tests across all modules (85% code coverage)
 
 ---
-
-## License
-
-Internal project — All rights reserved.
 

@@ -7,7 +7,7 @@ import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from mcp.types import Tool
@@ -669,3 +669,192 @@ async def test_mcp_client_engine_start_stop_and_restart_updates_registry(
         assert engine.get_server_status("demo").status == "connected"
     finally:
         await engine.stop()
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_sync_configured_servers_restarts_and_removes() -> None:
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(
+                server_id="keep",
+                command="python",
+                args=["old"],
+                permissions=allow_perms,
+            ),
+            ConfiguredServer(server_id="remove", command="python"),
+            ConfiguredServer(server_id="disable", command="python"),
+        ]
+    )
+
+    engine._server_manager._connections = {
+        "keep": MagicMock(),
+        "remove": MagicMock(),
+        "disable": MagicMock(),
+    }
+    engine.stop_server = AsyncMock()  # type: ignore[method-assign]
+    engine.restart_server = AsyncMock()  # type: ignore[method-assign]
+
+    desired_servers = [
+        ConfiguredServer(
+            server_id="keep",
+            command="python",
+            args=["new"],
+            permissions=allow_perms,
+            source_client="cursor",
+        ),
+        ConfiguredServer(
+            server_id="disable",
+            command="python",
+            enabled=False,
+            permissions=allow_perms,
+        ),
+        ConfiguredServer(
+            server_id="new",
+            command="uvx",
+            args=["demo"],
+            permissions=allow_perms,
+        ),
+    ]
+
+    with patch(
+        "stratifyai.mcp_client.engine.load_enabled_servers",
+        return_value=desired_servers,
+    ):
+        await engine.sync_configured_servers(client="auto")
+
+    assert [server.server_id for server in engine._servers] == [
+        "keep",
+        "disable",
+        "new",
+    ]
+    assert engine._server_index["keep"].args == ["new"]
+    assert engine._server_index["keep"].source_client == "cursor"
+    assert "remove" not in engine._server_index
+    engine.restart_server.assert_awaited_once_with("keep")
+    engine.stop_server.assert_any_await("remove")
+    engine.stop_server.assert_any_await("disable")
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_execute_tool_requests_reports_unknown_and_failures() -> (
+    None
+):
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(
+                server_id="alpha", command="python", permissions=allow_perms
+            )
+        ]
+    )
+    engine._tool_registry.register_server_tools(
+        "alpha",
+        [Tool(name="echo", description="Echo", inputSchema={"type": "object"})],
+    )
+    engine._server_manager._statuses["alpha"] = ServerStatus(
+        server_id="alpha", status="connected"
+    )
+    engine.call_tool = AsyncMock(side_effect=RuntimeError("boom"))
+
+    missing_request = type(
+        "Req", (), {"call_id": "1", "name": "missing.tool", "arguments": {}}
+    )()
+    failing_request = type(
+        "Req",
+        (),
+        {"call_id": "2", "name": "alpha.echo", "arguments": {"text": "hi"}},
+    )()
+
+    results = await engine._execute_tool_requests(
+        [missing_request, failing_request],
+        active_servers=["alpha"],
+    )
+
+    assert len(results) == 2
+    assert "Unknown or inactive MCP tool" in (results[0].error or "")
+    assert results[1].namespace == "alpha.echo"
+    assert results[1].error == "boom"
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_get_health_snapshot_counts_server_states() -> None:
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(
+                server_id="connected", command="python", permissions=allow_perms
+            ),
+            ConfiguredServer(
+                server_id="stopped", command="python", permissions=allow_perms
+            ),
+            ConfiguredServer(
+                server_id="disabled",
+                command="python",
+                enabled=False,
+                permissions=allow_perms,
+            ),
+            ConfiguredServer(
+                server_id="errored", command="python", permissions=allow_perms
+            ),
+        ]
+    )
+    engine._tool_registry.register_server_tools(
+        "connected",
+        [Tool(name="echo", description="Echo", inputSchema={"type": "object"})],
+    )
+    engine._server_manager._statuses = {
+        "connected": ServerStatus(
+            server_id="connected", status="connected", transport="stdio"
+        ),
+        "stopped": ServerStatus(
+            server_id="stopped", status="stopped", transport="stdio"
+        ),
+        "disabled": ServerStatus(
+            server_id="disabled", status="disabled", transport="stdio"
+        ),
+        "errored": ServerStatus(
+            server_id="errored", status="error", error="boom", transport="stdio"
+        ),
+    }
+    engine._server_manager._connections = {"connected": MagicMock()}
+    engine._server_manager.check_health = AsyncMock(
+        return_value=ServerStatus(
+            server_id="connected",
+            status="connected",
+            transport="stdio",
+            latency_ms=12.5,
+            last_checked_at=1.0,
+            last_connected_at=1.0,
+        )
+    )
+
+    snapshot = await engine.get_health_snapshot()
+
+    assert snapshot["status"] == "degraded"
+    assert snapshot["summary"]["connected"] == 1
+    assert snapshot["summary"]["stopped"] == 1
+    assert snapshot["summary"]["disabled"] == 1
+    assert snapshot["summary"]["error"] == 1
+    connected = next(
+        item for item in snapshot["servers"] if item["server_id"] == "connected"
+    )
+    assert connected["tool_count"] == 1
+    assert connected["tools"] == ["connected.echo"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_require_connection_handles_disabled_and_unknown() -> (
+    None
+):
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(server_id="disabled", command="python", enabled=False)
+        ]
+    )
+
+    with pytest.raises(PermissionError):
+        await engine._require_connection("disabled")
+
+    with pytest.raises(KeyError):
+        await engine._require_connection("missing")

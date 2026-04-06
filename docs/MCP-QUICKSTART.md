@@ -64,6 +64,32 @@ claude mcp add stratifyai stratifyai-mcp
 
 See [MCP-CLIENT-CONFIG.md](MCP-CLIENT-CONFIG.md) for more clients (Cursor, VS Code, etc.).
 
+## 4b. Add a Custom MCP Server (Optional)
+
+If the server you want is not in the curated catalog, add it directly to a supported client config.
+
+Example for an Excel-style MCP server:
+
+```bash
+uv run stratifyai mcp add-custom excel \
+  --client claude-desktop \
+  --command npx \
+  --command-arg -y \
+  --command-arg your-excel-mcp-package
+```
+
+Example using a local script plus environment variables:
+
+```bash
+uv run stratifyai mcp add-custom excel \
+  --client claude-desktop \
+  --command python \
+  --command-arg /path/to/excel_mcp_server.py \
+  --env API_KEY=your_key_here
+```
+
+Supported targets include `claude-desktop`, `cursor`, and `vscode`. After adding the server, restart or refresh the client so it gets discovered.
+
 ## 5. Try It Out
 
 Once connected, ask your MCP client:

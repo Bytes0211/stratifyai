@@ -31,6 +31,29 @@ python -m cli.stratifyai_cli chat
 python -m cli.stratifyai_cli chat -p openai -m gpt-4o-mini -t 0.7 "Explain quantum computing"
 ```
 
+## MCP Management Quick Start
+
+### Add a custom MCP server
+
+If an MCP server is not in the curated catalog, use `mcp add-custom`.
+
+**Example:**
+
+```bash
+uv run stratifyai mcp add-custom excel \
+  --client claude-desktop \
+  --command npx \
+  --command-arg -y \
+  --command-arg your-excel-mcp-package
+```
+
+**Useful flags:**
+- `--client`: `claude-desktop`, `cursor`, `vscode`, or `claude-code`
+- `--command`: executable to launch
+- `--command-arg`: repeatable args for that executable
+- `--env KEY=VALUE`: repeatable env vars for the server process
+- `--project-root`: target workspace root for Cursor/VS Code config generation
+
 ## Commands
 
 ### 1. `chat` - Send Chat Message
