@@ -1,13 +1,6 @@
-"""Targeted tests to boost code coverage across low-coverage modules.
-
-Covers:
-- stratifyai/providers/openai_compatible.py
-- stratifyai/embeddings.py
-- stratifyai/logging_config.py
-- stratifyai/vectordb.py
-- stratifyai/catalog_manager.py
-- stratifyai/utils/reasoning_detector.py
-- stratifyai/utils/token_counter.py
+"""Extended tests for OpenAI-compatible providers, embeddings, logging, vectordb,
+catalog manager, reasoning detector, token counter, MCP engine utilities,
+permissions, and tool registry.
 """
 
 import io

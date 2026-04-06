@@ -1,4 +1,4 @@
-"""Coverage boost batch 4: OpenAI provider branches + mcp_client/server_manager."""
+"""Extended tests for OpenAI provider branches and MCP server manager lifecycle."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

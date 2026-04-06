@@ -1,4 +1,4 @@
-"""Coverage-boost tests for Anthropic/Bedrock providers and mcp_catalog/manager."""
+"""Extended tests for Anthropic provider, Bedrock provider, and MCP catalog manager."""
 
 import json
 from pathlib import Path
@@ -60,9 +60,14 @@ class TestAnthropicProviderExtra:
         )
 
         provider = AnthropicProvider(api_key="test-key")
+        # Include image content to exercise the vision message-building path
+        image_content = (
+            "Describe this image\n\n"
+            "![image](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==)"
+        )
         request = ChatRequest(
             model="claude-3-5-sonnet-20241022",
-            messages=[Message(role="user", content="Tell me about cats")],
+            messages=[Message(role="user", content=image_content)],
         )
         with pytest.raises(ProviderAPIError, match="Vision not supported"):
             await provider.chat_completion(request)

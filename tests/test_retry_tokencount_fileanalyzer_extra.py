@@ -1,4 +1,4 @@
-"""Coverage boost batch 3: retry, summarization, token_counter, file_analyzer."""
+"""Extended tests for retry logic, token counter, file analyzer, and summarization."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 

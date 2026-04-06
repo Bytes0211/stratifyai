@@ -1,4 +1,4 @@
-"""Coverage boost batch 5: RAG, MCP connection, Bedrock validator, MCP server entrypoints."""
+"""Extended tests for MCP connection lifecycle, Bedrock validator, MCP server entrypoints, and RAG pipeline."""
 
 import asyncio
 import sys
