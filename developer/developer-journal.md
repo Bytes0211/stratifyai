@@ -1,5 +1,37 @@
 # Developer Journal
 
+## April 5, 2026 - MCP Chat Reliability Fixes (local config discovery, Web UI refresh, Anthropic tool naming)
+
+Stabilized the local MCP chat path after real-world testing with Claude Desktop-configured PostgreSQL and Brave servers.
+
+### Root Causes Identified
+
+- The shared MCP chat engine was not reliably surfacing all supported local client configs during auto-discovery.
+- Passive dashboard refresh could attempt to boot broken external MCP servers and return HTTP 500s.
+- Runtime timestamps from the server list endpoint were being returned as raw floats, violating the response model.
+- The dashboard cleared the visible server list on transient refresh failures, making entries appear to disappear.
+- Anthropic tool calls failed when MCP namespaces like `postgresql.query` were sent directly as tool names.
+
+### Changes
+
+- Updated `stratifyai/mcp_client/config.py` so `client="auto"` merges supported local configs and records `source_client`, with Claude Desktop preferred for duplicate server IDs.
+- Updated `stratifyai/mcp_client/engine.py` to support config resync from disk, tolerate one bad MCP server during startup, avoid destructive auto-start behavior on passive refresh, and emit Anthropic-safe tool aliases such as `mcp_postgresql__query`.
+- Updated `api/main.py` MCP endpoints to support `refresh=true`, format runtime timestamps safely, expose source-client metadata for the Web UI, and add a reset path for clearing selected or all applied MCP config.
+- Updated the Svelte MCP panels to refresh against the live backend while preserving the last known good state on transient failures, and added a **Reset config** action for fast recovery from broken exports.
+- Added targeted regression coverage in `tests/test_mcp_client_engine.py`, `tests/test_api_endpoints.py`, and `tests/test_mcp_catalog.py`.
+
+### Operator Notes
+
+- `@modelcontextprotocol/server-postgres` expects the raw PostgreSQL connection URL as a CLI argument; do not wrap it in a `psql '...'` shell command.
+- MCP permission allow-lists must match the tool names the server actually exports. For the local setup verified here, that means `query` for PostgreSQL and `brave_*` for Brave.
+
+### Validation Summary
+
+- `uv run pytest tests/test_api_endpoints.py tests/test_mcp_client_engine.py -q` → 19 passed
+- Live MCP endpoints verified at `GET /api/mcp-client/servers?refresh=true` and server start flows returned 200 for PostgreSQL and Brave.
+
+---
+
 ## April 4, 2026 - MCP Ecosystem Complete (AL-1 to AL-4, CE-1 to CE-6, Code Review)
 
 Completed all planned MCP workstreams and performed a comprehensive codebase review.

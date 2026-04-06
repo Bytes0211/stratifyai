@@ -20,7 +20,7 @@
     try {
       loading = true;
       error = null;
-      const response = await getMcpClientServers();
+      const response = await getMcpClientServers(true);
       servers = response.servers;
 
       const availableIds = new Set(
@@ -92,6 +92,9 @@
               <span class={`status-chip ${server.status}`}>{server.status}</span>
             </div>
             <span>{server.tool_count} discovered tool{server.tool_count === 1 ? '' : 's'}</span>
+            {#if server.source_client}
+              <small>Loaded from {server.source_client}</small>
+            {/if}
             {#if server.tools.length > 0}
               <small>{server.tools.slice(0, 2).join(' • ')}{server.tools.length > 2 ? ' …' : ''}</small>
             {/if}

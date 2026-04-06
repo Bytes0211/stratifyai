@@ -8,6 +8,7 @@ import pytest
 from stratifyai.exceptions import (
     AuthenticationError,
     InvalidModelError,
+    ProviderAPIError,
 )
 from stratifyai.models import ChatRequest, Message
 from stratifyai.providers.openai import OpenAIProvider
@@ -188,3 +189,66 @@ class TestOpenAIProvider:
         assert call_args["frequency_penalty"] == 0.5
         assert call_args["presence_penalty"] == 0.5
         assert call_args["stop"] == ["END"]
+
+    @patch("stratifyai.providers.openai.AsyncOpenAI")
+    @pytest.mark.asyncio
+    async def test_reasoning_models_omit_sampling_params(self, mock_openai_class):
+        """Reasoning models should not receive unsupported sampling parameters."""
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+
+        mock_completion = MagicMock()
+        mock_completion.model_dump.return_value = {
+            "id": "test",
+            "model": "o1",
+            "created": int(datetime.now().timestamp()),
+            "choices": [{"message": {"content": "Hi"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+        }
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_completion)
+
+        provider = OpenAIProvider(api_key="test-key")
+        request = ChatRequest(
+            model="o1",
+            messages=[Message(role="user", content="Hello")],
+            temperature=0.1,
+            top_p=0.2,
+            frequency_penalty=0.3,
+            presence_penalty=0.4,
+        )
+
+        await provider.chat_completion(request)
+
+        call_args = mock_client.chat.completions.create.call_args[1]
+        assert "temperature" not in call_args
+        assert "top_p" not in call_args
+        assert "frequency_penalty" not in call_args
+        assert "presence_penalty" not in call_args
+
+    def test_normalize_response_rejects_empty_choices(self):
+        with patch("stratifyai.providers.openai.AsyncOpenAI"):
+            provider = OpenAIProvider(api_key="test-key")
+            with pytest.raises(ProviderAPIError, match="missing choices"):
+                provider._normalize_response(
+                    {
+                        "id": "chatcmpl-empty",
+                        "model": "gpt-4.1-mini",
+                        "created": int(datetime.now().timestamp()),
+                        "choices": [],
+                        "usage": {},
+                    }
+                )
+
+    def test_normalize_response_rejects_missing_message_content(self):
+        with patch("stratifyai.providers.openai.AsyncOpenAI"):
+            provider = OpenAIProvider(api_key="test-key")
+            with pytest.raises(ProviderAPIError, match="missing message content"):
+                provider._normalize_response(
+                    {
+                        "id": "chatcmpl-bad",
+                        "model": "gpt-4.1-mini",
+                        "created": int(datetime.now().timestamp()),
+                        "choices": [{"message": {}, "finish_reason": "stop"}],
+                        "usage": {},
+                    }
+                )

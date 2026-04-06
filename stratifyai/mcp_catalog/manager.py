@@ -97,12 +97,61 @@ def detect_client_config_path(
     )
 
 
+def _normalize_config_value(name: str, value: str | None) -> str | None:
+    """Normalize user-supplied config values before writing client JSON.
+
+    This strips common shell-style wrappers that users paste into the Web UI,
+    such as `DATABASE_URL="postgresql://..."` or `psql 'postgresql://...'`.
+    """
+    if value is None:
+        return None
+
+    cleaned = str(value).strip()
+    if not cleaned:
+        return None
+
+    for prefix in (f"export {name}=", f"{name}="):
+        if cleaned.lower().startswith(prefix.lower()):
+            cleaned = cleaned[len(prefix) :].strip()
+            break
+
+    if name.upper() == "DATABASE_URL" and cleaned.lower().startswith("psql "):
+        cleaned = cleaned[5:].strip()
+
+    for _ in range(3):
+        if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {'"', "'"}:
+            cleaned = cleaned[1:-1].strip()
+        else:
+            break
+
+    if name.upper() == "DATABASE_URL":
+        lowered = cleaned.lower()
+        for scheme in ("postgresql://", "postgres://"):
+            idx = lowered.find(scheme)
+            if idx != -1:
+                cleaned = cleaned[idx:]
+                break
+
+        for _ in range(3):
+            if (
+                len(cleaned) >= 2
+                and cleaned[0] == cleaned[-1]
+                and cleaned[0] in {'"', "'"}
+            ):
+                cleaned = cleaned[1:-1].strip()
+            else:
+                break
+
+    return cleaned or None
+
+
 def _resolve_user_arg_value(
     server: MCPServerEntry,
     arg_name: str,
     arg_values: dict[str, str],
 ) -> str | None:
-    return arg_values.get(f"{server.id}.{arg_name}") or arg_values.get(arg_name) or None
+    raw_value = arg_values.get(f"{server.id}.{arg_name}") or arg_values.get(arg_name)
+    return _normalize_config_value(arg_name, raw_value)
 
 
 def _build_server_config(
@@ -114,7 +163,10 @@ def _build_server_config(
     env: dict[str, str] = {}
 
     for env_var in server.env_vars:
-        value = env_values.get(env_var.name) or os.environ.get(env_var.name)
+        value = _normalize_config_value(
+            env_var.name,
+            env_values.get(env_var.name) or os.environ.get(env_var.name),
+        )
         if value:
             env[env_var.name] = value
         elif env_var.required:
@@ -352,13 +404,13 @@ def write_mcp_client_settings(
     return path
 
 
-def remove_server_from_config(
+def remove_servers_from_config(
     client: str,
-    server_id: str,
+    server_ids: list[str],
     project_root: str | Path | None = None,
     output_path: str | Path | None = None,
-) -> tuple[Path, bool]:
-    """Remove a configured MCP server from a client config file."""
+) -> tuple[Path, list[str]]:
+    """Remove one or more configured MCP servers from a client config file."""
     path = (
         Path(output_path)
         if output_path
@@ -369,32 +421,68 @@ def remove_server_from_config(
             "Claude Code removal should be performed with `claude mcp remove <server-id>` commands."
         )
     if not path.exists():
-        return path, False
+        return path, []
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    targets = [str(server_id) for server_id in server_ids if str(server_id).strip()]
+    if not targets:
+        return path, []
+
+    original_text = path.read_text(encoding="utf-8")
+    data = json.loads(original_text)
+    removed: set[str] = set()
 
     if client == "vscode":
         mcp_block = dict(data.get("mcp", {}))
         servers = dict(mcp_block.get("servers", {}))
-        removed = servers.pop(server_id, None) is not None
-        if not removed:
-            return path, False
+        for server_id in targets:
+            if servers.pop(server_id, None) is not None:
+                removed.add(server_id)
         mcp_block["servers"] = servers
         data["mcp"] = mcp_block
     else:
         servers = dict(data.get("mcpServers", {}))
-        removed = servers.pop(server_id, None) is not None
-        if not removed:
-            return path, False
+        for server_id in targets:
+            if servers.pop(server_id, None) is not None:
+                removed.add(server_id)
         data["mcpServers"] = servers
+
+    stratifyai_block = data.get("stratifyai", {})
+    if isinstance(stratifyai_block, dict):
+        mcp_client_block = stratifyai_block.get("mcpClient", {})
+        if isinstance(mcp_client_block, dict):
+            settings_servers = dict(mcp_client_block.get("servers", {}))
+            for server_id in targets:
+                if settings_servers.pop(server_id, None) is not None:
+                    removed.add(server_id)
+            mcp_client_block["servers"] = settings_servers
+            stratifyai_block["mcpClient"] = mcp_client_block
+            data["stratifyai"] = stratifyai_block
+
+    if not removed:
+        return path, []
 
     backup_path = Path(str(path) + ".backup")
     backup_path.write_text(
-        json.dumps(json.loads(path.read_text(encoding="utf-8")), indent=2),
-        encoding="utf-8",
+        json.dumps(json.loads(original_text), indent=2), encoding="utf-8"
     )
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    return path, True
+    return path, [server_id for server_id in targets if server_id in removed]
+
+
+def remove_server_from_config(
+    client: str,
+    server_id: str,
+    project_root: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -> tuple[Path, bool]:
+    """Remove one configured MCP server from a client config file."""
+    path, removed = remove_servers_from_config(
+        client=client,
+        server_ids=[server_id],
+        project_root=project_root,
+        output_path=output_path,
+    )
+    return path, bool(removed)
 
 
 def validate_prerequisites(server_ids: list[str]) -> list[str]:

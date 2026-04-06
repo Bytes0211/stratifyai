@@ -9,6 +9,7 @@
     getMcpClients,
     getMcpStatus,
     restartMcpClientServer,
+    resetMcpConfig,
     startMcpClientServer,
     stopMcpClientServer,
     updateMcpClientPermissions,
@@ -139,8 +140,8 @@
     try {
       dashboardLoading = true;
       const [serversResponse, toolsResponse, permissionsResponse] = await Promise.all([
-        getMcpClientServers(),
-        getMcpClientTools(),
+        getMcpClientServers(true),
+        getMcpClientTools(true),
         getMcpClientPermissions(selectedClient, projectRoot || undefined),
       ]);
       runtimeServers = serversResponse.servers;
@@ -153,8 +154,8 @@
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load live MCP client data';
-      runtimeServers = [];
-      runtimeTools = [];
+      // Preserve the last successful dashboard state so configured MCP servers
+      // do not disappear from the UI during a transient refresh failure.
     } finally {
       dashboardLoading = false;
     }
@@ -317,6 +318,47 @@
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to generate MCP configuration';
+    } finally {
+      actionLoading = false;
+    }
+  }
+
+  async function resetConfiguredServers() {
+    const configuredServerIds = Object.keys(statusData?.configured ?? {});
+    const targetServerIds = selectedServerIds.filter((serverId) => configuredServerIds.includes(serverId));
+    const serverIds = targetServerIds.length > 0 ? targetServerIds : configuredServerIds;
+
+    if (serverIds.length === 0) {
+      statusMessage = 'No applied MCP config to clear yet.';
+      return;
+    }
+
+    const scopeLabel = targetServerIds.length > 0 ? 'the selected MCP server entries' : 'all configured MCP server entries';
+    if (typeof window !== 'undefined' && !window.confirm(`Remove ${scopeLabel} from ${selectedClient}?`)) {
+      return;
+    }
+
+    try {
+      actionLoading = true;
+      error = null;
+      copyMessage = '';
+      preview = null;
+      const result = await resetMcpConfig({
+        client: selectedClient,
+        server_ids: serverIds,
+        project_root: projectRoot || undefined,
+      });
+
+      selectedServerIds = selectedServerIds.filter((serverId) => !result.removed_server_ids.includes(serverId));
+      envValues = {};
+      argValues = {};
+      statusMessage = result.count > 0
+        ? `Removed ${result.removed_server_ids.join(', ')} from ${selectedClient}${result.path ? ` (${result.path})` : ''}.`
+        : 'No matching MCP config entries were found.';
+
+      await refreshStatus();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to clear MCP configuration';
     } finally {
       actionLoading = false;
     }
@@ -571,6 +613,14 @@
         </div>
 
         <div class="action-row secondary-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            on:click={resetConfiguredServers}
+            disabled={actionLoading || !selectedClientInfo?.supports_apply || Object.keys(statusData?.configured ?? {}).length === 0}
+          >
+            Reset config
+          </Button>
           <Button variant="ghost" size="sm" on:click={copyPreview}>
             <Copy size={14} />
             Copy

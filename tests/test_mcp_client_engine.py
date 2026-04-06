@@ -71,6 +71,48 @@ def test_load_enabled_servers_from_cursor_config(tmp_path: Path) -> None:
     assert server.permissions.confirm == ["delete_*"]
 
 
+def test_load_enabled_servers_auto_merges_supported_client_configs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cursor_path = tmp_path / ".cursor" / "mcp.json"
+    cursor_path.parent.mkdir(parents=True, exist_ok=True)
+    cursor_path.write_text(
+        json.dumps(
+            {"mcpServers": {"postgresql": {"command": "uvx", "args": ["pg-mcp"]}}}
+        ),
+        encoding="utf-8",
+    )
+
+    claude_path = tmp_path / "claude_desktop_config.json"
+    claude_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "postgresql": {"command": "uvx", "args": ["pg-mcp"]},
+                    "brave-search": {"command": "npx", "args": ["-y", "brave-mcp"]},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    from stratifyai.mcp_catalog import manager as catalog_manager
+
+    original_detect = catalog_manager.detect_client_config_path
+
+    def fake_detect(client: str, project_root: str | Path | None = None):
+        if client == "claude-desktop":
+            return claude_path
+        return original_detect(client, project_root=project_root)
+
+    monkeypatch.setattr(catalog_manager, "detect_client_config_path", fake_detect)
+
+    servers = load_enabled_servers(client="auto", project_root=tmp_path)
+
+    assert [server.server_id for server in servers] == ["postgresql", "brave-search"]
+    assert servers[0].source_client == "claude-desktop"
+
+
 def test_tool_registry_namespaces_server_tools() -> None:
     registry = ToolRegistry()
     registry.register_server_tools(
@@ -324,6 +366,55 @@ async def test_mcp_client_engine_build_tool_definitions_filters_active_servers()
 
 
 @pytest.mark.asyncio
+async def test_mcp_client_engine_formats_anthropic_tools_with_safe_names() -> None:
+    allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(
+                server_id="brave-search", command="python", permissions=allow_perms
+            )
+        ],
+    )
+    engine._tool_registry.register_server_tools(
+        "brave-search",
+        [
+            Tool(
+                name="brave_web_search",
+                description="Search the web",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                },
+            )
+        ],
+    )
+    engine._server_manager._statuses["brave-search"] = ServerStatus(
+        server_id="brave-search", status="connected"
+    )
+
+    definitions, warnings = await engine.build_tool_definitions(
+        provider="anthropic",
+        active_servers=["brave-search"],
+    )
+
+    assert warnings == []
+    assert definitions == [
+        {
+            "name": "mcp_brave-search__brave_web_search",
+            "description": "Search the web",
+            "input_schema": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+            },
+        }
+    ]
+    assert engine._resolve_tool_target(
+        "mcp_brave-search__brave_web_search",
+        {"brave-search"},
+    ) == ("brave-search", "brave_web_search")
+
+
+@pytest.mark.asyncio
 async def test_mcp_client_engine_chat_with_mcp_executes_tool_calls() -> None:
     allow_perms = ServerPermissionConfig(default_mode=PermissionMode.ALLOW)
     engine = MCPClientEngine(
@@ -492,6 +583,36 @@ async def test_mcp_client_engine_start_call_tool_and_get_resource(
         assert "ready" in resource
     finally:
         await engine.stop()
+
+
+@pytest.mark.asyncio
+async def test_mcp_client_engine_start_continues_when_one_server_fails() -> None:
+    engine = MCPClientEngine(
+        servers=[
+            ConfiguredServer(server_id="broken", command="python"),
+            ConfiguredServer(server_id="demo", command="python"),
+        ]
+    )
+
+    async def fake_start_server(server_id: str):
+        if server_id == "broken":
+            raise RuntimeError("boom")
+        engine._server_manager._statuses[server_id] = ServerStatus(
+            server_id=server_id,
+            status="connected",
+        )
+        return engine._server_manager._statuses[server_id]
+
+    engine.start_server = AsyncMock(side_effect=fake_start_server)  # type: ignore[method-assign]
+
+    await engine.start()
+
+    statuses = {status.server_id: status.status for status in engine.list_servers()}
+    assert statuses["broken"] == "stopped"
+    assert statuses["demo"] == "connected"
+    assert engine.start_server.await_count == 2
+
+    await engine.stop()
 
 
 @pytest.mark.asyncio

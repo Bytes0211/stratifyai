@@ -9,6 +9,10 @@ from stratifyai.mcp_catalog import get_configured_servers, get_mcp_client_settin
 
 from .permissions import ServerPermissionConfig
 
+# Prefer the user's Claude Desktop config first for auto-discovery in the
+# StratifyAI Web UI, then fall back to workspace-local editor configs.
+_AUTO_CLIENT_PRIORITY = ("claude-desktop", "cursor", "vscode")
+
 
 @dataclass(slots=True)
 class ConfiguredServer:
@@ -23,14 +27,15 @@ class ConfiguredServer:
     auto_start: bool = True
     timeout_seconds: float = 30.0
     permissions: ServerPermissionConfig = field(default_factory=ServerPermissionConfig)
+    source_client: str | None = None
 
 
-def load_enabled_servers(
-    client: str = "cursor",
+def _load_enabled_servers_for_client(
+    client: str,
     project_root: str | Path | None = None,
     output_path: str | Path | None = None,
 ) -> list[ConfiguredServer]:
-    """Load enabled MCP servers from an existing client configuration."""
+    """Load enabled MCP servers from one concrete client configuration."""
     path, server_map = get_configured_servers(
         client=client,
         project_root=project_root,
@@ -82,7 +87,43 @@ def load_enabled_servers(
                 permissions=ServerPermissionConfig.from_dict(
                     server_settings.get("permissions")
                 ),
+                source_client=client,
             )
         )
 
     return servers
+
+
+def load_enabled_servers(
+    client: str = "auto",
+    project_root: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -> list[ConfiguredServer]:
+    """Load enabled MCP servers from configured client files.
+
+    `client="auto"` merges known local client configs so the shared StratifyAI
+    chat engine can surface servers configured in Claude Desktop, Cursor, or
+    VS Code without forcing the user to duplicate entries in one specific file.
+    """
+    if client in {"auto", "all"}:
+        merged: list[ConfiguredServer] = []
+        seen_server_ids: set[str] = set()
+
+        for client_id in _AUTO_CLIENT_PRIORITY:
+            for server in _load_enabled_servers_for_client(
+                client=client_id,
+                project_root=project_root,
+                output_path=None,
+            ):
+                if server.server_id in seen_server_ids:
+                    continue
+                seen_server_ids.add(server.server_id)
+                merged.append(server)
+
+        return merged
+
+    return _load_enabled_servers_for_client(
+        client=client,
+        project_root=project_root,
+        output_path=output_path,
+    )

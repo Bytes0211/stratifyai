@@ -1,15 +1,17 @@
-![StratifyAI](stratifyai_trans_logo.png)
+![StratifyAI](stratifyai_trans_logo2.png)
 
 
 # StratifyAI — Unified Multi‑Provider LLM Interface
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-669%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-739%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
 **Status:** Production Ready — MCP Ecosystem Complete (Server + Client Engine + Abstraction Layer)
 **Providers:** 9 Operational
 **Features:** Routing • RAG • Caching • Streaming • Observability • Security Hardening • CLI • Svelte 5 SPA • Vision • Smart Chunking • Prompt Templates • **O(1) Cache** • **Concurrency Limits** • **MCP Server & Client Engine**
 
 StratifyAI is a production‑ready Python framework that provides a unified interface for 9+ LLM providers, including OpenAI, Anthropic, Google, DeepSeek, Groq, Grok, OpenRouter, Ollama, and AWS Bedrock. It eliminates vendor lock‑in, simplifies multi‑model development, and enables intelligent routing, cost tracking, caching, streaming, and RAG workflows.
+
+**Start here:** `docs/GETTING-STARTED.md`  •  **Web UI guide:** `docs/UI-OVERVIEW.md`  •  **Examples:** `examples/README.md`  •  **Vision guide:** `docs/VISION-SUPPORT.md`
 
 ---
 
@@ -114,6 +116,16 @@ Documentation:
 - `docs/MCP-CLIENT-CONFIG.md` — Client config for Claude Desktop, Claude Code, Cursor, VS Code
 - `developer/PRD-MCP-implemenation.md` — Technical blueprint
 
+#### Local MCP chat integration notes
+
+- StratifyAI can auto-discover enabled MCP servers from **Claude Desktop**, **Cursor**, and **VS Code** configs for chat use.
+- The MCP dashboard and chat settings now support live refresh from disk and show the config source client for each discovered server.
+- **Reset config** in the MCP tab can now clear selected or all applied MCP server entries, including the matching `stratifyai.mcpClient` metadata.
+- Anthropic-backed chats automatically receive **provider-safe MCP tool aliases**, so namespaced tools such as `postgresql.query` remain callable without hitting Anthropic's tool-name regex limits.
+- If a tool appears in the UI but is never used, verify the server permission allow-list matches the **actual tool names**. Common examples:
+  - PostgreSQL MCP: `"allow": ["query"]`
+  - Brave MCP: `"allow": ["brave_*"]`
+
 ---
 
 ## Quick Start
@@ -216,7 +228,9 @@ response = await (
 
 ## Web UI
 
-StratifyAI includes a production-ready **Svelte 5 SPA** with modern UI/UX:
+StratifyAI includes a production-ready **Svelte 5 SPA** with modern UI/UX.
+
+> For the dedicated Web UI quick start and walkthrough, see `docs/UI-OVERVIEW.md`.
 
 ### Features
 - **Tabbed Interface**: Config, Files, History, Cost tracking
@@ -228,6 +242,7 @@ StratifyAI includes a production-ready **Svelte 5 SPA** with modern UI/UX:
 - **Cost Tracking**: Real-time cost analytics per message and session
 - **Theme Toggle**: Dark/light themes with localStorage persistence
 - **Model Validation**: Real-time API key validation and model availability
+- **MCP Tools in Chat**: Enable discovered local MCP servers per conversation with live refresh and status visibility
 
 ### Quick Start
 

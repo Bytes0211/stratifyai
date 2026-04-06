@@ -1,12 +1,23 @@
 """Cost tracking module for LLM API calls."""
 
 import logging
-from collections import defaultdict
+import os
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _get_default_max_entries() -> int:
+    """Return the default retained history size for cost tracking."""
+    raw_value = os.getenv("STRATIFYAI_COST_TRACKER_MAX_ENTRIES", "10000")
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return 10_000
+    return value if value > 0 else 10_000
 
 
 @dataclass
@@ -36,12 +47,30 @@ class CostTracker:
     - Grouping by provider, model, or custom tags
     - Cost analytics and reporting
     - Budget tracking and alerts
+    - Bounded in-memory history for long-running servers
     """
 
-    def __init__(self):
-        """Initialize cost tracker."""
-        self._entries: list[CostEntry] = []
+    def __init__(self, max_entries: int | None = None):
+        """Initialize cost tracker.
+
+        Args:
+            max_entries: Maximum number of detailed history entries to retain in
+                memory. Aggregate totals remain cumulative even when older
+                entries are trimmed. If ``None``, the value is read from
+                ``STRATIFYAI_COST_TRACKER_MAX_ENTRIES`` and falls back to 10_000.
+        """
+        if max_entries is None:
+            max_entries = _get_default_max_entries()
+
+        self._max_entries = max_entries if max_entries and max_entries > 0 else None
+        self._entries: deque[CostEntry] = deque(maxlen=self._max_entries)
         self._total_cost: float = 0.0
+        self._total_tokens: int = 0
+        self._total_calls: int = 0
+        self._cost_by_provider: dict[str, float] = defaultdict(float)
+        self._cost_by_model: dict[str, float] = defaultdict(float)
+        self._cost_by_group: dict[str, float] = defaultdict(float)
+        self._tokens_by_provider: dict[str, int] = defaultdict(int)
         self._budget_limit: float | None = None
         self._alert_threshold: float | None = None
 
@@ -90,7 +119,14 @@ class CostTracker:
             group=group,
         )
         self._entries.append(entry)
+        self._total_calls += 1
         self._total_cost += cost_usd
+        self._total_tokens += total_tokens
+        self._cost_by_provider[provider] += cost_usd
+        self._cost_by_model[model] += cost_usd
+        self._tokens_by_provider[provider] += total_tokens
+        if group:
+            self._cost_by_group[group] += cost_usd
 
         # Check budget alerts
         if self._alert_threshold and self._total_cost >= self._alert_threshold:
@@ -98,15 +134,15 @@ class CostTracker:
 
     def get_total_cost(self) -> float:
         """Get total cost across all tracked calls."""
-        return self._total_cost
+        return round(self._total_cost, 10)
 
     def get_total_tokens(self) -> int:
         """Get total tokens across all tracked calls."""
-        return sum(entry.total_tokens for entry in self._entries)
+        return self._total_tokens
 
     def get_call_count(self) -> int:
         """Get total number of tracked calls."""
-        return len(self._entries)
+        return self._total_calls
 
     def get_entries(
         self,
@@ -125,7 +161,7 @@ class CostTracker:
         Returns:
             List of matching cost entries
         """
-        entries = self._entries
+        entries = list(self._entries)
 
         if provider:
             entries = [e for e in entries if e.provider == provider]
@@ -138,32 +174,19 @@ class CostTracker:
 
     def get_cost_by_provider(self) -> dict[str, float]:
         """Get total cost grouped by provider."""
-        costs: dict[str, float] = defaultdict(float)
-        for entry in self._entries:
-            costs[entry.provider] += entry.cost_usd
-        return dict(costs)
+        return {key: round(value, 10) for key, value in self._cost_by_provider.items()}
 
     def get_cost_by_model(self) -> dict[str, float]:
         """Get total cost grouped by model."""
-        costs: dict[str, float] = defaultdict(float)
-        for entry in self._entries:
-            costs[entry.model] += entry.cost_usd
-        return dict(costs)
+        return {key: round(value, 10) for key, value in self._cost_by_model.items()}
 
     def get_cost_by_group(self) -> dict[str, float]:
         """Get total cost grouped by custom group tag."""
-        costs: dict[str, float] = defaultdict(float)
-        for entry in self._entries:
-            if entry.group:
-                costs[entry.group] += entry.cost_usd
-        return dict(costs)
+        return {key: round(value, 10) for key, value in self._cost_by_group.items()}
 
     def get_tokens_by_provider(self) -> dict[str, int]:
         """Get total tokens grouped by provider."""
-        tokens: dict[str, int] = defaultdict(int)
-        for entry in self._entries:
-            tokens[entry.provider] += entry.total_tokens
-        return dict(tokens)
+        return dict(self._tokens_by_provider)
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get cache usage statistics."""
@@ -199,22 +222,24 @@ class CostTracker:
         Returns:
             Dictionary with budget information
         """
+        total_cost = self.get_total_cost()
+
         if self._budget_limit is None:
             return {
                 "budget_set": False,
-                "total_cost": self._total_cost,
+                "total_cost": total_cost,
             }
 
-        remaining = self._budget_limit - self._total_cost
-        percent_used = (self._total_cost / self._budget_limit) * 100
+        remaining = self._budget_limit - total_cost
+        percent_used = (total_cost / self._budget_limit) * 100
 
         return {
             "budget_set": True,
             "budget_limit": self._budget_limit,
-            "total_cost": self._total_cost,
-            "remaining": max(0, remaining),
+            "total_cost": total_cost,
+            "remaining": max(0, round(remaining, 10)),
             "percent_used": round(percent_used, 2),
-            "over_budget": self._total_cost > self._budget_limit,
+            "over_budget": total_cost > self._budget_limit,
             "alert_threshold": self._alert_threshold,
         }
 
@@ -228,6 +253,12 @@ class CostTracker:
         """Reset all tracked data."""
         self._entries.clear()
         self._total_cost = 0.0
+        self._total_tokens = 0
+        self._total_calls = 0
+        self._cost_by_provider.clear()
+        self._cost_by_model.clear()
+        self._cost_by_group.clear()
+        self._tokens_by_provider.clear()
 
     def _trigger_alert(self, current_cost: float, threshold: float) -> None:
         """
@@ -252,11 +283,14 @@ class CostTracker:
             Dictionary with summary statistics
         """
         return {
-            "total_cost": self._total_cost,
+            "total_cost": self.get_total_cost(),
             "total_tokens": self.get_total_tokens(),
             "total_calls": self.get_call_count(),
+            "retained_entries": len(self._entries),
+            "max_entries": self._max_entries,
             "cost_by_provider": self.get_cost_by_provider(),
             "cost_by_model": self.get_cost_by_model(),
+            "cost_by_group": self.get_cost_by_group(),
             "tokens_by_provider": self.get_tokens_by_provider(),
             "cache_stats": self.get_cache_stats(),
             "budget_status": self.get_budget_status(),

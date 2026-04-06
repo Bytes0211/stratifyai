@@ -219,6 +219,22 @@ class TestVerifyApiKeyHmac:
         verify_api_key("Bearer anything")
 
 
+class TestExecutorConfiguration:
+    """Ensure environment-based executor sizing is parsed safely."""
+
+    def test_get_executor_max_workers_from_env(self, monkeypatch):
+        import api.main as api_main
+
+        monkeypatch.setenv("STRATIFYAI_THREAD_POOL_WORKERS", "12")
+        assert api_main._get_executor_max_workers() == 12
+
+        monkeypatch.setenv("STRATIFYAI_THREAD_POOL_WORKERS", "0")
+        assert api_main._get_executor_max_workers() == 4
+
+        monkeypatch.setenv("STRATIFYAI_THREAD_POOL_WORKERS", "not-a-number")
+        assert api_main._get_executor_max_workers() == 4
+
+
 class TestRateLimitKeying:
     """Ensure HTTP rate limiting keys by API key when available."""
 
@@ -358,13 +374,12 @@ class TestGlobalInitializationLocks:
         import api.main as api_main
 
         api_main._mcp_chat_engine = None
-        start_calls = 0
+        init_calls = 0
 
         class FakeEngine:
-            async def start(self):
-                nonlocal start_calls
-                start_calls += 1
-                await asyncio.sleep(0.01)
+            def __init__(self, **kwargs):
+                nonlocal init_calls
+                init_calls += 1
 
         monkeypatch.setattr(api_main, "MCPClientEngine", FakeEngine)
 
@@ -374,7 +389,7 @@ class TestGlobalInitializationLocks:
             api_main.get_mcp_chat_engine(),
         )
 
-        assert start_calls == 1
+        assert init_calls == 1
         assert len({id(engine) for engine in engines}) == 1
         api_main._mcp_chat_engine = None
 

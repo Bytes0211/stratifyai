@@ -1644,3 +1644,221 @@ class TestTokenCounterCoverage:
 
         exceeds, context_window, pct = check_token_limit(999999999, "openai", "gpt-4o")
         assert exceeds is True
+
+
+# ---------------------------------------------------------------------------
+# mcp_client/engine.py coverage (utility functions + dataclass)
+# ---------------------------------------------------------------------------
+
+
+class TestMCPEngineUtilitiesCoverage:
+    """Cover utility functions and ToolExecutionResult in engine.py."""
+
+    def test_render_tool_payload_string(self):
+        from stratifyai.mcp_client.engine import _render_tool_payload
+
+        assert _render_tool_payload("hello") == "hello"
+
+    def test_render_tool_payload_dict(self):
+        from stratifyai.mcp_client.engine import _render_tool_payload
+
+        result = _render_tool_payload({"key": "value"})
+        assert '"key"' in result
+        assert '"value"' in result
+
+    def test_render_tool_payload_truncation(self):
+        from stratifyai.mcp_client.engine import (
+            _MAX_TOOL_CONTEXT_CHARS,
+            _render_tool_payload,
+        )
+
+        long_str = "x" * (_MAX_TOOL_CONTEXT_CHARS + 100)
+        result = _render_tool_payload(long_str)
+        assert result.endswith("... [truncated]")
+
+    def test_format_timestamp_none(self):
+        from stratifyai.mcp_client.engine import _format_timestamp
+
+        assert _format_timestamp(None) is None
+
+    def test_format_timestamp_value(self):
+        from stratifyai.mcp_client.engine import _format_timestamp
+
+        result = _format_timestamp(0.0)
+        assert result == "1970-01-01T00:00:00Z"
+
+    def test_tool_execution_result_to_dict(self):
+        from stratifyai.mcp_client.engine import ToolExecutionResult
+
+        result = ToolExecutionResult(
+            call_id="c1",
+            server_id="srv",
+            tool_name="tool",
+            namespace="srv.tool",
+            arguments={"a": 1},
+            result="ok",
+        )
+        d = result.to_dict()
+        assert d["call_id"] == "c1"
+        assert d["server_id"] == "srv"
+        assert d["result"] == "ok"
+        assert d["error"] is None
+
+    def test_tool_execution_result_render_for_prompt_ok(self):
+        from stratifyai.mcp_client.engine import ToolExecutionResult
+
+        result = ToolExecutionResult(
+            call_id="c1",
+            server_id="srv",
+            tool_name="tool",
+            namespace="srv.tool",
+            arguments={"a": 1},
+            result="output",
+        )
+        rendered = result.render_for_prompt()
+        assert "Status: ok" in rendered
+        assert "output" in rendered
+
+    def test_tool_execution_result_render_for_prompt_error(self):
+        from stratifyai.mcp_client.engine import ToolExecutionResult
+
+        result = ToolExecutionResult(
+            call_id="c1",
+            server_id="srv",
+            tool_name="tool",
+            namespace="srv.tool",
+            arguments={},
+            error="something broke",
+        )
+        rendered = result.render_for_prompt()
+        assert "Status: error" in rendered
+        assert "something broke" in rendered
+
+
+# ---------------------------------------------------------------------------
+# mcp_client/permissions.py coverage
+# ---------------------------------------------------------------------------
+
+
+class TestMCPPermissionsCoverage:
+    """Cover uncovered branches in permissions.py."""
+
+    def test_server_permission_config_from_dict_invalid(self):
+        from stratifyai.mcp_client.permissions import ServerPermissionConfig
+
+        config = ServerPermissionConfig.from_dict("not a dict")
+        assert config.default_mode is None
+
+    def test_server_permission_config_from_dict_invalid_mode(self):
+        from stratifyai.mcp_client.permissions import ServerPermissionConfig
+
+        config = ServerPermissionConfig.from_dict({"default_mode": "invalid_mode"})
+        assert config.default_mode is None
+
+    def test_server_permission_config_to_dict(self):
+        from stratifyai.mcp_client.permissions import (
+            PermissionMode,
+            ServerPermissionConfig,
+        )
+
+        config = ServerPermissionConfig(
+            default_mode=PermissionMode.ALLOW,
+            allow=["read_*"],
+            deny=["delete_*"],
+            confirm=["write_*"],
+        )
+        d = config.to_dict()
+        assert d["default_mode"] == "allow"
+        assert d["allow"] == ["read_*"]
+        assert d["deny"] == ["delete_*"]
+        assert d["confirm"] == ["write_*"]
+
+    def test_matches_pattern_empty(self):
+        from stratifyai.mcp_client.permissions import _matches_pattern
+
+        assert _matches_pattern("tool", "srv.tool", "  ") is False
+
+    def test_permission_manager_evaluate_deny(self):
+        from stratifyai.mcp_client.permissions import (
+            PermissionManager,
+            PermissionMode,
+            ServerPermissionConfig,
+        )
+
+        pm = PermissionManager(
+            server_policies={
+                "srv": ServerPermissionConfig(deny=["bad_tool"]),
+            }
+        )
+        decision = pm.evaluate("srv", "bad_tool")
+        assert decision.mode == PermissionMode.DENY
+
+    async def test_authorize_deny_raises(self):
+        from stratifyai.mcp_client.permissions import (
+            MCPPermissionError,
+            PermissionManager,
+            ServerPermissionConfig,
+        )
+
+        pm = PermissionManager(
+            server_policies={
+                "srv": ServerPermissionConfig(deny=["bad_tool"]),
+            }
+        )
+        with pytest.raises(MCPPermissionError):
+            await pm.authorize("srv", "bad_tool", {})
+
+    async def test_authorize_confirm_no_handler_raises(self):
+        from stratifyai.mcp_client.permissions import (
+            MCPConfirmationRequiredError,
+            PermissionManager,
+            ServerPermissionConfig,
+        )
+
+        pm = PermissionManager(
+            server_policies={
+                "srv": ServerPermissionConfig(confirm=["risky_tool"]),
+            }
+        )
+        with pytest.raises(MCPConfirmationRequiredError):
+            await pm.authorize("srv", "risky_tool", {})
+
+    async def test_authorize_confirm_declined_raises(self):
+        from stratifyai.mcp_client.permissions import (
+            MCPPermissionError,
+            PermissionManager,
+            ServerPermissionConfig,
+        )
+
+        pm = PermissionManager(
+            server_policies={
+                "srv": ServerPermissionConfig(confirm=["risky_tool"]),
+            }
+        )
+        with pytest.raises(MCPPermissionError, match="declined"):
+            await pm.authorize(
+                "srv",
+                "risky_tool",
+                {},
+                confirmation_handler=lambda *_: False,
+            )
+
+    def test_safety_default_read_only_keyword(self):
+        from stratifyai.mcp_client.permissions import (
+            PermissionManager,
+            PermissionMode,
+        )
+
+        pm = PermissionManager()
+        decision = pm.evaluate("srv", "fetch")
+        assert decision.mode == PermissionMode.ALLOW
+
+    def test_safety_default_unknown_tool_requires_confirm(self):
+        from stratifyai.mcp_client.permissions import (
+            PermissionManager,
+            PermissionMode,
+        )
+
+        pm = PermissionManager()
+        decision = pm.evaluate("srv", "xyzzy_unknown_9999")
+        assert decision.mode == PermissionMode.CONFIRM

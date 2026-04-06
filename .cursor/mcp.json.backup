@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "postgresql": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "psql 'postgresql://scotton:4tressBytes@localhost:5432/dvdrental'"
+      }
+    }
+  }
+}

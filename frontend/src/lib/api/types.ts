@@ -190,6 +190,7 @@ export interface McpClientServerInfo {
   tool_count: number;
   tools: string[];
   transport?: string;
+  source_client?: string | null;
   latency_ms?: number | null;
   last_checked_at?: string | null;
   last_connected_at?: string | null;
@@ -269,6 +270,20 @@ export interface McpConfigureResponse {
   commands: string[];
   path?: string | null;
   warnings: string[];
+}
+
+export interface McpResetRequest {
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  server_ids?: string[];
+  project_root?: string;
+  output_path?: string;
+}
+
+export interface McpResetResponse {
+  client: string;
+  path?: string | null;
+  removed_server_ids: string[];
+  count: number;
 }
 
 export interface McpToolInfo {

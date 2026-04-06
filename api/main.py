@@ -10,6 +10,7 @@ import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -27,6 +28,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -45,6 +47,7 @@ from stratifyai.mcp_catalog import (
     detect_client_config_path,
     get_configured_servers,
     get_mcp_client_settings,
+    remove_servers_from_config,
     validate_prerequisites,
     write_client_config,
     write_mcp_client_settings,
@@ -96,8 +99,30 @@ def _get_version() -> str:
 API_VERSION = _get_version()
 APP_START_TIME = time.time()
 
+
+def _format_timestamp(value: float | None) -> str | None:
+    """Format UNIX timestamps as UTC ISO-8601 strings for API responses."""
+    if value is None:
+        return None
+    return (
+        datetime.fromtimestamp(value, tz=timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _get_executor_max_workers() -> int:
+    """Return a safe ThreadPoolExecutor size from environment configuration."""
+    raw_value = os.getenv("STRATIFYAI_THREAD_POOL_WORKERS", "4")
+    try:
+        workers = int(raw_value)
+    except (TypeError, ValueError):
+        return 4
+    return workers if 1 <= workers <= 32 else 4
+
+
 # Shared ThreadPoolExecutor for async validation tasks (BUG-008)
-_executor = ThreadPoolExecutor(max_workers=4)
+_executor = ThreadPoolExecutor(max_workers=_get_executor_max_workers())
 
 # Client cache for connection pooling (BUG-003)
 _client_cache: dict[str, LLMClient] = {}
@@ -130,15 +155,26 @@ def _get_mcp_chat_engine_lock() -> asyncio.Lock:
     return _mcp_chat_engine_lock
 
 
-async def get_mcp_chat_engine() -> MCPClientEngine:
-    """Get or lazily initialize the shared MCP chat engine."""
+async def get_mcp_chat_engine(refresh: bool = False) -> MCPClientEngine:
+    """Get or lazily initialize the shared MCP chat engine.
+
+    When ``refresh`` is true, the engine re-reads supported local MCP client
+    config files (Claude Desktop, Cursor, VS Code) so newly configured servers
+    appear in the Web UI without requiring an API restart.
+
+    Note: initialization is intentionally lazy and non-connecting here. Passive
+    dashboard loads should not try to spawn every external MCP server because a
+    single misconfigured server must not take down the whole Web UI with a 500.
+    Servers are started on demand when the user explicitly starts one or a chat
+    session attempts to use it.
+    """
     global _mcp_chat_engine
-    if _mcp_chat_engine is None:
+    if _mcp_chat_engine is None or refresh:
         async with _get_mcp_chat_engine_lock():
             if _mcp_chat_engine is None:
-                engine = MCPClientEngine()
-                await engine.start()
-                _mcp_chat_engine = engine
+                _mcp_chat_engine = MCPClientEngine(client="auto")
+            elif refresh:
+                await _mcp_chat_engine.sync_configured_servers(client="auto")
     return _mcp_chat_engine
 
 
@@ -310,6 +346,20 @@ cost_tracker = CostTracker()
 
 # Upper bound for inbound websocket payload size (raw JSON text length)
 _WS_MAX_PAYLOAD_CHARS = 2_000_000
+# Upper bound for attached file payload size before any decoding/processing.
+_MAX_FILE_PAYLOAD_CHARS = 5_000_000
+
+_SUMMARIZATION_MODEL_BY_PROVIDER = {
+    "openai": "gpt-4o-mini",
+    "anthropic": "claude-3-haiku-20240307",
+    "google": "gemini-2.5-flash",
+    "deepseek": "deepseek-chat",
+    "groq": "llama-3.1-8b-instant",
+    "grok": "grok-4-1-fast-non-reasoning",
+    "openrouter": "google/gemini-2.5-flash",
+    "ollama": "llama3.2",
+    "bedrock": "anthropic.claude-3-5-haiku-20241022-v1:0",
+}
 
 # WebSocket rate limiting with TTL eviction.
 # Each key is a client IP mapping to a deque of request timestamps.
@@ -321,6 +371,31 @@ _WS_RATE_LIMIT_MAX_IPS = 10_000
 _WS_RATE_LIMIT_WINDOW_SECS = 60
 
 _VALID_MESSAGE_ROLES = frozenset({"system", "user", "assistant"})
+
+
+def _ensure_file_payload_size(file_content: str | None, file_name: str | None) -> None:
+    """Reject oversized file payloads before decoding or temporary-file work."""
+    if not file_content:
+        return
+
+    if len(file_content) > _MAX_FILE_PAYLOAD_CHARS:
+        label = file_name or "attached file"
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "error": "file_too_large",
+                "message": (
+                    f"{label} exceeds the maximum allowed size of "
+                    f"{_MAX_FILE_PAYLOAD_CHARS:,} characters"
+                ),
+                "max_chars": _MAX_FILE_PAYLOAD_CHARS,
+            },
+        )
+
+
+def _get_summarization_model(provider: str) -> str:
+    """Return the low-cost summarization model configured for a provider."""
+    return _SUMMARIZATION_MODEL_BY_PROVIDER.get(provider, "gpt-4o-mini")
 
 
 def _evict_stale_ws_entries() -> None:
@@ -833,6 +908,7 @@ async def chat_completion(
 
         # Process file if provided (text files only - images are handled in message content by frontend)
         safe_file_name = _sanitize_file_name(payload.file_name)
+        _ensure_file_payload_size(payload.file_content, safe_file_name)
         if payload.file_content and safe_file_name:
             logger.info(
                 f"Processing file attachment: {safe_file_name} (content length: {len(payload.file_content)} chars)"
@@ -874,23 +950,9 @@ async def chat_completion(
                         f"File analysis: type={analysis.file_type.value}, tokens={analysis.estimated_tokens}"
                     )
 
-                    # Perform chunking and summarization
-                    # Use a cheap model for summarization (gpt-4o-mini or similar)
-                    # Auto-select based on provider
-                    summarization_models = {
-                        "openai": "gpt-4o-mini",
-                        "anthropic": "claude-3-haiku-20240307",
-                        "google": "gemini-2.5-flash",
-                        "deepseek": "deepseek-chat",
-                        "groq": "llama-3.1-8b-instant",
-                        "grok": "grok-4-1-fast-non-reasoning",  # BUG-006: Updated from deprecated grok-beta
-                        "openrouter": "google/gemini-2.5-flash",
-                        "ollama": "llama3.2",
-                        "bedrock": "anthropic.claude-3-5-haiku-20241022-v1:0",
-                    }
-                    summarization_model = summarization_models.get(
-                        payload.provider, "gpt-4o-mini"
-                    )
+                    # Perform chunking and summarization using the provider's
+                    # configured low-cost summarization model.
+                    summarization_model = _get_summarization_model(payload.provider)
 
                     client = get_client(payload.provider)  # BUG-003: Use cached client
 
@@ -1143,6 +1205,7 @@ async def chat_stream(websocket: WebSocket):
         max_tokens = request_obj.max_tokens
         file_content = request_obj.file_content
         file_name = _sanitize_file_name(request_obj.file_name)
+        _ensure_file_payload_size(file_content, file_name)
         active_mcp_servers = request_obj.active_mcp_servers
 
         # --- Provider/model validation (WebSocket-safe) ---------------------
@@ -1263,21 +1326,9 @@ async def chat_stream(websocket: WebSocket):
                         f"[WebSocket] File analysis: type={analysis.file_type.value}, tokens={analysis.estimated_tokens}"
                     )
 
-                    # Perform chunking and summarization
-                    summarization_models = {
-                        "openai": "gpt-4o-mini",
-                        "anthropic": "claude-3-haiku-20240307",
-                        "google": "gemini-2.5-flash",
-                        "deepseek": "deepseek-chat",
-                        "groq": "llama-3.1-8b-instant",
-                        "grok": "grok-4-1-fast-non-reasoning",
-                        "openrouter": "google/gemini-2.5-flash",
-                        "ollama": "llama3.2",
-                        "bedrock": "anthropic.claude-3-5-haiku-20241022-v1:0",
-                    }
-                    summarization_model = summarization_models.get(
-                        provider, "gpt-4o-mini"
-                    )
+                    # Perform chunking and summarization using the provider's
+                    # configured low-cost summarization model.
+                    summarization_model = _get_summarization_model(provider)
 
                     client = get_client(provider)
 
@@ -1651,6 +1702,32 @@ class MCPConfigureRequest(BaseModel):
         return value
 
 
+class MCPResetRequest(BaseModel):
+    """Request model for MCP config reset/remove actions."""
+
+    client: str
+    server_ids: list[str] = Field(default_factory=list)
+    project_root: str | None = None
+    output_path: str | None = None
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+
+class MCPResetResponse(BaseModel):
+    """Response model for MCP config reset/remove actions."""
+
+    client: str
+    path: str | None = None
+    removed_server_ids: list[str] = Field(default_factory=list)
+    count: int = 0
+
+
 class MCPToolInfo(BaseModel):
     """Inline tester metadata for a registered MCP tool."""
 
@@ -1672,6 +1749,7 @@ class MCPClientServerInfo(BaseModel):
     tool_count: int = 0
     tools: list[str] = Field(default_factory=list)
     transport: str = "stdio"
+    source_client: str | None = None
     latency_ms: float | None = None
     last_checked_at: str | None = None
     last_connected_at: str | None = None
@@ -2166,9 +2244,14 @@ def _serialize_mcp_client_servers(engine: MCPClientEngine) -> list[dict[str, Any
                 tool_count=len(tool_names),
                 tools=tool_names,
                 transport=getattr(status, "transport", "stdio"),
+                source_client=getattr(config, "source_client", None),
                 latency_ms=getattr(status, "latency_ms", None),
-                last_checked_at=getattr(status, "last_checked_at", None),
-                last_connected_at=getattr(status, "last_connected_at", None),
+                last_checked_at=_format_timestamp(
+                    getattr(status, "last_checked_at", None)
+                ),
+                last_connected_at=_format_timestamp(
+                    getattr(status, "last_connected_at", None)
+                ),
             ).model_dump()
         )
     return serialized
@@ -2472,20 +2555,26 @@ async def get_mcp_status(
 
 
 @app.get("/api/mcp-client/servers")
-async def get_mcp_client_servers(_: None = Depends(verify_api_key)):
+async def get_mcp_client_servers(
+    refresh: bool = False,
+    _: None = Depends(verify_api_key),
+):
     """Return live MCP client engine status for the server dashboard."""
     try:
-        engine = await get_mcp_chat_engine()
+        engine = await get_mcp_chat_engine(refresh=refresh)
         return {"servers": _serialize_mcp_client_servers(engine)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
 
 
 @app.get("/api/mcp-client/tools")
-async def get_mcp_client_tools(_: None = Depends(verify_api_key)):
+async def get_mcp_client_tools(
+    refresh: bool = False,
+    _: None = Depends(verify_api_key),
+):
     """Return discovered external MCP tools for the CE-5 tool browser."""
     try:
-        engine = await get_mcp_chat_engine()
+        engine = await get_mcp_chat_engine(refresh=refresh)
         return {"tools": _serialize_mcp_client_tools(engine)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
@@ -2653,7 +2742,7 @@ async def update_mcp_client_permissions(
         )
 
         global _mcp_chat_engine
-        if _mcp_chat_engine is not None and payload.client == "cursor":
+        if _mcp_chat_engine is not None:
             await _apply_mcp_client_settings_to_engine(
                 _mcp_chat_engine, payload.servers
             )
@@ -2733,6 +2822,10 @@ async def configure_mcp(
             path = written
             applied = True
 
+            global _mcp_chat_engine
+            if _mcp_chat_engine is not None and payload.client != "claude-code":
+                await get_mcp_chat_engine(refresh=True)
+
         return {
             "applied": applied,
             "config": config,
@@ -2742,6 +2835,48 @@ async def configure_mcp(
         }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=sanitize_error(str(exc))) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp/reset", response_model=MCPResetResponse)
+async def reset_mcp_config(
+    payload: MCPResetRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Remove selected or all configured MCP servers from a client config file."""
+    try:
+        path, configured = get_configured_servers(
+            client=payload.client,
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+        target_ids = payload.server_ids or list(configured.keys())
+
+        if payload.client == "claude-code":
+            raise ValueError(
+                "Claude Code uses `claude mcp remove <server-id>` commands instead of a local config file."
+            )
+
+        written_path, removed_server_ids = remove_servers_from_config(
+            client=payload.client,
+            server_ids=target_ids,
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+
+        global _mcp_chat_engine
+        if _mcp_chat_engine is not None and payload.client != "claude-code":
+            await get_mcp_chat_engine(refresh=True)
+
+        return MCPResetResponse(
+            client=payload.client,
+            path=str(written_path if written_path is not None else path)
+            if (written_path is not None or path is not None)
+            else None,
+            removed_server_ids=removed_server_ids,
+            count=len(removed_server_ids),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
@@ -2931,6 +3066,39 @@ async def get_metrics(_: None = Depends(verify_api_key)):
             cost_summary=cost_tracker.get_summary(),
         ),
     }
+
+
+def _register_v1_api_aliases() -> None:
+    """Register `/v1/*` aliases for all REST endpoints currently under `/api/*`."""
+    existing_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+
+    for route in list(app.routes):
+        if not isinstance(route, APIRoute) or not route.path.startswith("/api/"):
+            continue
+
+        v1_path = "/v1" + route.path[4:]
+        if v1_path in existing_paths:
+            continue
+
+        app.add_api_route(
+            v1_path,
+            route.endpoint,
+            methods=list(route.methods or {"GET"}),
+            response_model=route.response_model,
+            status_code=route.status_code,
+            tags=route.tags,
+            summary=route.summary,
+            description=route.description,
+            response_description=route.response_description,
+            responses=route.responses,
+            deprecated=route.deprecated,
+            name=f"v1_{route.name}" if route.name else None,
+            include_in_schema=route.include_in_schema,
+        )
+        existing_paths.add(v1_path)
+
+
+_register_v1_api_aliases()
 
 
 if __name__ == "__main__":

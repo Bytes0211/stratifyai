@@ -27,16 +27,16 @@ Project Board: https://github.com/users/Bytes0211/projects/4
 
 | Phase | Scope | GitHub Issue | Status | PR | Updated | Notes |
 |---|---|---|---|---|---|---|
-| 0 | Contract Freeze | https://github.com/Bytes0211/stratifyai/issues/19 | Done | - | 2026-04-03 | Contract and plan docs finalized |
-| 1 | Bootstrap | https://github.com/Bytes0211/stratifyai/issues/20 | Done | - | 2026-04-03 | MCP server scaffold, entrypoint, schemas, and errors verified |
-| 2 | Core Tools | https://github.com/Bytes0211/stratifyai/issues/21 | Done | - | 2026-04-03 | Core MCP execution and model lookup tools verified in tools.py |
-| 3 | Cost Tools | https://github.com/Bytes0211/stratifyai/issues/22 | Done | - | 2026-04-03 | Session cost tracking, summary filters, and validation tooling verified |
-| 4 | Resources | https://github.com/Bytes0211/stratifyai/issues/23 | Done | - | 2026-04-03 | MCP resources verified with focused resource test coverage |
-| 5 | Prompts | https://github.com/Bytes0211/stratifyai/issues/24 | Done | - | 2026-04-03 | Named and dynamic MCP prompts verified with prompt test coverage |
-| 6 | HTTP Transport | https://github.com/Bytes0211/stratifyai/issues/25 | Planned | - | 2026-04-03 | Deferred post-GA |
-| 7 | Tests and CI | https://github.com/Bytes0211/stratifyai/issues/26 | Done | - | 2026-04-03 | 75 MCP tests, 71%+ coverage, CI updated with --extra mcp |
-| 8 | Docs and Config | https://github.com/Bytes0211/stratifyai/issues/27 | Done | - | 2026-04-03 | Quickstart, tools reference, client config docs written |
-| 9 | Rollout and Verification | https://github.com/Bytes0211/stratifyai/issues/28 | Planned | - | 2026-04-03 | Phase field assigned in project |
+| 0 | Contract Freeze | https://github.com/Bytes0211/stratifyai/issues/19 | Done | - | 2026-02-7 | Contract and plan docs finalized |
+| 1 | Bootstrap | https://github.com/Bytes0211/stratifyai/issues/20 | Done | - | 2026-03-03 | MCP server scaffold, entrypoint, schemas, and errors verified |
+| 2 | Core Tools | https://github.com/Bytes0211/stratifyai/issues/21 | Done | - | 2026-03-04 | Core MCP execution and model lookup tools verified in tools.py |
+| 3 | Cost Tools | https://github.com/Bytes0211/stratifyai/issues/22 | Done | - | 2026-03-06 | Session cost tracking, summary filters, and validation tooling verified |
+| 4 | Resources | https://github.com/Bytes0211/stratifyai/issues/23 | Done | - | 2026-03-07 | MCP resources verified with focused resource test coverage |
+| 5 | Prompts | https://github.com/Bytes0211/stratifyai/issues/24 | Done | - | 2026-03-07 | Named and dynamic MCP prompts verified with prompt test coverage |
+| 6 | HTTP Transport | https://github.com/Bytes0211/stratifyai/issues/25 | Planned | - | 2026-03-08 | Deferred post-GA |
+| 7 | Tests and CI | https://github.com/Bytes0211/stratifyai/issues/26 | Done | - | 2026-03-08 | 75 MCP tests, 71%+ coverage, CI updated with --extra mcp |
+| 8 | Docs and Config | https://github.com/Bytes0211/stratifyai/issues/27 | Done | - | 2026-03-10 | Quickstart, tools reference, client config docs written |
+| 9 | Rollout and Verification | https://github.com/Bytes0211/stratifyai/issues/28 | Planned | - | 2026-03-10 | Phase field assigned in project |
 
 ### Step-Level Tracking
 
@@ -44,7 +44,7 @@ Project Board: https://github.com/users/Bytes0211/projects/4
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P0-S1 | Freeze tool/resource/prompt contracts in PRD section 7 | Done | 2026-04-03 | developer/PRD-MCP-implemenation.md |
+| P0-S1 | Freeze tool/resource/prompt contracts in PRD section 7 | Done | 2026-0-12 | developer/PRD-MCP-implemenation.md |
 | P0-S2 | Freeze error model in PRD section 8 | Done | 2026-04-03 | developer/PRD-MCP-implemenation.md |
 | P0-S3 | Finalize implementation plan with per-phase acceptance criteria | Done | 2026-04-03 | developer/MCP-IMPLEMENTATION-PLAN.md |
 
@@ -52,79 +52,79 @@ Project Board: https://github.com/users/Bytes0211/projects/4
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P1-S1 | Create mcp_server package scaffold and server composition | Done | 2026-04-03 | stratifyai/mcp_server/server.py |
-| P1-S2 | Add CLI entrypoint and transport arg parsing | Done | 2026-04-03 | stratifyai/mcp_server/__main__.py |
-| P1-S3 | Add schemas and structured error mapping modules | Done | 2026-04-03 | stratifyai/mcp_server/schemas.py; stratifyai/mcp_server/errors.py |
-| P1-S4 | Add pyproject extras and package wiring for mcp | Done | 2026-04-03 | pyproject.toml |
-| P1-S5 | Verify server boot and MCP handshake baseline | Done | 2026-04-03 | stratifyai/mcp_server/__init__.py |
+| P1-S1 | Create mcp_server package scaffold and server composition | Done | 2026-03-12 | stratifyai/mcp_server/server.py |
+| P1-S2 | Add CLI entrypoint and transport arg parsing | Done | 2026-02-13 | stratifyai/mcp_server/__main__.py |
+| P1-S3 | Add schemas and structured error mapping modules | Done | 2026-02-13 | stratifyai/mcp_server/schemas.py; stratifyai/mcp_server/errors.py |
+| P1-S4 | Add pyproject extras and package wiring for mcp | Done | 2026-03-14 | pyproject.toml |
+| P1-S5 | Verify server boot and MCP handshake baseline | Done | 2026-03-14 | stratifyai/mcp_server/__init__.py |
 
 #### Phase 2 - Core Tools
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P2-S1 | Implement chat_completion tool with schema output | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P2-S2 | Implement chat_with_routing tool with route metadata | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P2-S3 | Implement list_providers and list_models tools | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P2-S4 | Implement get_model_info tool with catalog metadata | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P2-S5 | Validate structured errors for invalid provider/model | Done | 2026-04-03 | tests/test_mcp_tools.py |
+| P2-S1 | Implement chat_completion tool with schema output | Done | 2026-03-15 | stratifyai/mcp_server/tools.py |
+| P2-S2 | Implement chat_with_routing tool with route metadata | Done | 2026-03-15 | stratifyai/mcp_server/tools.py |
+| P2-S3 | Implement list_providers and list_models tools | Done | 2026-03-17 | stratifyai/mcp_server/tools.py |
+| P2-S4 | Implement get_model_info tool with catalog metadata | Done | 2026-03-17 | stratifyai/mcp_server/tools.py |
+| P2-S5 | Validate structured errors for invalid provider/model | Done | 2026-03-17 | tests/test_mcp_tools.py |
 
 #### Phase 3 - Cost and Validation Tools
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P3-S1 | Add mcp session cost tracker wiring in tools module | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P3-S2 | Implement get_cost_summary tool and filters | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P3-S3 | Implement validate_provider tool | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P3-S4 | Implement estimate_cost tool using token counter | Done | 2026-04-03 | stratifyai/mcp_server/tools.py |
-| P3-S5 | Verify cost totals update after chat tool calls | Done | 2026-04-03 | tests/test_mcp_tools.py |
+| P3-S1 | Add mcp session cost tracker wiring in tools module | Done | 2026-03-18 | stratifyai/mcp_server/tools.py |
+| P3-S2 | Implement get_cost_summary tool and filters | Done | 2026-03-18 | stratifyai/mcp_server/tools.py |
+| P3-S3 | Implement validate_provider tool | Done | 2026-03-19 | stratifyai/mcp_server/tools.py |
+| P3-S4 | Implement estimate_cost tool using token counter | Done | 2026-03-19 | stratifyai/mcp_server/tools.py |
+| P3-S5 | Verify cost totals update after chat tool calls | Done | 2026-03-20 | tests/test_mcp_tools.py |
 
 #### Phase 4 - Resources
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P4-S1 | Implement stratifyai://catalog resource | Done | 2026-04-03 | stratifyai/mcp_server/resources.py |
-| P4-S2 | Implement stratifyai://catalog/{provider} resource | Done | 2026-04-03 | stratifyai/mcp_server/resources.py |
-| P4-S3 | Implement providers and costs resources | Done | 2026-04-03 | stratifyai/mcp_server/resources.py |
-| P4-S4 | Implement router strategies resource | Done | 2026-04-03 | stratifyai/mcp_server/resources.py |
-| P4-S5 | Validate structured errors for unknown provider resource | Done | 2026-04-03 | tests/test_mcp_resources.py |
+| P4-S1 | Implement stratifyai://catalog resource | Done | 2026-03-21 | stratifyai/mcp_server/resources.py |
+| P4-S2 | Implement stratifyai://catalog/{provider} resource | Done | 2026-03-21 | stratifyai/mcp_server/resources.py |
+| P4-S3 | Implement providers and costs resources | Done | 2026-03-22 | stratifyai/mcp_server/resources.py |
+| P4-S4 | Implement router strategies resource | Done | 2026-03-23 | stratifyai/mcp_server/resources.py |
+| P4-S5 | Validate structured errors for unknown provider resource | Done | 2026-03-24 | tests/test_mcp_resources.py |
 
 #### Phase 5 - Prompt Exposure
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P5-S1 | Register compare_models prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
-| P5-S2 | Register recommend_model prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
-| P5-S3 | Register analyze_costs prompt | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
-| P5-S4 | Expose dynamic registry templates as prompts | Done | 2026-04-03 | stratifyai/mcp_server/prompts.py |
-| P5-S5 | Validate prompt output shape (role/content list) | Done | 2026-04-03 | tests/test_mcp_prompts.py |
+| P5-S1 | Register compare_models prompt | Done | 2026-03-25 | stratifyai/mcp_server/prompts.py |
+| P5-S2 | Register recommend_model prompt | Done | 2026-03-25 | stratifyai/mcp_server/prompts.py |
+| P5-S3 | Register analyze_costs prompt | Done | 2026-03-26 | stratifyai/mcp_server/prompts.py |
+| P5-S4 | Expose dynamic registry templates as prompts | Done | 2026-03-26 | stratifyai/mcp_server/prompts.py |
+| P5-S5 | Validate prompt output shape (role/content list) | Done | 2026-03-26 | tests/test_mcp_prompts.py |
 
 #### Phase 6 - HTTP Transport (Optional, Post-GA)
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P6-S1 | Add streamable-http runtime flags (host/port) | Planned | 2026-04-03 | Issue 25 |
-| P6-S2 | Add token/auth guidance for remote usage | Planned | 2026-04-03 | Issue 25 |
-| P6-S3 | Add HTTP transport integration tests | Planned | 2026-04-03 | Issue 25 |
+| P6-S1 | Add streamable-http runtime flags (host/port) | Planned | 2026-03-27 | Issue 25 |
+| P6-S2 | Add token/auth guidance for remote usage | Planned | 2026-03-27 | Issue 25 |
+| P6-S3 | Add HTTP transport integration tests | Planned | 2026-03-28 | Issue 25 |
 
 #### Phase 7 - Tests and CI
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P7-S1 | Add test_mcp_schemas and error mapping tests | Done | 2026-04-03 | tests/test_mcp_schemas.py (35 tests) |
-| P7-S2 | Add test_mcp_tools for core and cost tools | Done | 2026-04-03 | tests/test_mcp_tools.py (20 tests) |
-| P7-S3 | Add test_mcp_resources and prompt tests | Done | 2026-04-03 | tests/test_mcp_resources.py (13 tests); tests/test_mcp_prompts.py (12 tests) |
-| P7-S4 | Add optional integration test lane and marker handling | Planned | 2026-04-03 | Issue 26 |
-| P7-S5 | Add CI gates for mcp extras, ruff, mypy, coverage | Done | 2026-04-03 | .github/workflows/ci.yml (--extra mcp added) |
+| P7-S1 | Add test_mcp_schemas and error mapping tests | Done | 2026-03-29 | tests/test_mcp_schemas.py (35 tests) |
+| P7-S2 | Add test_mcp_tools for core and cost tools | Done | 2026-03-29 | tests/test_mcp_tools.py (20 tests) |
+| P7-S3 | Add test_mcp_resources and prompt tests | Done | 2026-03-30 | tests/test_mcp_resources.py (13 tests); tests/test_mcp_prompts.py (12 tests) |
+| P7-S4 | Add optional integration test lane and marker handling | Planned | 2026-03-30 | Issue 26 |
+| P7-S5 | Add CI gates for mcp extras, ruff, mypy, coverage | Done | 2026-03-30 | .github/workflows/ci.yml (--extra mcp added) |
 
 #### Phase 8 - Docs and Client Setup
 
 | Step ID | Step | Status | Updated | Evidence |
 |---|---|---|---|---|
-| P8-S1 | Write MCP quickstart doc | Done | 2026-04-03 | docs/MCP-QUICKSTART.md |
-| P8-S2 | Write MCP tools reference doc | Done | 2026-04-03 | docs/MCP-TOOLS-REFERENCE.md |
-| P8-S3 | Write MCP client config doc | Done | 2026-04-03 | docs/MCP-CLIENT-CONFIG.md |
-| P8-S4 | Add README links to MCP docs | Planned | 2026-04-03 | Issue 27 |
-| P8-S5 | Validate setup path for at least two MCP clients | Planned | 2026-04-03 | Issue 27 |
+| P8-S1 | Write MCP quickstart doc | Done | 2026-04-01 | docs/MCP-QUICKSTART.md |
+| P8-S2 | Write MCP tools reference doc | Done | 2026-04-01 | docs/MCP-TOOLS-REFERENCE.md |
+| P8-S3 | Write MCP client config doc | Done | 2026-04-01 | docs/MCP-CLIENT-CONFIG.md |
+| P8-S4 | Add README links to MCP docs | Planned | 2026-04-02 | Issue 27 |
+| P8-S5 | Validate setup path for at least two MCP clients | Planned | 2026-04-02 | Issue 27 |
 
 #### Phase 9 - Rollout and Verification
 

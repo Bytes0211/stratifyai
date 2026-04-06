@@ -38,7 +38,9 @@ pip install -r requirements.txt
 ```
 
 ### API Authentication & Rate Limits
-- Set `STRATIFYAI_API_KEY` on the server to require `Authorization: Bearer <key>` for `/api/*` endpoints (except `/api/health`).
+- Set `STRATIFYAI_API_KEY` on the server to require `Authorization: Bearer <key>` for protected REST endpoints and WebSocket chat.
+- `GET /api/health` remains unauthenticated for liveness probes; provider readiness endpoints require authentication.
+- All REST endpoints under `/api/*` are also exposed under stable `/v1/*` aliases (for example, `/api/health` and `/v1/health`).
 - Default rate limit: `POST /api/chat` is limited to 30 requests/minute per IP.
 - Streaming endpoint `/api/chat/stream` enforces 30 connections/minute per IP.
 - HTTP responses include `X-Correlation-ID`. You can supply your own `X-Correlation-ID` header to trace a request across logs.
@@ -102,7 +104,7 @@ The FastAPI server exposes lightweight health and telemetry endpoints for operat
 
 ### GET `/api/health`
 
-Basic API health endpoint.
+Basic API health endpoint. Also available at `/v1/health`.
 
 **Authentication:** Not required
 
@@ -110,8 +112,7 @@ Basic API health endpoint.
 
 ```json
 {
-    "status": "healthy",
-    "version": "0.1.3"
+    "status": "healthy"
 }
 ```
 
@@ -119,9 +120,9 @@ Basic API health endpoint.
 
 Lightweight provider readiness snapshot.
 
-Also available at `/api/health/providers` for API consumers.
+Also available at `/api/health/providers` and `/v1/health/providers` for API consumers.
 
-**Authentication:** Not required
+**Authentication:** Required (`Authorization: Bearer <STRATIFYAI_API_KEY>` when auth is enabled)
 
 **Response fields:**
 - `status`: Overall health summary (`healthy` or `degraded`)

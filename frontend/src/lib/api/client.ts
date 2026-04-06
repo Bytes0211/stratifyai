@@ -14,6 +14,8 @@ import type {
   McpStatusResponse,
   McpConfigureRequest,
   McpConfigureResponse,
+  McpResetRequest,
+  McpResetResponse,
   McpToolsResponse,
   McpToolTestRequest,
   McpToolTestResponse,
@@ -127,8 +129,16 @@ export async function configureMcp(req: McpConfigureRequest): Promise<McpConfigu
   });
 }
 
-export async function getMcpClientServers(): Promise<McpClientServersResponse> {
-  return request<McpClientServersResponse>('/mcp-client/servers');
+export async function resetMcpConfig(req: McpResetRequest): Promise<McpResetResponse> {
+  return request<McpResetResponse>('/mcp/reset', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function getMcpClientServers(refresh = false): Promise<McpClientServersResponse> {
+  const query = refresh ? '?refresh=true' : '';
+  return request<McpClientServersResponse>(`/mcp-client/servers${query}`);
 }
 
 export async function startMcpClientServer(serverId: string): Promise<{ server_id: string; status: string; error?: string | null }> {
@@ -149,8 +159,9 @@ export async function restartMcpClientServer(serverId: string): Promise<{ server
   });
 }
 
-export async function getMcpClientTools(): Promise<McpClientToolsResponse> {
-  return request<McpClientToolsResponse>('/mcp-client/tools');
+export async function getMcpClientTools(refresh = false): Promise<McpClientToolsResponse> {
+  const query = refresh ? '?refresh=true' : '';
+  return request<McpClientToolsResponse>(`/mcp-client/tools${query}`);
 }
 
 export async function executeMcpClientTool(

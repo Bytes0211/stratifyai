@@ -1,5 +1,7 @@
 # StratifyAI Local Installation Guide
 
+> Prefer `docs/GETTING-STARTED.md` for the main install-and-first-request path. This page covers local package installation options in more detail.
+
 This guide provides step-by-step instructions for installing StratifyAI as a local Python library/package for development and use in other projects.
 
 ## Table of Contents

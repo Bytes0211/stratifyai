@@ -1,5 +1,7 @@
 # StratifyAI Quick Start Guide
 
+> Start with `docs/GETTING-STARTED.md` for the canonical onboarding flow. This page remains as a simplified CLI walkthrough for non-technical users.
+
 **For Non-Technical Users**
 
 This guide shows you how to use StratifyAI without needing to know command-line flags or technical details.

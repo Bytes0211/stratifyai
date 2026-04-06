@@ -64,6 +64,25 @@ class OpenAIProvider(BaseProvider):
         model_info = OPENAI_MODELS.get(model, {})
         return bool(model_info.get("supports_caching", False))
 
+    def _is_reasoning_model(self, model: str) -> bool:
+        """Return whether a model should be treated as a reasoning model."""
+        model_info = OPENAI_MODELS.get(model, {})
+        if bool(model_info.get("reasoning_model", False)):
+            return True
+
+        model_lower = model.lower()
+        return (
+            model_lower.startswith("o1")
+            or model_lower.startswith("o3")
+            or model_lower.startswith("gpt-5")
+            or "reasoning" in model_lower
+            or (
+                model_lower.startswith("o")
+                and len(model_lower) > 1
+                and model_lower[1].isdigit()
+            )
+        )
+
     async def chat_completion(self, request: ChatRequest) -> ChatResponse:
         """
         Execute chat completion request.
@@ -131,25 +150,7 @@ class OpenAIProvider(BaseProvider):
             }
 
             # Check if model is a reasoning model (o-series)
-            model_info = OPENAI_MODELS.get(request.model, {})
-            is_reasoning_model = model_info.get("reasoning_model", False)
-
-            # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
-            # This catches variants like o1-preview, o1-2024-12-17, o3-mini, gpt-5, etc.
-            if not is_reasoning_model and request.model:
-                model_lower = request.model.lower()
-                # Match: o1*, o3*, gpt-5*, "reasoning", or o followed by digit
-                is_reasoning_model = (
-                    model_lower.startswith("o1")
-                    or model_lower.startswith("o3")
-                    or model_lower.startswith("gpt-5")
-                    or "reasoning" in model_lower
-                    or (
-                        model_lower.startswith("o")
-                        and len(model_lower) > 1
-                        and model_lower[1].isdigit()
-                    )
-                )
+            is_reasoning_model = self._is_reasoning_model(request.model)
 
             # Only add these parameters for non-reasoning models
             # Reasoning models like o1, o1-mini, o3-mini don't support temperature/top_p/penalties
@@ -245,23 +246,7 @@ class OpenAIProvider(BaseProvider):
             }
 
             # Check if model is a reasoning model
-            model_info = OPENAI_MODELS.get(request.model, {})
-            is_reasoning_model = model_info.get("reasoning_model", False)
-
-            # Also check if model name starts with o1, o3, gpt-5, or just 'o' followed by a digit
-            if not is_reasoning_model and request.model:
-                model_lower = request.model.lower()
-                is_reasoning_model = (
-                    model_lower.startswith("o1")
-                    or model_lower.startswith("o3")
-                    or model_lower.startswith("gpt-5")
-                    or "reasoning" in model_lower
-                    or (
-                        model_lower.startswith("o")
-                        and len(model_lower) > 1
-                        and model_lower[1].isdigit()
-                    )
-                )
+            is_reasoning_model = self._is_reasoning_model(request.model)
 
             # Only add temperature for non-reasoning models
             if not is_reasoning_model:
@@ -309,7 +294,21 @@ class OpenAIProvider(BaseProvider):
         Returns:
             Normalized ChatResponse with cost
         """
-        choice = raw_response["choices"][0]
+        choices = raw_response.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise ProviderAPIError(
+                "Invalid response format: missing choices",
+                self.provider_name,
+            )
+
+        choice = choices[0]
+        message = choice.get("message")
+        if not isinstance(message, dict) or "content" not in message:
+            raise ProviderAPIError(
+                "Invalid response format: missing message content",
+                self.provider_name,
+            )
+
         usage_dict = raw_response.get("usage", {})
 
         # Extract token usage
@@ -344,7 +343,7 @@ class OpenAIProvider(BaseProvider):
         return ChatResponse(
             id=raw_response["id"],
             model=raw_response["model"],
-            content=choice["message"]["content"] or "",
+            content=message.get("content") or "",
             finish_reason=choice["finish_reason"],
             usage=usage,
             provider=self.provider_name,
@@ -354,8 +353,21 @@ class OpenAIProvider(BaseProvider):
 
     def _normalize_stream_chunk(self, chunk_dict: dict) -> ChatResponse:
         """Normalize streaming chunk to ChatResponse format."""
-        choice = chunk_dict["choices"][0]
-        content = choice["delta"].get("content", "")
+        choices = chunk_dict.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise ProviderAPIError(
+                "Invalid stream chunk format: missing choices",
+                self.provider_name,
+            )
+
+        choice = choices[0]
+        delta = choice.get("delta", {})
+        if not isinstance(delta, dict):
+            raise ProviderAPIError(
+                "Invalid stream chunk format: missing delta",
+                self.provider_name,
+            )
+        content = delta.get("content", "")
 
         return ChatResponse(
             id=chunk_dict["id"],

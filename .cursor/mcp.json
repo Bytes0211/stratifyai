@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "postgresql": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres"
+      ],
+      "env": {
+        "DATABASE_URL": "psql 'postgresql://scotton:4tressBytes@localhost:5432/dvdrental'"
+      }
+    },
+    "tavily": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "tavily-mcp@latest"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "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"
+      }
+    }
+  }
+}

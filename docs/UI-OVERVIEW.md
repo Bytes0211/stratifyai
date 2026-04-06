@@ -1,3 +1,97 @@
+# Getting Started with the StratifyAI Web UI
+
+This is the **canonical start-here guide** for launching the Web UI, sending your first message, and enabling advanced browser features like file uploads, streaming, and MCP tools in chat.
+
+**Last Updated:** April 5, 2026
+
+---
+
+## 5-Minute Web UI Quick Start
+
+If you want the fastest route from clone → browser chat, use this checklist.
+
+### 1) Install backend + frontend dependencies
+
+```bash
+uv sync
+source .venv/bin/activate
+
+cd frontend
+npm install
+cd ..
+```
+
+### 2) Add one provider key
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and set **at least one** provider key, for example:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+# or
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### 3) Build the SPA and run the app
+
+```bash
+cd frontend
+npm run build
+cd ..
+
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 4) Open the browser
+
+- **Web UI:** `http://localhost:8000`
+- **API Docs:** `http://localhost:8000/docs`
+
+### 5) Send your first message
+
+1. Choose a provider and model in the left sidebar.
+2. Type a prompt in the chat input.
+3. Press **Send** and watch the response stream live.
+4. Check token and cost details in the dashboard.
+
+### 6) Optional: enable MCP tools in chat
+
+If you already use Claude Desktop, Cursor, or VS Code MCP configs:
+
+- open **MCP Tools in Chat**
+- refresh discovered servers
+- enable the servers you want for that conversation
+- if a tool appears but is not used, verify the allow-list matches the real tool names (for example `query` or `brave_*`)
+
+### 7) Reset or clear MCP config
+
+The MCP tab now includes a **Reset config** action.
+
+- if one or more configured MCP servers are selected, it removes those entries
+- if nothing configured is selected, it clears **all** applied MCP server config for the active client
+- it removes both the exported `mcpServers` entries and the matching `stratifyai.mcpClient.servers` metadata block
+
+Use this when you want to quickly recover from a bad config export or start over cleanly.
+
+## Development Mode
+
+Use this setup when working on the Svelte frontend with hot reload.
+
+```bash
+# Terminal 1: backend
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: frontend dev server
+cd frontend
+npm run dev
+```
+
+Open the Vite URL shown in the terminal (usually `http://localhost:5173`).
+
+---
 
 # 📘 StratifyAI UI Overview  
 

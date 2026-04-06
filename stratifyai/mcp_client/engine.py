@@ -98,7 +98,7 @@ class MCPClientEngine:
     def __init__(
         self,
         servers: list[ConfiguredServer] | None = None,
-        client: str = "cursor",
+        client: str = "auto",
         project_root: str | Path | None = None,
         output_path: str | Path | None = None,
         tool_confirmation_handler: ToolConfirmationHandler | None = None,
@@ -123,14 +123,90 @@ class MCPClientEngine:
         self._health_monitor_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
-        """Start all enabled auto-start servers and register their tools."""
+        """Start all enabled auto-start servers and register their tools.
+
+        One misconfigured external MCP server should not prevent the rest of the
+        configured servers from being available in chat or the Web UI.
+        """
         for server in self._servers:
             if not server.enabled or not server.auto_start:
                 continue
-            await self.start_server(server.server_id)
+            try:
+                await self.start_server(server.server_id)
+            except (Exception, asyncio.CancelledError):
+                # Keep the recorded error status from ServerManager.spawn() and
+                # continue booting the remaining configured servers. Some broken
+                # stdio MCP servers can surface as CancelledError during cleanup.
+                continue
 
         if self._health_monitor_task is None or self._health_monitor_task.done():
             self._health_monitor_task = asyncio.create_task(self._health_monitor_loop())
+
+    async def sync_configured_servers(
+        self,
+        client: str = "auto",
+        project_root: str | Path | None = None,
+        output_path: str | Path | None = None,
+    ) -> None:
+        """Refresh the in-memory server list from the latest on-disk MCP configs."""
+        desired_servers = load_enabled_servers(
+            client=client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+        desired_index = {server.server_id: server for server in desired_servers}
+
+        for server_id in list(self._server_index.keys()):
+            if server_id in desired_index:
+                continue
+            if self._server_manager.is_running(server_id):
+                await self.stop_server(server_id)
+            else:
+                self._tool_registry.unregister_server(server_id)
+            self._server_index.pop(server_id, None)
+
+        ordered_servers: list[ConfiguredServer] = []
+        for desired in desired_servers:
+            existing = self._server_index.get(desired.server_id)
+            if existing is None:
+                self._server_index[desired.server_id] = desired
+                self._permission_manager.set_policy(
+                    desired.server_id, desired.permissions
+                )
+                ordered_servers.append(desired)
+                continue
+
+            should_restart = self._server_manager.is_running(desired.server_id) and (
+                existing.command != desired.command
+                or existing.args != desired.args
+                or existing.env != desired.env
+                or existing.cwd != desired.cwd
+            )
+
+            existing.command = desired.command
+            existing.args = desired.args
+            existing.env = desired.env
+            existing.cwd = desired.cwd
+            existing.enabled = desired.enabled
+            existing.auto_start = desired.auto_start
+            existing.timeout_seconds = desired.timeout_seconds
+            existing.permissions = desired.permissions
+            existing.source_client = desired.source_client
+            self._permission_manager.set_policy(existing.server_id, desired.permissions)
+
+            if not existing.enabled and self._server_manager.is_running(
+                existing.server_id
+            ):
+                await self.stop_server(existing.server_id)
+            elif should_restart:
+                try:
+                    await self.restart_server(existing.server_id)
+                except Exception:
+                    pass
+
+            ordered_servers.append(existing)
+
+        self._servers = ordered_servers
 
     async def start_server(self, server_id: str) -> ServerStatus:
         """Start one configured server and register its tools.
@@ -467,22 +543,35 @@ class MCPClientEngine:
             "servers": servers,
         }
 
+    def _provider_tool_name(
+        self,
+        provider: str,
+        descriptor: ToolDescriptor,
+    ) -> str:
+        """Return a provider-safe tool name for the given descriptor."""
+        if provider == "anthropic":
+            # Anthropic tool names cannot contain dots, so preserve the full
+            # namespace in a reversible alias that still stays human-readable.
+            return f"mcp_{descriptor.server_id}__{descriptor.tool_name}"
+        return descriptor.namespace
+
     def _format_tool_definition(
         self,
         provider: str,
         descriptor: ToolDescriptor,
     ) -> dict[str, Any]:
         schema = descriptor.input_schema or {"type": "object", "properties": {}}
+        tool_name = self._provider_tool_name(provider, descriptor)
         if provider == "anthropic":
             return {
-                "name": descriptor.namespace,
-                "description": descriptor.description or "",
+                "name": tool_name,
+                "description": descriptor.description or descriptor.namespace,
                 "input_schema": schema,
             }
         return {
             "type": "function",
             "function": {
-                "name": descriptor.namespace,
+                "name": tool_name,
                 "description": descriptor.description or "",
                 "parameters": schema,
             },
@@ -612,6 +701,15 @@ class MCPClientEngine:
             if selected_servers and server_id not in selected_servers:
                 return None, local_name
             return server_id, local_name
+
+        for candidate in sorted(selected_servers, key=len, reverse=True):
+            prefix = f"mcp_{candidate}__"
+            if not tool_name.startswith(prefix):
+                continue
+            local_name = tool_name[len(prefix) :]
+            if self.find_tool(candidate, local_name) is not None:
+                return candidate, local_name
+            return None, local_name
 
         matches = [
             candidate

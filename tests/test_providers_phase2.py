@@ -4,7 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from stratifyai.exceptions import AuthenticationError, InvalidModelError
+from stratifyai.exceptions import (
+    AuthenticationError,
+    InvalidModelError,
+    ProviderAPIError,
+)
 from stratifyai.models import ChatRequest, Message
 from stratifyai.providers.anthropic import AnthropicProvider
 from stratifyai.providers.deepseek import DeepSeekProvider
@@ -126,6 +130,19 @@ class TestAnthropicProvider:
             assert breakdown is not None
             assert breakdown["base_cost"] == 0.0
             assert response.usage.cost_usd == breakdown["cache_cost"]
+
+    def test_normalize_response_rejects_missing_content_blocks(self):
+        with patch("stratifyai.providers.anthropic.AsyncAnthropic"):
+            provider = AnthropicProvider(api_key="test-key")
+            with pytest.raises(ProviderAPIError, match="missing content"):
+                provider._normalize_response(
+                    {
+                        "id": "msg_invalid",
+                        "model": "claude-3-5-sonnet-20241022",
+                        "stop_reason": "end_turn",
+                        "usage": {"input_tokens": 1, "output_tokens": 1},
+                    }
+                )
 
 
 class TestGoogleProvider:

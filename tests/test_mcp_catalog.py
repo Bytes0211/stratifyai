@@ -63,6 +63,24 @@ def test_manager_builds_vscode_config() -> None:
     assert "stratifyai" in config["mcp"]["servers"]
 
 
+def test_manager_normalizes_database_url_for_postgres_config() -> None:
+    from stratifyai.mcp_catalog.manager import build_client_config
+
+    config = build_client_config(
+        client="cursor",
+        server_ids=["postgresql"],
+        env_values={
+            "DATABASE_URL": 'DATABASE_URL="postgresql://scotton:autocorp@localhost:5432/autocorp"'
+        },
+        arg_values={},
+    )
+
+    assert (
+        config["mcpServers"]["postgresql"]["env"]["DATABASE_URL"]
+        == "postgresql://scotton:autocorp@localhost:5432/autocorp"
+    )
+
+
 def test_write_client_config_merges_and_creates_backup(tmp_path: Path) -> None:
     from stratifyai.mcp_catalog.manager import build_client_config, write_client_config
 
@@ -235,7 +253,15 @@ def test_mcp_remove_deletes_server_from_config(tmp_path: Path) -> None:
                 "mcpServers": {
                     "github": {"command": "npx", "args": ["-y", "github-mcp"]},
                     "memory": {"command": "npx", "args": ["-y", "memory-mcp"]},
-                }
+                },
+                "stratifyai": {
+                    "mcpClient": {
+                        "servers": {
+                            "github": {"enabled": True, "auto_start": False},
+                            "memory": {"enabled": True, "auto_start": True},
+                        }
+                    }
+                },
             }
         ),
         encoding="utf-8",
@@ -258,6 +284,7 @@ def test_mcp_remove_deletes_server_from_config(tmp_path: Path) -> None:
     written = json.loads(config_path.read_text(encoding="utf-8"))
     assert "github" not in written["mcpServers"]
     assert "memory" in written["mcpServers"]
+    assert "github" not in written["stratifyai"]["mcpClient"]["servers"]
 
 
 def test_api_mcp_catalog_returns_curated_servers() -> None:
@@ -311,6 +338,75 @@ def test_api_mcp_configure_preview_returns_config(tmp_path: Path) -> None:
     assert payload["applied"] is False
     assert "mcpServers" in payload["config"]
     assert "filesystem" in payload["config"]["mcpServers"]
+
+
+def test_api_mcp_configure_normalizes_database_url_value(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    client = TestClient(api_app)
+    response = client.post(
+        "/api/mcp/configure",
+        json={
+            "client": "claude-desktop",
+            "server_ids": ["postgresql"],
+            "env_values": {
+                "DATABASE_URL": '"postgresql://scotton:autocorp@localhost:5432/autocorp"'
+            },
+            "project_root": str(tmp_path),
+            "apply": False,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert (
+        payload["config"]["mcpServers"]["postgresql"]["env"]["DATABASE_URL"]
+        == "postgresql://scotton:autocorp@localhost:5432/autocorp"
+    )
+
+
+def test_api_mcp_reset_clears_all_configured_servers(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app as api_app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "memory": {"command": "npx", "args": ["-y", "memory-mcp"]}
+                },
+                "stratifyai": {
+                    "mcpClient": {
+                        "servers": {"memory": {"enabled": True, "auto_start": True}}
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    client = TestClient(api_app)
+    response = client.post(
+        "/api/mcp/reset",
+        json={
+            "client": "cursor",
+            "project_root": str(tmp_path),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert payload["removed_server_ids"] == ["memory"]
+
+    written = json.loads(config_path.read_text(encoding="utf-8"))
+    assert written["mcpServers"] == {}
+    assert written["stratifyai"]["mcpClient"]["servers"] == {}
 
 
 def test_api_mcp_status_reads_existing_config(tmp_path: Path) -> None:
@@ -397,7 +493,8 @@ def test_api_chat_with_active_mcp_servers_returns_tool_metadata(monkeypatch) -> 
 
     monkeypatch.setattr("api.main.get_tracked_client", lambda _: tracked)
 
-    async def fake_get_mcp_chat_engine():
+    async def fake_get_mcp_chat_engine(refresh: bool = False):
+        del refresh
         return object()
 
     monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
@@ -477,7 +574,8 @@ def test_api_mcp_client_servers_and_tools_return_runtime_metadata(monkeypatch) -
 
     fake_engine = FakeEngine()
 
-    async def fake_get_mcp_chat_engine():
+    async def fake_get_mcp_chat_engine(refresh: bool = False):
+        del refresh
         return fake_engine
 
     monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
@@ -570,7 +668,8 @@ def test_api_mcp_client_tool_execution_and_resource_fetch(monkeypatch) -> None:
 
     fake_engine = FakeEngine()
 
-    async def fake_get_mcp_chat_engine():
+    async def fake_get_mcp_chat_engine(refresh: bool = False):
+        del refresh
         return fake_engine
 
     monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)
@@ -641,7 +740,8 @@ def test_api_mcp_client_health_reports_diagnostics(monkeypatch) -> None:
 
     fake_engine = FakeEngine()
 
-    async def fake_get_mcp_chat_engine():
+    async def fake_get_mcp_chat_engine(refresh: bool = False):
+        del refresh
         return fake_engine
 
     monkeypatch.setattr("api.main.get_mcp_chat_engine", fake_get_mcp_chat_engine)

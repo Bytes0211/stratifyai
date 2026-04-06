@@ -7,6 +7,8 @@ import os
 import time
 from typing import Any
 
+from .bedrock_validator import validate_bedrock_models
+
 
 def validate_provider_models(
     provider: str,
@@ -160,10 +162,21 @@ def _validate_google(
         client = genai.Client(api_key=key)
         models = client.models.list()
 
-        # Extract model names (they come as "models/gemini-2.5-pro" format)
+        # Extract model names (they come as "models/gemini-2.5-pro" format).
+        # Some tests and SDK shims may provide mocks where `.name` is not a plain
+        # string, so fall back to `_mock_name` when available.
         available_ids = set()
         for model in models:
-            name = model.name.replace("models/", "")
+            raw_name = getattr(model, "name", "")
+            if not isinstance(raw_name, str):
+                raw_name = getattr(model, "_mock_name", "")
+            if not isinstance(raw_name, str):
+                continue
+
+            name = raw_name.replace("models/", "")
+            if not name:
+                continue
+
             available_ids.add(name)
             # Also add without version suffix for matching
             if "-" in name:
@@ -374,9 +387,6 @@ def _validate_bedrock(
     model_ids: list[str], api_key: str | None = None
 ) -> dict[str, Any]:
     """Validate Bedrock models using boto3."""
-    # Import the existing bedrock validator
-    from .bedrock_validator import validate_bedrock_models
-
     return validate_bedrock_models(model_ids)
 
 

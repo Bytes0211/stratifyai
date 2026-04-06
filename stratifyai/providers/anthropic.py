@@ -295,12 +295,18 @@ class AnthropicProvider(BaseProvider):
         Returns:
             Normalized ChatResponse with cost
         """
+        content_blocks = raw_response.get("content")
+        if not isinstance(content_blocks, list) or not content_blocks:
+            raise ProviderAPIError(
+                "Invalid response format: missing content blocks",
+                self.provider_name,
+            )
+
         # Extract content from response
         content = ""
-        if raw_response.get("content"):
-            for block in raw_response["content"]:
-                if block.get("type") == "text":
-                    content += block.get("text", "")
+        for block in content_blocks:
+            if isinstance(block, dict) and block.get("type") == "text":
+                content += block.get("text", "")
 
         # Extract token usage
         usage_dict = raw_response.get("usage", {})

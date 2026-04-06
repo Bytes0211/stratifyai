@@ -1,14 +1,16 @@
-![StratifyAI](stratifyai_wide_logo.png)
+![StratifyAI](stratifyai_wide_logo2.png)
 
 # **StratifyAI — Unified Intelligence Across Every Model Layer**
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-300%2B%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-739%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
-**Status:** Production Ready (Phase 9.1 Complete)  
+**Status:** Production Ready — MCP Ecosystem Complete  
 **Providers:** 9 Fully Integrated  
-**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Svelte 5 SPA • Vision • Smart Chunking • Async-First • **Prompt Templates**
+**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Svelte 5 SPA • Vision • Smart Chunking • Async-First • **Prompt Templates** • **MCP Server & Client Engine**
 
 StratifyAI is a production‑ready Python framework that unifies access to frontier LLM providers through a single, consistent API. It eliminates vendor lock‑in, simplifies multi‑model development, and provides intelligent routing, cost tracking, caching, streaming, and RAG capabilities for enterprise‑grade AI systems.
+
+**Deployment references:** `docs/GETTING-STARTED.md`, `docs/API-REFERENCE.md`, `docs/VISION-SUPPORT.md`, `examples/README.md`
 
 ---
 

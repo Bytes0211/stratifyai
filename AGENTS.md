@@ -393,8 +393,8 @@ stratifyai check-keys
 
 **Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
 **Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4)
-**Latest Updates:** Client Engine chat integration, permissions/safety, Web UI panels, API diagnostics (Apr 4, 2026)
-**Test Suite:** 669 tests (664 passed, 4 skipped, 1 deselected), 72% coverage
+**Latest Updates:** local MCP auto-discovery/refresh hardening, source-client visibility, and Anthropic-safe tool aliasing for chat (Apr 5, 2026)
+**Test Suite:** 743 tests (739 passed, 4 skipped), 78% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -652,6 +652,7 @@ stratifyai check-keys
   - CE-4: Permissions and safety (allow/deny/confirm, destructive tool gating)
   - CE-5: Web UI panels (MCPServersPage, live status, tool browser, permission manager)
   - CE-6: API and diagnostics (REST endpoints for server lifecycle, tool execution, health)
+  - Apr 5 follow-up reliability pass: auto-merge supported local client configs, surface `source_client`, keep dashboard refresh non-destructive, and normalize Anthropic MCP tool names for chat.
   - Reference: `developer/PRD-MCP-client-engine.md`
 
 ### Future Enhancements
@@ -730,6 +731,21 @@ npm run build
 aws sts get-caller-identity
 # Ensure bedrock:InvokeModel permission is attached to your IAM user/role
 ```
+
+**Local MCP Chat Issues:**
+```bash
+# Refresh discovered MCP servers from local configs
+curl http://127.0.0.1:8000/api/mcp-client/servers?refresh=true
+
+# Inspect tool exposure + permissions
+curl http://127.0.0.1:8000/api/mcp-client/tools?refresh=true
+curl 'http://127.0.0.1:8000/api/mcp-client/permissions?client=claude-desktop'
+```
+- `@modelcontextprotocol/server-postgres` expects the raw database URL as a CLI arg, not a `psql 'postgresql://...'` shell command string.
+- Allow-list patterns must match real tool names. Typical local examples: PostgreSQL → `query`; Brave → `brave_*`.
+- In `client="auto"` mode, duplicate server IDs prefer the Claude Desktop config source.
+- Anthropic chat requests now use safe MCP tool aliases automatically; if a tool still does not appear, verify it is enabled and not denied by permissions.
+- The MCP dashboard now supports **Reset config** to remove selected or all applied MCP entries and the corresponding `stratifyai.mcpClient.servers` metadata.
 
 ## Development Best Practices
 

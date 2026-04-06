@@ -2,9 +2,9 @@
 
 **Project Start:** January 30, 2026
 **Last Update:** April 5, 2026
-**Current Status:** MCP Ecosystem Complete — R2 hardening/test coverage pass delivered; code-organization refactors remain
+**Current Status:** MCP Ecosystem Complete — R3 quality/doc polish and local MCP chat reliability fixes delivered; code-organization refactors remain
 **Providers:** 9 operational (all with concurrency limit support)
-**Test Suite:** 723 tests (719 passing, 4 skipped), 75% coverage
+**Test Suite:** 743 tests (739 passing, 4 skipped), 78% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ---
@@ -31,12 +31,15 @@
 ## Current Focus
 
 - Finish the remaining Code Review Action Plan Phase R2 code-organization refactors (`cli/stratifyai_cli.py` decomposition and `api/main.py` router split).
+- Consider the Phase R3 85% coverage gate only after additional targeted suites land safely.
 - AL-5: Abstraction Layer polish.
 - CE-7: Client Engine tests and documentation.
 - See `developer/MCP-STATUS.md` for full execution history and rationale.
 
 ## Recently Completed
 
+- Local MCP chat reliability pass delivered (Apr 5, 2026): auto-discovery now merges supported Claude Desktop/Cursor/VS Code configs, passive refresh no longer auto-starts broken servers, the dashboard preserves the last good state on transient refresh failures, the UI shows the source client, **Reset config** can clear selected or all applied MCP entries, and Anthropic-safe MCP tool aliases unblock Postgres/Brave tool use in chat.
+- Code Review Action Plan Phase R3 delivered: shared reasoning-model detection, provider-response validation, file-size guards, bounded `CostTracker` history, `/v1/*` REST aliases, vision/examples docs, validator coverage, and configurable thread-pool sizing.
 - Code Review Action Plan Phase R2 hardening/test coverage pass delivered: new summarization/RAG/API coverage suites, deterministic cache timing tests, health/websocket/retry hardening, Anthropic/cache-key bug fixes, and a verified 75% coverage gate.
 - Code Review Action Plan Phase R1 delivered (provider/cache locking, websocket synchronization, streaming cleanup, request validation, doc corrections).
 - MCP Client Engine CE-1 to CE-6 delivered (PR #47-52, Apr 4, 2026).
@@ -57,7 +60,7 @@ Reference: `developer/code-review-action-plan.md`
 |-------|-------------|-------|--------|
 | R1 | Critical Fixes (This Sprint) | 8 | ✅ Complete |
 | R2 | Hardening & Test Coverage (1–2 Sprints) | 12 | 🟡 In Progress (R2.3-R2.12 complete; R2.1-R2.2 pending) |
-| R3 | Polish & Long-Term Quality (Next Quarter) | 12 | ⬜ Not Started |
+| R3 | Polish & Long-Term Quality (Next Quarter) | 12 | 🟡 In Progress (R3.1-R3.10 and R3.12 complete; R3.11 pending) |
 
 Covers concurrency safety, resource leaks, security gaps, test coverage expansion, code organization (CLI/API refactoring), and documentation fixes identified during the April 4, 2026 comprehensive review.
 

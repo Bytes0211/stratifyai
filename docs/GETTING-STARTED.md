@@ -1,8 +1,8 @@
 # Getting Started with StratifyAI
 
-A step-by-step guide to using StratifyAI, the unified multi-provider LLM abstraction module.
+This is the **canonical start-here guide** for installing StratifyAI, configuring a provider, and making your first request.
 
-**Last Updated:** February 6, 2026
+**Last Updated:** April 5, 2026
 
 ---
 
@@ -25,18 +25,120 @@ For security hardening operations and deployment guidance, see:
 
 ---
 
+## Recommended Path
+
+If you only need the fastest route to a working setup, follow this order:
+
+1. **Install dependencies** with `uv sync` (preferred) or `pip install -r requirements-dev.txt`
+2. **Add one provider key** to `.env` (for example `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+3. **Verify configuration** with `stratifyai check-keys`
+4. **Send a first request** using the CLI or Python example below
+5. **Explore next steps** using `examples/README.md`, `docs/API-REFERENCE.md`, and `docs/VISION-SUPPORT.md`
+
+## 5-Minute Quick Start
+
+If you want the shortest path from clone → first response, use this checklist.
+
+### 1) Install and activate
+
+```bash
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
+uv sync
+source .venv/bin/activate
+```
+
+### 2) Add one provider key
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and set **at least one** key, for example:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+# or
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+### 3) Verify setup
+
+```bash
+stratifyai check-keys
+```
+
+You should see at least one provider reported as **Configured**.
+
+### 4) Send your first request
+
+```bash
+stratifyai chat -p openai -m gpt-4o-mini -t "Say hello from StratifyAI in one sentence."
+```
+
+### 5) Try the Python API
+
+```python
+from stratifyai import LLMClient
+from stratifyai.models import ChatRequest, Message
+
+client = LLMClient()
+response = client.chat_completion_sync(
+    ChatRequest(
+        model="gpt-4o-mini",
+        messages=[
+            Message(role="user", content="Explain what StratifyAI does in one sentence.")
+        ],
+    )
+)
+
+print(response.content)
+print(response.usage.total_tokens)
+```
+
+### 6) Optional: launch the Web UI
+
+```bash
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open `http://localhost:8000` in your browser.
+
+### 7) Optional: enable MCP tools in chat
+
+If you already use Claude Desktop, Cursor, or VS Code MCP configs:
+
+- open the Web UI
+- go to **MCP Tools in Chat**
+- refresh discovered servers
+- enable the tools you want for that conversation
+
+For full setup details, see `docs/MCP-QUICKSTART.md` and `docs/MCP-CLIENT-CONFIG.md`.
+
+## Documentation Map
+
+- `docs/GETTING-STARTED.md` — first install and first request
+- `docs/API-REFERENCE.md` — complete Python and FastAPI surface area
+- `docs/UI-OVERVIEW.md` — Web UI quick start and feature walkthrough
+- `docs/VISION-SUPPORT.md` — image/file workflows and limits
+- `examples/README.md` — example scripts in recommended learning order
+- `docs/cli-usage.md` — CLI command reference
+
+---
+
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [Quick Start](#quick-start)
-3. [Basic Usage](#basic-usage)
-4. [Switching Providers](#switching-providers)
-5. [Streaming Responses](#streaming-responses)
-6. [Cost Tracking](#cost-tracking)
-7. [Intelligent Routing](#intelligent-routing)
-8. [Caching](#caching)
-9. [CLI Usage](#cli-usage)
-10. [Next Steps](#next-steps)
+1. [5-Minute Quick Start](#5-minute-quick-start)
+2. [Installation](#installation)
+3. [Quick Start](#quick-start)
+4. [Basic Usage](#basic-usage)
+5. [Switching Providers](#switching-providers)
+6. [Streaming Responses](#streaming-responses)
+7. [Cost Tracking](#cost-tracking)
+8. [Intelligent Routing](#intelligent-routing)
+9. [Caching](#caching)
+10. [CLI Usage](#cli-usage)
+11. [Next Steps](#next-steps)
 
 ---
 
