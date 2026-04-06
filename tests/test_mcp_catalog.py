@@ -69,16 +69,14 @@ def test_manager_normalizes_database_url_for_postgres_config() -> None:
     config = build_client_config(
         client="cursor",
         server_ids=["postgresql"],
-        env_values={
-            "DATABASE_URL": 'DATABASE_URL="postgresql://scotton:autocorp@localhost:5432/autocorp"'
+        env_values={},
+        arg_values={
+            "database_url": "postgresql://scotton:autocorp@localhost:5432/autocorp"
         },
-        arg_values={},
     )
 
-    assert (
-        config["mcpServers"]["postgresql"]["env"]["DATABASE_URL"]
-        == "postgresql://scotton:autocorp@localhost:5432/autocorp"
-    )
+    args = config["mcpServers"]["postgresql"]["args"]
+    assert "postgresql://scotton:autocorp@localhost:5432/autocorp" in args
 
 
 def test_write_client_config_merges_and_creates_backup(tmp_path: Path) -> None:
@@ -351,8 +349,9 @@ def test_api_mcp_configure_normalizes_database_url_value(tmp_path: Path) -> None
         json={
             "client": "claude-desktop",
             "server_ids": ["postgresql"],
-            "env_values": {
-                "DATABASE_URL": '"postgresql://scotton:autocorp@localhost:5432/autocorp"'
+            "env_values": {},
+            "arg_values": {
+                "database_url": "postgresql://scotton:autocorp@localhost:5432/autocorp"
             },
             "project_root": str(tmp_path),
             "apply": False,
@@ -361,10 +360,8 @@ def test_api_mcp_configure_normalizes_database_url_value(tmp_path: Path) -> None
 
     assert response.status_code == 200
     payload = response.json()
-    assert (
-        payload["config"]["mcpServers"]["postgresql"]["env"]["DATABASE_URL"]
-        == "postgresql://scotton:autocorp@localhost:5432/autocorp"
-    )
+    args = payload["config"]["mcpServers"]["postgresql"]["args"]
+    assert "postgresql://scotton:autocorp@localhost:5432/autocorp" in args
 
 
 def test_api_mcp_reset_clears_all_configured_servers(tmp_path: Path) -> None:
