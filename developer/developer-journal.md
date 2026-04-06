@@ -1,5 +1,47 @@
 # Developer Journal
 
+## April 5, 2026 - Per-Tool Removal, Stdio Fix, Coverage Boost (Issue #59, PR #58)
+
+Implemented per-tool and per-server removal, fixed the MCP stdio connection lifecycle, boosted test coverage to 85%, and aligned CI thresholds.
+
+### Per-Tool/Server Removal (Issue #59)
+
+- Added `ToolRegistry.unregister_tool(server_id, tool_name)` for single-tool removal
+- Added `MCPClientEngine.remove_tool()` public wrapper
+- Added `DELETE /api/mcp-client/tools/{server_id}/{tool_name}` API endpoint
+- Added Remove button (danger variant) on each server card in MCP dashboard
+- Added Remove button in tool detail panel
+- Added trash icon per server in Chat tab's "MCP Tools in Chat" section
+- Both MCP tab and Chat tab now support removal independently (shared store planned in issue #60)
+
+### MCP Stdio Connection Fix
+
+- `MCPServerConnection` rewritten to run `stdio_client` in a dedicated background task via `asyncio.create_task()`
+- Fixes `RuntimeError: Attempted to exit cancel scope in a different task than it was entered in`
+- Root cause: anyio task groups in `stdio_client` must enter/exit in the same asyncio task; previous `AsyncExitStack` approach violated this when `connect()` and `close()` ran in different request handler tasks
+
+### Test Coverage Boost (PR #58)
+
+- Added 108 targeted tests covering: `openai_compatible`, `embeddings`, `logging_config`, `vectordb`, `catalog_manager`, `reasoning_detector`, `token_counter`, `permissions`, `tool_registry`
+- Fixed flaky `test_persistent_cache.py` tests — replaced exhaustible `side_effect` lists with mutable clock pattern
+- Fixed `test_get_mcp_chat_engine_initializes_once_under_concurrency` for updated `MCPClientEngine(client=)` constructor
+- Fixed no-op `cast(Literal[...])` with explicit role validation (PR #57 review comment)
+- Coverage: 85% (877 passed, 4 skipped)
+- CI threshold set to 80% (accounts for `--cov=api` scope difference in CI vs local)
+
+### Catalog Fix
+
+- Fixed `catalog.json` PostgreSQL entry: database URL moved from `env_vars` to `user_args` (it's a CLI argument, not an env var)
+- Fixed `.cursor/mcp.json`: removed `psql '...'` wrapping from connection string
+
+### Validation Summary
+
+- 881 tests collected, 877 passed, 4 skipped — 85% coverage
+- Ruff lint/format clean
+- Frontend builds successfully
+
+---
+
 ## April 5, 2026 - MCP Chat Reliability Fixes (local config discovery, Web UI refresh, Anthropic tool naming)
 
 Stabilized the local MCP chat path after real-world testing with Claude Desktop-configured PostgreSQL and Brave servers.

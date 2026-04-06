@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { getMcpClientServers } from '$lib/api/client';
+  import { getMcpClientServers, stopMcpClientServer } from '$lib/api/client';
   import type { McpClientServerInfo } from '$lib/api/types';
   import { configActions, configStore } from '$lib/stores/config';
   import Button from '../shared/Button.svelte';
   import LoadingSpinner from '../shared/LoadingSpinner.svelte';
-  import { Bot, RefreshCw, ShieldCheck } from 'lucide-svelte';
+  import { Bot, RefreshCw, ShieldCheck, Trash2 } from 'lucide-svelte';
 
   let servers: McpClientServerInfo[] = [];
   let loading = false;
@@ -47,6 +47,21 @@
 
   function canUseInChat(server: McpClientServerInfo): boolean {
     return server.enabled && server.status !== 'disabled' && server.status !== 'error';
+  }
+
+  async function removeServer(serverId: string) {
+    if (typeof window !== 'undefined' && !window.confirm(`Remove "${serverId}" from chat? Refresh to restore.`)) {
+      return;
+    }
+    try {
+      await stopMcpClientServer(serverId);
+      configActions.setActiveMcpServers(
+        get(configStore).activeMcpServers.filter((id) => id !== serverId)
+      );
+      servers = servers.filter((s) => s.server_id !== serverId);
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
+    }
   }
 
   $: availableServers = servers.filter((server) => server.enabled);
@@ -90,6 +105,9 @@
             <div class="server-title-row">
               <strong>{server.server_id}</strong>
               <span class={`status-chip ${server.status}`}>{server.status}</span>
+              <button class="remove-btn" title="Remove from chat" on:click|preventDefault|stopPropagation={() => removeServer(server.server_id)}>
+                <Trash2 size={12} />
+              </button>
             </div>
             <span>{server.tool_count} discovered tool{server.tool_count === 1 ? '' : 's'}</span>
             {#if server.source_client}
@@ -214,6 +232,26 @@
     align-items: center;
     gap: $space-2;
     flex-wrap: wrap;
+  }
+
+  .remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    padding: 2px 4px;
+    border: none;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0.6;
+
+    &:hover {
+      opacity: 1;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
   }
 
   .status-chip {

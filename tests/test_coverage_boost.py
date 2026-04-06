@@ -1862,3 +1862,62 @@ class TestMCPPermissionsCoverage:
         pm = PermissionManager()
         decision = pm.evaluate("srv", "xyzzy_unknown_9999")
         assert decision.mode == PermissionMode.CONFIRM
+
+
+# ---------------------------------------------------------------------------
+# tool_registry.py — per-tool removal (issue #59)
+# ---------------------------------------------------------------------------
+
+
+class TestToolRegistryPerToolRemoval:
+    """Test unregister_tool for individual tool removal."""
+
+    def test_unregister_existing_tool(self):
+        from unittest.mock import MagicMock
+
+        from stratifyai.mcp_client.tool_registry import ToolRegistry
+
+        registry = ToolRegistry()
+        tool_a = MagicMock()
+        tool_a.name = "read_file"
+        tool_b = MagicMock()
+        tool_b.name = "write_file"
+        registry.register_server_tools("fs", [tool_a, tool_b])
+
+        assert registry.find_tool("fs", "read_file") is not None
+        assert registry.unregister_tool("fs", "read_file") is True
+        assert registry.find_tool("fs", "read_file") is None
+        # Other tool still present
+        assert registry.find_tool("fs", "write_file") is not None
+
+    def test_unregister_nonexistent_tool(self):
+        from stratifyai.mcp_client.tool_registry import ToolRegistry
+
+        registry = ToolRegistry()
+        assert registry.unregister_tool("srv", "no_such_tool") is False
+
+    def test_unregister_tool_unknown_server(self):
+        from stratifyai.mcp_client.tool_registry import ToolRegistry
+
+        registry = ToolRegistry()
+        assert registry.unregister_tool("unknown_server", "tool") is False
+
+    def test_engine_remove_tool(self):
+        from unittest.mock import MagicMock, patch
+
+        from stratifyai.mcp_client.engine import MCPClientEngine
+
+        with patch(
+            "stratifyai.mcp_client.engine.load_enabled_servers", return_value=[]
+        ):
+            engine = MCPClientEngine()
+
+        tool = MagicMock()
+        tool.name = "search"
+        tool.description = "Search stuff"
+        tool.inputSchema = {"type": "object"}
+        engine._tool_registry.register_server_tools("brave", [tool])
+
+        assert engine.remove_tool("brave", "search") is True
+        assert engine.remove_tool("brave", "search") is False
+        assert engine.find_tool("brave", "search") is None

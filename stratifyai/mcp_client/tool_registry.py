@@ -30,6 +30,13 @@ class ToolRegistry:
     def unregister_server(self, server_id: str) -> None:
         self._tools_by_server.pop(server_id, None)
 
+    def unregister_tool(self, server_id: str, tool_name: str) -> bool:
+        """Remove a single tool from a server. Returns True if the tool existed."""
+        server_tools = self._tools_by_server.get(server_id)
+        if server_tools is None:
+            return False
+        return server_tools.pop(tool_name, None) is not None
+
     def find_tool(self, server_id: str, tool_name: str) -> Tool | None:
         return self._tools_by_server.get(server_id, {}).get(tool_name)
 

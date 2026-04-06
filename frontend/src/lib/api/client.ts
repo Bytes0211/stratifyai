@@ -178,6 +178,16 @@ export async function executeMcpClientTool(
   );
 }
 
+export async function removeMcpClientTool(
+  serverId: string,
+  toolName: string
+): Promise<{ server_id: string; tool_name: string; removed: boolean }> {
+  return request<{ server_id: string; tool_name: string; removed: boolean }>(
+    `/mcp-client/tools/${encodeURIComponent(serverId)}/${encodeURIComponent(toolName)}`,
+    { method: 'DELETE' }
+  );
+}
+
 export async function getMcpClientResource(
   serverId: string,
   uri: string

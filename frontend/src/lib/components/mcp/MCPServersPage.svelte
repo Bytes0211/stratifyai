@@ -9,6 +9,7 @@
     getMcpClients,
     getMcpStatus,
     restartMcpClientServer,
+    removeMcpClientTool,
     resetMcpConfig,
     startMcpClientServer,
     stopMcpClientServer,
@@ -41,6 +42,7 @@
     Settings2,
     Shield,
     Square,
+    Trash2,
     Wrench,
   } from 'lucide-svelte';
 
@@ -177,6 +179,27 @@
       await refreshRuntimePanels();
     } catch (err) {
       error = err instanceof Error ? err.message : `Failed to ${action} ${serverId}`;
+    } finally {
+      runtimeActionLoading = '';
+    }
+  }
+
+  async function removeServer(serverId: string) {
+    if (typeof window !== 'undefined' && !window.confirm(`Remove server "${serverId}" from the live dashboard? It will reappear on next refresh if still configured.`)) {
+      return;
+    }
+    try {
+      runtimeActionLoading = `${serverId}:remove`;
+      error = null;
+      await stopMcpClientServer(serverId);
+      runtimeServers = runtimeServers.filter((s) => s.server_id !== serverId);
+      runtimeTools = runtimeTools.filter((t) => t.server_id !== serverId);
+      if (selectedRuntimeTool.startsWith(`${serverId}.`)) {
+        selectedRuntimeTool = '';
+      }
+      statusMessage = `Removed server "${serverId}" from dashboard.`;
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
     } finally {
       runtimeActionLoading = '';
     }
@@ -359,6 +382,28 @@
       await refreshStatus();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to clear MCP configuration';
+    } finally {
+      actionLoading = false;
+    }
+  }
+
+  async function removeSelectedTool() {
+    if (!selectedRuntimeToolInfo) return;
+    const { server_id, name, namespace } = selectedRuntimeToolInfo;
+
+    if (typeof window !== 'undefined' && !window.confirm(`Remove tool "${namespace}"? Restart the server to restore it.`)) {
+      return;
+    }
+
+    try {
+      actionLoading = true;
+      error = null;
+      await removeMcpClientTool(server_id, name);
+      runtimeTools = runtimeTools.filter((t) => t.namespace !== namespace);
+      selectedRuntimeTool = '';
+      statusMessage = `Removed tool "${namespace}". Restart server "${server_id}" to restore it.`;
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to remove tool "${namespace}"`;
     } finally {
       actionLoading = false;
     }
@@ -722,6 +767,15 @@
                   <Power size={14} />
                   Restart
                 </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  on:click={() => removeServer(server.server_id)}
+                  disabled={runtimeActionLoading !== ''}
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </Button>
               </div>
             </article>
           {/each}
@@ -769,7 +823,12 @@
                   <span class="chip">{selectedRuntimeToolInfo.server_id}</span>
                   <span class={`permission-chip ${selectedRuntimeToolInfo.permission}`}>{selectedRuntimeToolInfo.permission}</span>
                 </div>
-                <h3>{selectedRuntimeToolInfo.namespace}</h3>
+                <div class="tool-header-row">
+                  <h3>{selectedRuntimeToolInfo.namespace}</h3>
+                  <Button variant="danger" size="sm" on:click={removeSelectedTool} disabled={actionLoading}>
+                    Remove
+                  </Button>
+                </div>
                 <p class="muted">{selectedRuntimeToolInfo.description || 'No tool description provided.'}</p>
                 <pre class="preview-output compact">{formatJson(selectedRuntimeToolInfo.input_schema)}</pre>
               {:else}
@@ -1291,6 +1350,13 @@
     border-radius: $radius-lg;
     padding: $space-3;
     background: var(--bg-base);
+  }
+
+  .tool-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-2;
   }
 
   .preview-output.compact {

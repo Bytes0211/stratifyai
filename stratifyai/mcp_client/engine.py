@@ -441,6 +441,14 @@ class MCPClientEngine:
         """Return all discovered tools with server namespaces."""
         return list(self._tool_registry.list_all())
 
+    def remove_tool(self, server_id: str, tool_name: str) -> bool:
+        """Remove a single tool from the registry. Server stays running.
+
+        Returns True if the tool existed and was removed.
+        To restore removed tools, restart the server.
+        """
+        return self._tool_registry.unregister_tool(server_id, tool_name)
+
     def list_servers(self) -> list[ServerStatus]:
         """Return all known server statuses."""
         existing = {

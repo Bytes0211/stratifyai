@@ -393,8 +393,8 @@ stratifyai check-keys
 
 **Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
 **Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4)
-**Latest Updates:** local MCP auto-discovery/refresh hardening, source-client visibility, and Anthropic-safe tool aliasing for chat (Apr 5, 2026)
-**Test Suite:** 743 tests (739 passed, 4 skipped), 78% coverage
+**Latest Updates:** Per-tool/server removal (issue #59), stdio connection fix, coverage boost to 85%, CI threshold set to 80% (Apr 5, 2026)
+**Test Suite:** 881 tests (877 passed, 4 skipped), 85% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -664,6 +664,7 @@ stratifyai check-keys
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
 - 📝 Code Review Action Plan: concurrency fixes, test coverage, code organization (see `developer/code-review-action-plan.md`)
+- 📝 Shared MCP Svelte store: unify server/tool state across Chat and MCP tabs (issue #60)
 
 See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 

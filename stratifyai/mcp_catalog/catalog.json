@@ -222,8 +222,8 @@
       "install_method": "npx",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-postgres"],
-      "env_vars": [{"name": "DATABASE_URL", "description": "PostgreSQL connection string", "required": true}],
-      "user_args": [],
+      "env_vars": [],
+      "user_args": [{"name": "database_url", "description": "PostgreSQL connection string (e.g. postgresql://user:pass@localhost:5432/dbname)", "required": true}],
       "tags": ["database", "postgresql", "sql"]
     },
     {

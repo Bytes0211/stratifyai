@@ -2608,6 +2608,36 @@ async def execute_mcp_client_tool(
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
 
+@app.delete("/api/mcp-client/tools/{server_id}/{tool_name}")
+async def remove_mcp_client_tool(
+    server_id: str,
+    tool_name: str,
+    _: None = Depends(verify_api_key),
+):
+    """Remove a single tool from a running MCP server.
+
+    The server stays running — only the selected tool is unregistered.
+    To restore removed tools, restart the server.
+    """
+    try:
+        engine = await get_mcp_chat_engine()
+        removed = engine.remove_tool(server_id, tool_name)
+        if not removed:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Tool '{tool_name}' not found on server '{server_id}'",
+            )
+        return {
+            "server_id": server_id,
+            "tool_name": tool_name,
+            "removed": True,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
 @app.get(
     "/api/mcp-client/resources/{server_id}/{resource_uri:path}",
     response_model=MCPClientResourceResponse,
