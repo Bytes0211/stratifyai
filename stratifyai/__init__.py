@@ -9,7 +9,7 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     __version__ = version("stratifyai")
 except PackageNotFoundError:
-    __version__ = "0.1.3"
+    __version__ = "2.0.0"
 
 from .caching import (
     PersistentResponseCache,

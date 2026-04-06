@@ -3,7 +3,7 @@
 This runbook provides copy-paste commands for local development and daily operations.
 
 Related runbook:
-- See developer/runbook/phase15-security-runbook.md for security hardening assumptions, environment settings, and verification checks.
+- See docs/runbook/phase15-security-runbook.md for security hardening assumptions, environment settings, and verification checks.
 
 ## 1) One-time setup
 
@@ -29,14 +29,14 @@ cd ..
 
 ```bash
 cd /home/scotton/dev/projects/stratifyai
-./developer/runbook/start-dev-ui-and-api.sh
+./docs/runbook/start-dev-ui-and-api.sh
 ```
 
 Optional custom backend port:
 
 ```bash
 cd /home/scotton/dev/projects/stratifyai
-STRATIFYAI_BACKEND_PORT=8090 ./developer/runbook/start-dev-ui-and-api.sh
+STRATIFYAI_BACKEND_PORT=8090 ./docs/runbook/start-dev-ui-and-api.sh
 ```
 
 ### Option A: Production-like local mode (UI served by FastAPI)

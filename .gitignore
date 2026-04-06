@@ -99,6 +99,9 @@ desktop.ini
 .ipynb_checkpoints
 *.ipynb
 
+# Developer notes (local-only, not tracked)
+developer/
+
 # Documentation builds
 docs/_build/
 docs/.doctrees/

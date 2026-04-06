@@ -621,7 +621,7 @@ stratifyai check-keys
     - Removed exception-swallowing in tests, generous timing thresholds
   - Historical snapshot at phase completion: **536 total tests passing**, 69% coverage, **no regressions**
   - All 22+ critical bugs identified & fixed (provider coverage, cache semantics, event loop binding, test quality, PR review fixes)
-  - See `developer/developer-journal.md` + `developer/TODO.md` for detailed summary
+  - See local `developer/developer-journal.md` + `developer/TODO.md` for detailed summary (not tracked in git)
 
 - ✅ MCP Server Core (Phases 1-5, 8) - Apr 3, 2026
   - FastMCP server scaffold with `stratifyai-mcp` CLI entry
@@ -653,7 +653,6 @@ stratifyai check-keys
   - CE-5: Web UI panels (MCPServersPage, live status, tool browser, permission manager)
   - CE-6: API and diagnostics (REST endpoints for server lifecycle, tool execution, health)
   - Apr 5 follow-up reliability pass: auto-merge supported local client configs, surface `source_client`, keep dashboard refresh non-destructive, and normalize Anthropic MCP tool names for chat.
-  - Reference: `developer/PRD-MCP-client-engine.md`
 
 ### Future Enhancements
 
@@ -663,10 +662,8 @@ stratifyai check-keys
 - ⏳ MCP Server Phase 6: Streamable HTTP transport (deferred post-GA)
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
-- 📝 Code Review Action Plan: concurrency fixes, test coverage, code organization (see `developer/code-review-action-plan.md`)
+- 📝 Code Review Action Plan: concurrency fixes, test coverage, code organization
 - 📝 Shared MCP Svelte store: unify server/tool state across Chat and MCP tabs (issue #60)
-
-See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 
 ## Documentation
 
@@ -685,21 +682,22 @@ See **developer/TODO.md** and **developer/MCP-STATUS.md** for detailed tracking.
 - **docs/StratifyAI-Prompt-Caching.md** — Prompt caching strategies
 - **docs/large-file-strategies.md** — Large file handling approach
 - **docs/performance.md** — Performance targets and benchmarks
-- **developer/developer-journal.md** — Implementation log and lessons learned
 - **docs/CHANGELOG.md** — Version history
 - **docs/CONTRIBUTING.md** — Contribution guidelines
 - **docs/project-status.md** — Current phase, milestones, and next steps
-- **developer/TODO.md** — Prioritized roadmap (Phases 10–15 + MCP)
-- **developer/PRD-MCP-implemenation.md** — MCP technical approach and implementation phases
-- **developer/MCP-IMPLEMENTATION-PLAN.md** — MCP detailed implementation plan with code patterns
-- **developer/MCP-STATUS.md** — MCP execution tracker across all workstreams
-- **developer/PRD-MCP-abstraction-layer.md** — MCP Abstraction Layer (catalog, config wizard, tool tester)
-- **developer/PRD-MCP-client-engine.md** — MCP Client Engine (spawn/call external servers, chat integration)
 - **docs/MCP-QUICKSTART.md** — MCP server install, configure, first tool call
 - **docs/MCP-TOOLS-REFERENCE.md** — All MCP tools, resources, and prompts with schemas
 - **docs/MCP-CLIENT-CONFIG.md** — Client config for Claude Desktop, Claude Code, Cursor, VS Code
-- **developer/code-review-action-plan.md** — Code review findings and remediation phases (R1-R3)
+- **docs/runbook/** — Ops and security runbooks, dev launcher script
 - **AGENTS.md** — This file (AI agent guidance)
+
+#### Local-only (not tracked in git)
+
+- **developer/developer-journal.md** — Implementation log and lessons learned
+- **developer/TODO.md** — Prioritized roadmap
+- **developer/code-review-action-plan.md** — Code review findings and remediation phases (R1-R3)
+- **developer/MCP-STATUS.md** — MCP execution tracker across all workstreams
+- **developer/PRD-*.md** — MCP PRDs (implementation, abstraction layer, client engine)
 
 ## Troubleshooting
 

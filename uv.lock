@@ -3752,7 +3752,7 @@ wheels = [
 
 [[package]]
 name = "stratifyai"
-version = "0.1.3"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aioboto3" },

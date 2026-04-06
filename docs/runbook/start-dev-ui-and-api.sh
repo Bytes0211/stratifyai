@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Starts FastAPI backend and Vite frontend dev server together.
-# Usage: ./developer/runbook/start-dev-ui-and-api.sh
+# Usage: ./docs/runbook/start-dev-ui-and-api.sh
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BACKEND_PORT="${STRATIFYAI_BACKEND_PORT:-8080}"

@@ -2,8 +2,8 @@
 
 Complete API documentation for StratifyAI multi-provider LLM abstraction module.
 
-**Version:** 0.1.3  
-**Last Updated:** April 2, 2026
+**Version:** 2.0.0  
+**Last Updated:** April 6, 2026
 
 ---
 
@@ -169,7 +169,7 @@ Structured JSON metrics export for lightweight monitoring.
 ```json
 {
     "uptime_seconds": 1234,
-    "version": "0.1.3",
+    "version": "2.0.0",
     "http": {
         "requests_total": 42,
         "errors_total": 1,

@@ -88,7 +88,7 @@ We are committed to providing a welcoming and inclusive environment for all cont
 
 Before deploying or modifying security-sensitive code paths, review:
 
-- `developer/runbook/phase15-security-runbook.md`
+- `docs/runbook/phase15-security-runbook.md`
 
 Use it for threat model assumptions, staging/production environment settings,
 verification commands, and incident response steps.

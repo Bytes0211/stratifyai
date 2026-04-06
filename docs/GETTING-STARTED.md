@@ -21,7 +21,7 @@ StratifyAI lets you use any LLM provider (OpenAI, Anthropic, Google, DeepSeek, G
 
 For security hardening operations and deployment guidance, see:
 
-- `developer/runbook/phase15-security-runbook.md`
+- `docs/runbook/phase15-security-runbook.md`
 
 ---
 

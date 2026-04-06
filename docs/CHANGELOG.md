@@ -7,18 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-06
+
 ### Added
-- `stratifyai doctor` CLI command for environment, key, provider, and optional live connectivity diagnostics
-- `--dry-run` flag for the `route` CLI command to show routing rationale and ranked candidates without API execution
-- CI dependency vulnerability scanning via `pip-audit`
+- Complete MCP ecosystem: server, client engine, abstraction layer, and permission controls
+- Prompt templates, profile system, and Svelte 5 SPA for interactive usage
+- O(1) cache improvements, concurrency limits, and observability/metrics endpoints
+- AWS Bedrock maturity improvements, RAG workflows, and large-file processing enhancements
+- `stratifyai doctor` CLI command and `route --dry-run` for release diagnostics
 
 ### Changed
-- Documentation improvements with badges and type hints
-- Structured error codes added to custom exception hierarchy for programmatic handling
-- FastAPI rate limiting now keys by API token hash (fallback to client IP)
-- WebSocket payload hardening: max payload size checks and message content validation
-- API error handling now sanitizes sensitive key-like strings before logging/response details
-- CORS defaults tightened with localhost allowlist and explicit `CORS_ALLOW_ALL` override
+- Version metadata aligned for the 2.0.0 release across package and API surfaces
+- Deployment documentation refreshed for **local distro first**, then TestPyPI/PyPI release flow
+- Security and error handling hardening expanded across HTTP, WebSocket, and provider paths
 
 ## [0.1.0] - 2026-02-04
 
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Bytes0211/stratifyai/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Bytes0211/stratifyai/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Bytes0211/stratifyai/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/Bytes0211/stratifyai/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/Bytes0211/stratifyai/releases/tag/v0.0.1

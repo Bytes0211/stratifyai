@@ -93,7 +93,7 @@ def _get_version() -> str:
                         return version
     except Exception:
         pass
-    return "0.1.0"
+    return "2.0.0"
 
 
 API_VERSION = _get_version()

@@ -131,52 +131,64 @@ pip install --upgrade --force-reinstall .
 
 ## Method 3: Build and Install as Wheel
 
-This method creates a distribution file (.whl) that can be installed or shared.
+This is the recommended **release-candidate** workflow when you want to create a local distro first, verify it, and then publish the exact same build to PyPI.
 
-### Step 1: Install Build Tools
+### Step 1: Prepare the Environment
 
 ```bash
 cd /home/scotton/dev/projects/stratifyai
 source .venv/bin/activate
-
-# Install build tools
-pip install build
 ```
 
-### Step 2: Build the Package
+### Step 2: Build the Local Distribution
 
 ```bash
-# Build wheel and source distribution
-python -m build
+# Clean previous artifacts
+rm -rf dist/ build/
+
+# Build wheel + source distribution using uv
+uv build
 
 # This creates files in dist/:
-# - stratifyai-0.1.0-py3-none-any.whl
-# - stratifyai-0.1.0.tar.gz
+# - stratifyai-2.0.0-py3-none-any.whl
+# - stratifyai-2.0.0.tar.gz
 ```
 
-### Step 3: Install the Wheel
+### Step 3: Validate the Artifacts
 
 ```bash
-# Install the built wheel
-pip install dist/stratifyai-0.1.0-py3-none-any.whl
+# Check package metadata and long description rendering
+uv run --with twine python -m twine check dist/*
 
-# OR install in another environment/project
-# (from outside the stratifyai directory)
-pip install /home/scotton/dev/projects/stratifyai/dist/stratifyai-0.1.0-py3-none-any.whl
+# Inspect the generated files
+ls -lh dist/
+tar -tzf dist/stratifyai-2.0.0.tar.gz | head -20
+unzip -l dist/stratifyai-2.0.0-py3-none-any.whl | head -20
 ```
 
-### Step 4: Verify Installation
+### Step 4: Install the Wheel Locally
+
+```bash
+# Install the built wheel in the current environment
+pip install --force-reinstall dist/stratifyai-2.0.0-py3-none-any.whl
+
+# OR install from another environment/project
+pip install /home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.0-py3-none-any.whl
+```
+
+### Step 5: Verify Installation
 
 ```bash
 pip show stratifyai
+python -c "import stratifyai; print(stratifyai.__version__)"
 stratifyai --help
 ```
 
 ### Benefits of Wheel Install
-- Creates portable distribution file
-- Can install in multiple environments
-- Production-ready installation
-- Can share with others (though not on PyPI yet)
+- Creates a portable local distribution you can test before release
+- Lets you verify the exact `2.0.0` artifact that will be uploaded to PyPI
+- Works well for local deployment, staging, and handoff to other environments
+- Mirrors a production installation more closely than editable mode
 
 ---
 
@@ -193,13 +205,11 @@ pip show stratifyai
 Expected output:
 ```
 Name: stratifyai
-Version: 0.1.0
-Summary: Unified LLM abstraction layer for 8 providers
-Home-page: https://github.com/yourusername/stratifyai
-Author: Your Name
-Author-email: your.email@example.com
+Version: 2.0.0
+Summary: Unified multi-provider LLM abstraction module with intelligent routing, cost tracking, and caching
+Home-page: https://github.com/Bytes0211/stratifyai
+Author: Steven Cotton
 Location: /home/scotton/dev/projects/stratifyai
-Requires: anthropic, google-genai, httpx, openai, python-dotenv, rich, typer
 ```
 
 ### 2. Test Python Import
@@ -482,7 +492,7 @@ pip install -e /home/scotton/dev/projects/stratifyai
 -e /home/scotton/dev/projects/stratifyai
 
 # OR if you built a wheel
-/home/scotton/dev/projects/stratifyai/dist/stratifyai-0.1.0-py3-none-any.whl
+/home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.0-py3-none-any.whl
 ```
 
 ---
@@ -609,11 +619,11 @@ After successful installation:
 
 1. **Set up API keys** for the providers you want to use
 2. **Review examples** in `docs/stratifyai-technical-approach.md`
-3. **Run tests** to ensure everything works: `pytest`
+3. **Run tests** to ensure everything works: `uv run pytest`
 4. **Explore CLI** commands: `stratifyai --help`
-5. **Try the Web GUI** (if Phase 3.5 is implemented)
+5. **Try the Web GUI** if you want a local API/UI smoke test
 6. **Read the API documentation** for advanced usage
-7. **Consider publishing to PyPI** for easier distribution (Phase 6)
+7. **If releasing publicly, build a local distro first and then publish to TestPyPI/PyPI**
 
 ---
 
@@ -631,10 +641,11 @@ After successful installation:
 
 Once ready for public release:
 
-1. Create account on PyPI: https://pypi.org/account/register/
-2. Configure `~/.pypirc` with credentials
-3. Build distribution: `python -m build`
-4. Upload to PyPI: `python -m twine upload dist/*`
-5. Install from PyPI: `pip install stratifyai`
+1. Create accounts on PyPI and TestPyPI
+2. Configure `~/.pypirc` with API tokens
+3. Build the release locally first: `uv build`
+4. Validate the artifacts: `uv run --with twine python -m twine check dist/*`
+5. Upload to TestPyPI, verify install, then upload to PyPI
+6. Install from PyPI: `pip install stratifyai==2.0.0`
 
-See Phase 6 in `docs/project-status.md` for production readiness tasks.
+For the full 2.0.0 workflow, see `developer/PYPI-PUBLISHING.md`. 

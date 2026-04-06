@@ -98,7 +98,8 @@ Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENT
 
 ## Source Of Truth
 
-- Active roadmap checklist: `developer/TODO.md`
-- Implementation timeline and decisions: `developer/developer-journal.md`
-- MCP implementation blueprint: `developer/PRD-MCP-implemenation.md`
 - Agent-facing technical context: `AGENTS.md`
+- Project status and milestones: `docs/project-status.md` (this file)
+- Ops and security runbooks: `docs/runbook/`
+- Active roadmap checklist: `developer/TODO.md` (local-only, not tracked in git)
+- Implementation journal: `developer/developer-journal.md` (local-only)

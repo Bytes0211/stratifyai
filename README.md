@@ -98,7 +98,7 @@ stratifyai check-keys
 For Phase 15 hardening guidance (threat model assumptions, staging/production
 environment settings, verification commands, and incident response), see:
 
-- `developer/runbook/phase15-security-runbook.md`
+- `docs/runbook/phase15-security-runbook.md`
 
 ### MCP Ecosystem
 
@@ -114,7 +114,6 @@ Documentation:
 - `docs/MCP-QUICKSTART.md` — Install, configure, first tool call
 - `docs/MCP-TOOLS-REFERENCE.md` — All tools, resources, and prompts
 - `docs/MCP-CLIENT-CONFIG.md` — Client config for Claude Desktop, Claude Code, Cursor, VS Code
-- `developer/PRD-MCP-implemenation.md` — Technical blueprint
 
 #### Local MCP chat integration notes
 
