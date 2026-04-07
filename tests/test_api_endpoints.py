@@ -390,6 +390,31 @@ def test_mcp_configure_reset_and_permissions_cover_extra_branches(tmp_path):
         api_main._mcp_chat_engine = original_engine
 
 
+def test_start_mcp_client_server_returns_503_for_runtime_launch_failure():
+    from api.main import app
+
+    fake_engine = SimpleNamespace(
+        start_server=AsyncMock(
+            side_effect=FileNotFoundError(
+                "[WinError 2] The system cannot find the file specified"
+            )
+        )
+    )
+
+    client = TestClient(app)
+    with (
+        patch("api.main.get_mcp_chat_engine", new=AsyncMock(return_value=fake_engine)),
+        patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"}, clear=False),
+    ):
+        response = client.post(
+            "/api/mcp-client/servers/filesystem/start",
+            headers={"Authorization": "Bearer api-secret"},
+        )
+
+    assert response.status_code == 503
+    assert "cannot find the file specified" in response.text.lower()
+
+
 @patch.dict("os.environ", {}, clear=False)
 def test_websocket_stream_with_active_mcp_servers_returns_tool_results():
     import os

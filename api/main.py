@@ -93,7 +93,7 @@ def _get_version() -> str:
                         return version
     except Exception:
         pass
-    return "2.0.0"
+    return "2.0.3"
 
 
 API_VERSION = _get_version()
@@ -2675,6 +2675,21 @@ async def get_mcp_client_health(_: None = Depends(verify_api_key)):
         raise HTTPException(status_code=500, detail=sanitize_error(str(exc))) from exc
 
 
+def _mcp_runtime_error_status(exc: Exception) -> int:
+    """Map MCP start/restart failures to a more useful HTTP status code."""
+    if isinstance(exc, KeyError):
+        return 404
+    if isinstance(exc, PermissionError):
+        return 403
+    if isinstance(exc, FileNotFoundError | OSError):
+        return 503
+
+    message = str(exc).lower()
+    if "cannot find the file specified" in message or "not found" in message:
+        return 503
+    return 400
+
+
 @app.post("/api/mcp-client/servers/{server_id}/start")
 async def start_mcp_client_server(
     server_id: str,
@@ -2690,7 +2705,10 @@ async def start_mcp_client_server(
             "error": status.error,
         }
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+        raise HTTPException(
+            status_code=_mcp_runtime_error_status(exc),
+            detail=sanitize_error(str(exc)),
+        ) from exc
 
 
 @app.post("/api/mcp-client/servers/{server_id}/stop")
@@ -2726,7 +2744,10 @@ async def restart_mcp_client_server(
             "error": status.error,
         }
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+        raise HTTPException(
+            status_code=_mcp_runtime_error_status(exc),
+            detail=sanitize_error(str(exc)),
+        ) from exc
 
 
 @app.get("/api/mcp-client/permissions", response_model=MCPClientPermissionsResponse)
@@ -2810,6 +2831,7 @@ async def configure_mcp(
                 payload.server_ids,
                 payload.env_values,
                 payload.arg_values,
+                project_root=payload.project_root,
             )
             target_path = payload.output_path
             applied = False

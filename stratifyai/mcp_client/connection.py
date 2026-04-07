@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import shutil
 import time
 from contextlib import AsyncExitStack
 
@@ -13,6 +15,56 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from .config import ConfiguredServer
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_command_path(command: str) -> str:
+    """Resolve common CLI launchers to a concrete executable when possible."""
+    cleaned = command.strip()
+    if not cleaned:
+        return command
+
+    if os.path.isabs(cleaned) or any(sep in cleaned for sep in ("/", "\\")):
+        return cleaned
+
+    candidates = [cleaned]
+    if os.name == "nt":
+        candidates = {
+            "npx": ["npx.cmd", "npx.exe", "npx"],
+            "npm": ["npm.cmd", "npm.exe", "npm"],
+            "node": ["node.exe", "node"],
+            "uv": ["uv.exe", "uv"],
+            "uvx": ["uvx.exe", "uvx", "uv"],
+            "python": ["python.exe", "python"],
+        }.get(cleaned.lower(), [cleaned])
+
+    for candidate in candidates:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    return cleaned
+
+
+def _format_missing_command_error(
+    config: ConfiguredServer, exc: FileNotFoundError
+) -> str:
+    """Return an actionable startup error for missing MCP executables."""
+    command = config.command.strip() or "<empty>"
+    message = (
+        f"MCP server '{config.server_id}' could not start because the command "
+        f"'{command}' was not found."
+    )
+
+    if command.lower() in {"npx", "npm", "node"}:
+        message += (
+            " Install Node.js 18+ (includes npm) and ensure `npx` is available on PATH"
+            " before starting MCP-backed integrations."
+        )
+    elif command.lower() in {"uv", "uvx"}:
+        message += " Install `uv` and ensure it is available on PATH."
+    else:
+        message += " Verify the configured executable path and permissions."
+
+    return f"{message} Original error: {exc}"
 
 
 class MCPServerConnection:
@@ -67,12 +119,13 @@ class MCPServerConnection:
         assert self._ready is not None
 
         server_params = StdioServerParameters(
-            command=self.config.command,
+            command=_resolve_command_path(self.config.command),
             args=self.config.args,
             env=self.config.env or None,
             cwd=self.config.cwd,
         )
 
+        stack: AsyncExitStack | None = None
         try:
             stack = AsyncExitStack()
             read_stream, write_stream = await stack.enter_async_context(
@@ -87,19 +140,25 @@ class MCPServerConnection:
 
             # Keep the context alive until close() signals us.
             await self._close_event.wait()
+        except FileNotFoundError as exc:
+            self._connect_error = FileNotFoundError(
+                _format_missing_command_error(self.config, exc)
+            )
+            self._ready.set()
         except BaseException as exc:
             self._connect_error = exc
             self._ready.set()
         finally:
             self._session = None
-            try:
-                await stack.aclose()
-            except Exception:
-                logger.debug(
-                    "Suppressed error closing MCP connection for %s",
-                    self.config.server_id,
-                    exc_info=True,
-                )
+            if stack is not None:
+                try:
+                    await stack.aclose()
+                except Exception:
+                    logger.debug(
+                        "Suppressed error closing MCP connection for %s",
+                        self.config.server_id,
+                        exc_info=True,
+                    )
 
     async def probe(self) -> float:
         """Perform a lightweight health probe and return latency in milliseconds."""

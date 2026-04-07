@@ -12,7 +12,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from mcp.types import Tool
 
+from stratifyai.mcp_catalog.manager import build_client_config
 from stratifyai.mcp_client.config import ConfiguredServer, load_enabled_servers
+from stratifyai.mcp_client.connection import _resolve_command_path
 from stratifyai.mcp_client.engine import MCPClientEngine
 from stratifyai.mcp_client.permissions import (
     MCPConfirmationRequiredError,
@@ -111,6 +113,39 @@ def test_load_enabled_servers_auto_merges_supported_client_configs(
 
     assert [server.server_id for server in servers] == ["postgresql", "brave-search"]
     assert servers[0].source_client == "claude-desktop"
+
+
+def test_build_client_config_defaults_filesystem_paths_to_project_root(
+    tmp_path: Path,
+) -> None:
+    config = build_client_config(
+        client="cursor",
+        server_ids=["filesystem"],
+        project_root=tmp_path,
+    )
+
+    filesystem = config["mcpServers"]["filesystem"]
+    assert str(tmp_path) in filesystem["args"]
+    assert "<paths>" not in " ".join(filesystem["args"])
+    assert "/home/user/projects" not in " ".join(filesystem["args"])
+
+
+def test_resolve_command_path_prefers_windows_npx_launcher(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("os.name", "nt")
+
+    def fake_which(command: str) -> str | None:
+        mapping = {
+            "npx": None,
+            "npx.cmd": r"C:\\Program Files\\nodejs\\npx.cmd",
+            "npx.exe": None,
+        }
+        return mapping.get(command)
+
+    monkeypatch.setattr("shutil.which", fake_which)
+
+    assert _resolve_command_path("npx") == r"C:\\Program Files\\nodejs\\npx.cmd"
 
 
 def test_tool_registry_namespaces_server_tools() -> None:

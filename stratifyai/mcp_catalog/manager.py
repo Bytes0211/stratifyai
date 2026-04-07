@@ -154,10 +154,23 @@ def _resolve_user_arg_value(
     return _normalize_config_value(arg_name, raw_value)
 
 
+def _default_user_arg_value(
+    server: MCPServerEntry,
+    arg_name: str,
+    project_root: str | Path | None = None,
+) -> str | None:
+    """Return a heuristic default for required user args when safe to do so."""
+    if server.id == "filesystem" and arg_name == "paths":
+        base_path = Path(project_root).expanduser() if project_root else Path.cwd()
+        return str(base_path)
+    return None
+
+
 def _build_server_config(
     server: MCPServerEntry,
     env_values: dict[str, str],
     arg_values: dict[str, str],
+    project_root: str | Path | None = None,
 ) -> dict[str, Any]:
     args = list(server.args)
     env: dict[str, str] = {}
@@ -174,6 +187,8 @@ def _build_server_config(
 
     for user_arg in server.user_args:
         value = _resolve_user_arg_value(server, user_arg.name, arg_values)
+        if value is None:
+            value = _default_user_arg_value(server, user_arg.name, project_root)
         if value is None and user_arg.required:
             value = user_arg.example or f"<{user_arg.name}>"
         if value is None:
@@ -205,12 +220,16 @@ def build_client_config(
     project_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """Build client-specific JSON config for selected MCP servers."""
-    del project_root  # reserved for future client-specific path generation
     env_values = env_values or {}
     arg_values = arg_values or {}
 
     server_map = {
-        server_id: _build_server_config(get_server(server_id), env_values, arg_values)
+        server_id: _build_server_config(
+            get_server(server_id),
+            env_values,
+            arg_values,
+            project_root=project_root,
+        )
         for server_id in server_ids
     }
 
@@ -228,6 +247,7 @@ def build_claude_code_commands(
     server_ids: list[str],
     env_values: dict[str, str] | None = None,
     arg_values: dict[str, str] | None = None,
+    project_root: str | Path | None = None,
 ) -> list[str]:
     """Build `claude mcp add` shell commands for Claude Code users."""
     env_values = env_values or {}
@@ -236,7 +256,12 @@ def build_claude_code_commands(
 
     for server_id in server_ids:
         server = get_server(server_id)
-        cfg = _build_server_config(server, env_values, arg_values)
+        cfg = _build_server_config(
+            server,
+            env_values,
+            arg_values,
+            project_root=project_root,
+        )
         cmd_parts = ["claude", "mcp", "add", server_id, cfg["command"]]
         for arg in cfg.get("args", []):
             cmd_parts.append(str(arg))
@@ -495,7 +520,8 @@ def validate_prerequisites(server_ids: list[str]) -> list[str]:
         and shutil.which("npx") is None
     ):
         warnings.append(
-            "One or more selected servers require Node.js with `npx`, but it was not found on PATH."
+            "Optional MCP servers require Node.js 18+ with `npx` on PATH. "
+            "Core StratifyAI chat/API features still work without it, but those MCP servers will not start until Node.js is installed."
         )
     if (
         any(server.install_method == "docker" for server in servers)

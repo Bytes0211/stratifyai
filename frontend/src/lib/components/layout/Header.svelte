@@ -1,12 +1,14 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { Menu } from 'lucide-svelte';
+  import appMeta from '../../../../package.json';
   import ThemeToggle from '../shared/ThemeToggle.svelte';
   
   export let currentPage: 'chat' | 'models' | 'mcp' = 'chat';
   export let navigateTo: (page: 'chat' | 'models' | 'mcp') => void;
   
   const dispatch = createEventDispatcher();
+  const versionLabel = `v${appMeta.version}`;
   
   function handleNavClick(e: MouseEvent, page: 'chat' | 'models' | 'mcp') {
     e.preventDefault();
@@ -27,6 +29,7 @@
     <a href="/" class="logo" on:click={(e) => handleNavClick(e, 'chat')}>
       <img src="/static/stratifyai_trans_logo.png" alt="" class="logo-icon" />
       <span class="logo-text">StratifyAI</span>
+      <span class="logo-version" aria-label={`Application version ${versionLabel}`}>{versionLabel}</span>
     </a>
   </div>
   
@@ -105,7 +108,7 @@
   
   .logo {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: $space-2;
     text-decoration: none;
     
@@ -118,6 +121,7 @@
     width: 32px;
     height: 32px;
     object-fit: contain;
+    align-self: center;
   }
   
   .logo-text {
@@ -127,6 +131,28 @@
     
     @media (max-width: 480px) {
       display: none;
+    }
+  }
+
+  .logo-version {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border: 1px solid rgba(59, 130, 246, 0.24);
+    border-radius: $radius-full;
+    font-size: 0.45rem;
+    font-weight: $font-semibold;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    margin-bottom: 1px;
+
+    @media (max-width: 480px) {
+      padding: 1px 4px;
+      font-size: 0.4rem;
     }
   }
   

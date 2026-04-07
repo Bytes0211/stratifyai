@@ -40,6 +40,10 @@ python3 --version
 python3 -m pip install --upgrade pip
 ```
 
+> ⚠️ **Optional MCP prerequisite:** StratifyAI does not ship preconfigured MCP client files,
+> but many MCP server templates use `npx`. Install **Node.js 18+** and ensure `npx` is on
+> your `PATH` if you want MCP integrations to start successfully.
+
 ### Step 1: Navigate to Project Directory
 
 ```bash
@@ -150,8 +154,8 @@ rm -rf dist/ build/
 uv build
 
 # This creates files in dist/:
-# - stratifyai-2.0.0-py3-none-any.whl
-# - stratifyai-2.0.0.tar.gz
+# - stratifyai-2.0.3-py3-none-any.whl
+# - stratifyai-2.0.3.tar.gz
 ```
 
 ### Step 3: Validate the Artifacts
@@ -162,18 +166,21 @@ uv run --with twine python -m twine check dist/*
 
 # Inspect the generated files
 ls -lh dist/
-tar -tzf dist/stratifyai-2.0.0.tar.gz | head -20
-unzip -l dist/stratifyai-2.0.0-py3-none-any.whl | head -20
+tar -tzf dist/stratifyai-2.0.3.tar.gz | head -20
+unzip -l dist/stratifyai-2.0.3-py3-none-any.whl | head -20
 ```
 
 ### Step 4: Install the Wheel Locally
 
 ```bash
 # Install the built wheel in the current environment
-pip install --force-reinstall dist/stratifyai-2.0.0-py3-none-any.whl
+pip install --force-reinstall dist/stratifyai-2.0.3-py3-none-any.whl
 
 # OR install from another environment/project
-pip install /home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.0-py3-none-any.whl
+pip install /home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.3-py3-none-any.whl
+
+# Windows sandbox example
+py -m pip install .\stratifyai-2.0.3-py3-none-any.whl
 ```
 
 ### Step 5: Verify Installation
@@ -184,9 +191,29 @@ python -c "import stratifyai; print(stratifyai.__version__)"
 stratifyai --help
 ```
 
+### Step 6: Launch the bundled Web UI
+
+After installing from the wheel or from PyPI, start the FastAPI app that serves the Web UI:
+
+```bash
+# Standard Python entry point
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8080
+
+# If you use uv to manage the environment
+uv run python -m uvicorn api.main:app --host 127.0.0.1 --port 8080
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080
+```
+
+> There is currently no `stratifyai serve` command; use one of the commands above.
+
 ### Benefits of Wheel Install
 - Creates a portable local distribution you can test before release
-- Lets you verify the exact `2.0.0` artifact that will be uploaded to PyPI
+- Lets you verify the exact `2.0.3` artifact that will be uploaded to PyPI
 - Works well for local deployment, staging, and handoff to other environments
 - Mirrors a production installation more closely than editable mode
 
@@ -205,7 +232,7 @@ pip show stratifyai
 Expected output:
 ```
 Name: stratifyai
-Version: 2.0.0
+Version: 2.0.3
 Summary: Unified multi-provider LLM abstraction module with intelligent routing, cost tracking, and caching
 Home-page: https://github.com/Bytes0211/stratifyai
 Author: Steven Cotton
@@ -492,7 +519,7 @@ pip install -e /home/scotton/dev/projects/stratifyai
 -e /home/scotton/dev/projects/stratifyai
 
 # OR if you built a wheel
-/home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.0-py3-none-any.whl
+/home/scotton/dev/projects/stratifyai/dist/stratifyai-2.0.2-py3-none-any.whl
 ```
 
 ---
@@ -646,6 +673,6 @@ Once ready for public release:
 3. Build the release locally first: `uv build`
 4. Validate the artifacts: `uv run --with twine python -m twine check dist/*`
 5. Upload to TestPyPI, verify install, then upload to PyPI
-6. Install from PyPI: `pip install stratifyai==2.0.0`
+6. Install from PyPI: `pip install stratifyai==2.0.3`
 
-For the full 2.0.0 workflow, see `developer/PYPI-PUBLISHING.md`. 
+For the full 2.0.3 workflow, see `developer/PYPI-PUBLISHING.md`. 

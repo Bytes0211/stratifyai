@@ -18,11 +18,7 @@ import type {
   McpClientToolInfo,
   McpConfigureRequest,
 } from '$lib/api/types';
-import {
-  configActions,
-  configStore,
-  hasStoredActiveMcpServersPreference,
-} from './config';
+import { configActions, configStore } from './config';
 
 interface McpRuntimeState {
   servers: McpClientServerInfo[];
@@ -66,9 +62,6 @@ function createMcpRuntimeStore() {
     const currentSelection = get(configStore).activeMcpServers;
 
     if (currentSelection.length === 0) {
-      if (availableServerIds.length > 0 && !hasStoredActiveMcpServersPreference()) {
-        configActions.setActiveMcpServers(availableServerIds);
-      }
       return;
     }
 

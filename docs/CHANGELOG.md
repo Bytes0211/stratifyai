@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-04-07
+
+### Fixed
+- Pinned `fastapi` below `1.0` in release metadata so TestPyPI and future installs do not resolve an unvalidated major version during dependency installation
+- Confirmed the `2.0.2` TestPyPI failure was caused by a broken third-party `FASTAPI-1.0` source distribution on TestPyPI rather than missing StratifyAI package files
+
+## [2.0.2] - 2026-04-07
+
+### Fixed
+- Cleaned the release artifacts so local editor/MCP config folders like `.cursor/` and `.vscode/` are not bundled in published distributions
+- Stopped auto-enabling newly discovered MCP servers in the Web UI, keeping fresh installs isolated until the user explicitly opts in
+- Added clearer install-time and runtime guidance that MCP integrations using `npx` require Node.js 18+ on `PATH`
+
+## [2.0.1] - 2026-04-07
+
+### Fixed
+- Promoted `mcp[cli]` to a core runtime dependency so clean installs no longer fail with `ModuleNotFoundError: No module named 'mcp'`
+- Added smoother MCP setup heuristics by defaulting filesystem server paths to the project root/current directory when omitted
+- Improved MCP startup diagnostics and API error mapping for missing executables like `npx`/Node.js
+
 ## [2.0.0] - 2026-04-06
 
 ### Added
@@ -68,7 +88,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Bytes0211/stratifyai/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Bytes0211/stratifyai/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/Bytes0211/stratifyai/compare/v2.0.2...v2.0.3
+[2.0.2]: https://github.com/Bytes0211/stratifyai/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/Bytes0211/stratifyai/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Bytes0211/stratifyai/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/Bytes0211/stratifyai/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/Bytes0211/stratifyai/releases/tag/v0.0.1

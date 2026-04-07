@@ -78,6 +78,13 @@ Or using `uv`:
 uv sync
 ```
 
+> ℹ️ **Python dependencies** such as `mcp`, `fastapi`, and `pydantic` are declared in the
+> package metadata and are installed automatically by `pip` when installing from PyPI.
+>
+> ⚠️ **Optional MCP prerequisite:** the published wheel/sdist does **not** bundle local
+> Claude/Cursor/VS Code MCP config files. If you plan to use curated MCP servers that launch
+> via `npx`, install **Node.js 18+** and make sure `npx` is available on your `PATH`.
+
 ---
 
 ## Configuration
@@ -272,10 +279,16 @@ npm run build
 
 # Start the API server (serves the built SPA)
 cd ..
-uvicorn api.main:app --reload --port 8080
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8080
 
-# Open browser
-open http://localhost:8080
+# Or, if you use uv
+uv run python -m uvicorn api.main:app --host 127.0.0.1 --port 8080
+```
+
+Open:
+
+```text
+http://127.0.0.1:8080
 ```
 
 ### Development Mode

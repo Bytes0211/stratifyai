@@ -55,6 +55,7 @@ dmypy.json
 
 # IDEs and Editors
 .vscode/
+.cursor/
 .idea/
 .zed/
 .claude/
@@ -118,4 +119,5 @@ site/
 *secret*
 *credentials*
 !requirements*.txt
+.cursor/mcp.json
 
