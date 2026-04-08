@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stratifyai"
-version = "2.0.3"
+version = "2.0.5"
 description = "Unified multi-provider LLM abstraction module with intelligent routing, cost tracking, and caching"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -65,6 +65,8 @@ dependencies = [
     "cachetools>=5.3.0",
     "readerwriterlock>=1.0.0",
     "mcp[cli]>=1.25,<2",
+    "twine>=6.2.0",
+    "build>=1.4.0",
 ]
 
 [project.optional-dependencies]

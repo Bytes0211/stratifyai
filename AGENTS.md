@@ -89,6 +89,11 @@ Your AWS IAM user/role must have the `bedrock:InvokeModel` permission:
 }
 ```
 
+## Testing and Coverage Requirements
+
+- **All new code must include corresponding pytest tests.**
+- **All pushed code must maintain test coverage greater than 85%.**
+
 ## Project Structure
 
 ```txt

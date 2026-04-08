@@ -25,3 +25,6 @@ global-exclude .DS_Store
 global-exclude *.so
 global-exclude .gitignore
 global-exclude *.backup
+
+exclude .env
+exclude .env.*

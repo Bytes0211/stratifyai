@@ -96,6 +96,7 @@ log/
 ehthumbs.db
 Thumbs.db
 desktop.ini
+scripts/*.sh
 
 # Jupyter Notebook
 .ipynb_checkpoints
