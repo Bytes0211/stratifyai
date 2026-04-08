@@ -4,6 +4,7 @@
   import Sidebar from './Sidebar.svelte';
   import ChatContainer from '../chat/ChatContainer.svelte';
   import ChatInput from '../chat/ChatInput.svelte';
+  import MCPChatPanel from '../chat/MCPChatPanel.svelte';
   import ModelCatalog from '../catalog/ModelCatalog.svelte';
   import MCPServersPage from '../mcp/MCPServersPage.svelte';
   
@@ -44,6 +45,7 @@
       
       <main class="main-content">
         <ChatContainer />
+        <MCPChatPanel />
         <ChatInput />
       </main>
     {:else if currentPage === 'models'}

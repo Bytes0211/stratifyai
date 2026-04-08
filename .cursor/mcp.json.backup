@@ -1,27 +1,14 @@
 {
   "mcpServers": {
-    "postgresql": {
+    "tavily": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://<user>:<password>@localhost:5432/<database>"
-      ]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/home/scotton/dev/projects/"
-      ]
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
+        "tavily-mcp@latest"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "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"
+      }
     }
   },
   "stratifyai": {

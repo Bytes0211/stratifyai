@@ -1,9 +1,13 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteTesting } from '@testing-library/svelte/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    svelte({ compilerOptions: { hmr: !process.env.VITEST } }),
+    svelteTesting(),
+  ],
   build: {
     outDir: '../api/static/dist',
     emptyOutDir: true,
@@ -33,5 +37,11 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['src/**/*.test.ts'],
+    setupFiles: ['src/test-setup.ts'],
   },
 });

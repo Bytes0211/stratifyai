@@ -700,7 +700,10 @@ async def root():
     """Serve the frontend interface (SPA or legacy)."""
     index_path = _get_spa_index()
     if index_path:
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )
     return {
         "name": "StratifyAI API",
         "version": API_VERSION,
@@ -714,7 +717,10 @@ async def models_page():
     # For SPA, return index.html for client-side routing
     index_path = _get_spa_index()
     if index_path and "dist" in index_path:
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )
     # Legacy: serve models.html
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     models_path = os.path.join(static_dir, "models.html")
@@ -728,7 +734,10 @@ async def mcp_page():
     """Serve the MCP management SPA route."""
     index_path = _get_spa_index()
     if index_path:
-        return FileResponse(index_path)
+        return FileResponse(
+            index_path,
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )
     return {"error": "MCP page not found"}
 
 

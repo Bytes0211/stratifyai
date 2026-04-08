@@ -45,6 +45,7 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+frontend/coverage/
 
 # Type Checking & Linting
 .mypy_cache/

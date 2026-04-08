@@ -8,6 +8,7 @@
   import { fileActions } from '$lib/stores/file';
   import { createChatStream } from '$lib/api/websocket';
   import { chat as chatApi } from '$lib/api/client';
+  import { formatLatency } from '$lib/utils/format';
   import type { ChatRequest } from '$lib/api/types';
   
   let inputValue = '';
@@ -27,6 +28,17 @@
       return `${base},.jpg,.jpeg,.png,.gif,.webp`;
     }
     return base;
+  })();
+
+  // Last assistant message latency
+  $: lastLatency = (() => {
+    const msgs = $chatStore.messages;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'assistant' && typeof msgs[i].usage?.latency_ms === 'number' && (msgs[i].usage?.latency_ms ?? 0) > 0) {
+        return msgs[i].usage!.latency_ms;
+      }
+    }
+    return null;
   })();
   
   function handleFileSelect(e: Event) {
@@ -345,7 +357,10 @@
   </div>
   
   {#if $chatStore.hasMessages}
-    <div class="chat-actions">
+    <div class="chat-footer">
+      {#if typeof lastLatency === 'number'}
+        <span class="latency-indicator">Last latency: {formatLatency(lastLatency)}</span>
+      {/if}
       <button class="clear-btn" on:click={clearChat} aria-label="Clear chat">
         <Trash2 size={14} />
         Clear chat
@@ -484,11 +499,18 @@
     align-items: flex-end;
   }
   
-  .chat-actions {
+  .chat-footer {
     display: flex;
+    align-items: center;
     justify-content: center;
+    gap: $space-3;
   }
-  
+
+  .latency-indicator {
+    font-size: $text-xs;
+    color: var(--text-muted);
+  }
+
   .clear-btn {
     display: flex;
     align-items: center;
