@@ -1,7 +1,7 @@
 ![StratifyAI](stratifyai_trans_logo2.png)
 
 
-# StratifyAI — Unified Multi‑Provider LLM Interface v2.0.5
+# StratifyAI — Unified Multi‑Provider LLM Interface v2.0.6
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-877%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
