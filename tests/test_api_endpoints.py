@@ -712,6 +712,7 @@ def test_add_custom_mcp_server_claude_code_returns_commands():
             "server_id": "my-server",
             "command": "python",
             "args": ["-m", "my_module"],
+            "env": {"MY_KEY": "secret"},
             "client": "claude-code",
             "apply": False,
         },
@@ -721,6 +722,36 @@ def test_add_custom_mcp_server_claude_code_returns_commands():
     body = resp.json()
     assert body["config"] is None
     assert len(body["commands"]) == 1
-    assert "claude mcp add my-server" in body["commands"][0]
-    assert "python" in body["commands"][0]
-    assert "-m" in body["commands"][0]
+    cmd = body["commands"][0]
+    # No '--' separator, matches build_claude_code_commands pattern.
+    assert "-- " not in cmd
+    assert "claude mcp add my-server python" in cmd
+    assert "-m" in cmd
+    # Env vars emitted as -e KEY=VAL pairs.
+    assert "-e MY_KEY=secret" in cmd
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_claude_code_quotes_spaces():
+    """Arguments with spaces are shell-quoted in claude-code commands."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/add-custom",
+        json={
+            "server_id": "my-server",
+            "command": "/path/to/my program",
+            "args": ["--dir", "/tmp/my folder"],
+            "client": "claude-code",
+            "apply": False,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    cmd = resp.json()["commands"][0]
+    # shlex.quote wraps tokens containing spaces in single quotes.
+    assert "'/path/to/my program'" in cmd
+    assert "'/tmp/my folder'" in cmd

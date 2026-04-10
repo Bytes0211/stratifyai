@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import logging
 import os
+import shlex
 import threading
 import time
 from collections import defaultdict, deque
@@ -2147,7 +2148,7 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
                     status_code=400, detail=f"Invalid message role: {raw_role!r}"
                 )
             request_messages.append(
-                Message(role=raw_role, content=str(item.get("content", "")))  # type: ignore[arg-type]
+                Message(role=raw_role, content=str(item.get("content", "")))
             )
         client = get_tracked_client(provider)
         response = await client.chat_completion(
@@ -2183,7 +2184,7 @@ async def _execute_mcp_tool_test(tool_name: str, payload: dict[str, Any]) -> Any
                     status_code=400, detail=f"Invalid message role: {raw_role!r}"
                 )
             request_messages.append(
-                Message(role=raw_role, content=str(item.get("content", "")))  # type: ignore[arg-type]
+                Message(role=raw_role, content=str(item.get("content", "")))
             )
         provider, model = router.route(
             request_messages,
@@ -2947,23 +2948,19 @@ async def add_custom_mcp_server(
     """Add a non-catalog (custom) MCP server to a client config file."""
     try:
         warnings: list[str] = []
-        server_config = {"command": payload.command}
+        server_config: dict[str, Any] = {"command": payload.command}
         if payload.args:
             server_config["args"] = payload.args
         if payload.env:
             server_config["env"] = payload.env
 
         if payload.client == "claude-code":
-            cmd_parts = [
-                "claude",
-                "mcp",
-                "add",
-                payload.server_id,
-                "--",
-                payload.command,
-            ]
-            cmd_parts.extend(payload.args)
-            commands = [" ".join(cmd_parts)]
+            cmd_parts = ["claude", "mcp", "add", payload.server_id, payload.command]
+            for arg in payload.args:
+                cmd_parts.append(arg)
+            for key, value in payload.env.items():
+                cmd_parts.extend(["-e", f"{key}={value}"])
+            commands = [" ".join(shlex.quote(p) for p in cmd_parts)]
             applied = False
             if payload.apply:
                 if not payload.output_path:
@@ -2985,6 +2982,7 @@ async def add_custom_mcp_server(
             }
 
         # Build the config dict in the format write_client_config expects.
+        config: dict[str, Any]
         if payload.client == "vscode":
             config = {"mcp": {"servers": {payload.server_id: server_config}}}
         else:
