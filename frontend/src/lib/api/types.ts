@@ -272,6 +272,19 @@ export interface McpConfigureResponse {
   warnings: string[];
 }
 
+export interface McpCustomServerRequest {
+  server_id: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  enabled?: boolean;
+  auto_start?: boolean;
+  project_root?: string;
+  output_path?: string;
+  apply?: boolean;
+}
+
 export interface McpResetRequest {
   client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
   server_ids?: string[];

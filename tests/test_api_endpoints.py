@@ -578,3 +578,149 @@ def test_websocket_stream_returns_structured_validation_and_token_errors():
 
     assert token_limit["error"] == "input_too_long"
     assert token_limit["detail"] == "Too many tokens"
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 — POST /api/mcp/add-custom
+# ---------------------------------------------------------------------------
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_preview_returns_config(tmp_path):
+    """Valid custom server request with apply=False returns correct config."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/add-custom",
+        json={
+            "server_id": "my-server",
+            "command": "python",
+            "args": ["-m", "my_module"],
+            "env": {"MY_KEY": "secret"},
+            "client": "cursor",
+            "apply": False,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["applied"] is False
+    assert body["commands"] == []
+    config = body["config"]
+    assert "mcpServers" in config
+    server = config["mcpServers"]["my-server"]
+    assert server["command"] == "python"
+    assert server["args"] == ["-m", "my_module"]
+    assert server["env"] == {"MY_KEY": "secret"}
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_apply_writes_config(tmp_path):
+    """apply=True calls write_client_config with expected args."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.post(
+            "/api/mcp/add-custom",
+            json={
+                "server_id": "my-server",
+                "command": "node",
+                "args": ["server.js"],
+                "env": {},
+                "client": "cursor",
+                "output_path": str(config_path),
+                "apply": True,
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["applied"] is True
+
+        # Verify the config was written to disk.
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert "my-server" in written["mcpServers"]
+        assert written["mcpServers"]["my-server"]["command"] == "node"
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_missing_command_returns_422():
+    """Missing or empty command returns 422 (validation error)."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/add-custom",
+        json={
+            "server_id": "my-server",
+            "command": "",
+            "client": "cursor",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 422
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_invalid_client_returns_422():
+    """Invalid client value returns 422 (validation error)."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/add-custom",
+        json={
+            "server_id": "my-server",
+            "command": "python",
+            "client": "invalid-client",
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 422
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_add_custom_mcp_server_claude_code_returns_commands():
+    """claude-code client returns shell commands instead of config."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/add-custom",
+        json={
+            "server_id": "my-server",
+            "command": "python",
+            "args": ["-m", "my_module"],
+            "client": "claude-code",
+            "apply": False,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["config"] is None
+    assert len(body["commands"]) == 1
+    assert "claude mcp add my-server" in body["commands"][0]
+    assert "python" in body["commands"][0]
+    assert "-m" in body["commands"][0]

@@ -1711,6 +1711,45 @@ class MCPConfigureRequest(BaseModel):
         return value
 
 
+class MCPCustomServerRequest(BaseModel):
+    """Request model for adding a non-catalog (custom) MCP server."""
+
+    server_id: str
+    command: str
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+    client: str
+    enabled: bool = True
+    auto_start: bool = True
+    project_root: str | None = None
+    output_path: str | None = None
+    apply: bool = False
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+    @field_validator("server_id")
+    @classmethod
+    def validate_server_id(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("server_id must be non-empty")
+        if "/" in value or "\\" in value:
+            raise ValueError("server_id must not contain path separators")
+        return value.strip()
+
+    @field_validator("command")
+    @classmethod
+    def validate_command(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("command must be non-empty")
+        return value.strip()
+
+
 class MCPResetRequest(BaseModel):
     """Request model for MCP config reset/remove actions."""
 
@@ -2896,6 +2935,100 @@ async def configure_mcp(
         }
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=sanitize_error(str(exc))) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.post("/api/mcp/add-custom")
+async def add_custom_mcp_server(
+    payload: MCPCustomServerRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Add a non-catalog (custom) MCP server to a client config file."""
+    try:
+        warnings: list[str] = []
+        server_config = {"command": payload.command}
+        if payload.args:
+            server_config["args"] = payload.args
+        if payload.env:
+            server_config["env"] = payload.env
+
+        if payload.client == "claude-code":
+            cmd_parts = [
+                "claude",
+                "mcp",
+                "add",
+                payload.server_id,
+                "--",
+                payload.command,
+            ]
+            cmd_parts.extend(payload.args)
+            commands = [" ".join(cmd_parts)]
+            applied = False
+            if payload.apply:
+                if not payload.output_path:
+                    warnings.append(
+                        "claude-code: apply requested but no output_path provided. "
+                        "Use 'claude mcp add' commands directly instead."
+                    )
+                else:
+                    output_path = Path(payload.output_path)
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+                    applied = True
+            return {
+                "applied": applied,
+                "config": None,
+                "commands": commands,
+                "path": payload.output_path,
+                "warnings": warnings,
+            }
+
+        # Build the config dict in the format write_client_config expects.
+        if payload.client == "vscode":
+            config = {"mcp": {"servers": {payload.server_id: server_config}}}
+        else:
+            config = {"mcpServers": {payload.server_id: server_config}}
+
+        path = detect_client_config_path(payload.client, payload.project_root)
+        applied = False
+
+        if payload.apply:
+            written = write_client_config(
+                client=payload.client,
+                config=config,
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+            path = written
+            applied = True
+
+            # Write enabled/auto_start metadata.
+            write_mcp_client_settings(
+                client=payload.client,
+                settings={
+                    "servers": {
+                        payload.server_id: {
+                            "enabled": payload.enabled,
+                            "auto_start": payload.auto_start,
+                        }
+                    }
+                },
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+
+            global _mcp_chat_engine
+            if _mcp_chat_engine is not None:
+                await get_mcp_chat_engine(refresh=True)
+
+        return {
+            "applied": applied,
+            "config": config,
+            "commands": [],
+            "path": str(path) if path is not None else payload.output_path,
+            "warnings": warnings,
+        }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
