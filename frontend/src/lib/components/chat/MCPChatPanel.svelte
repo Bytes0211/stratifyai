@@ -77,25 +77,28 @@
           <div class="server-list">
             {#each availableServers as server (server.server_id)}
               <label class="server-option" class:inactive={!canUseInChat(server)}>
-                <input
-                  type="checkbox"
-                  checked={$configStore.activeMcpServers.includes(server.server_id)}
-                  disabled={!canUseInChat(server)}
-                  on:change={() => toggleServer(server.server_id)}
-                />
-                <div class="server-copy">
-                  <div class="server-title-row">
-                    <strong>{server.server_id}</strong>
-                    <span class={`status-chip ${server.status}`}>{server.status}</span>
-                    <button class="remove-btn" title="Permanently remove from MCP config" on:click|preventDefault|stopPropagation={() => removeServer(server.server_id)}>
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                  <span>{server.tool_count} tool{server.tool_count === 1 ? '' : 's'}</span>
-                  {#if server.tools.length > 0}
-                    <small>{server.tools.slice(0, 3).join(' • ')}{server.tools.length > 3 ? ' …' : ''}</small>
-                  {/if}
+                <div class="server-title-row">
+                  <strong>{server.server_id}</strong>
+                  <span class={`status-chip ${server.status}`}>{server.status}</span>
+                  <input
+                    type="checkbox"
+                    style="flex-shrink:0;width:14px;height:14px;"
+                    checked={$configStore.activeMcpServers.includes(server.server_id)}
+                    disabled={!canUseInChat(server)}
+                    on:change={() => toggleServer(server.server_id)}
+                  />
+                  <button class="remove-btn" title="Permanently remove from MCP config" on:click|preventDefault|stopPropagation={() => removeServer(server.server_id)}>
+                    <Trash2 size={12} />
+                  </button>
                 </div>
+                {#if server.tool_count > 0}
+                  <div class="server-details">
+                    <span>{server.tool_count} tool{server.tool_count === 1 ? '' : 's'}</span>
+                    {#if server.tools.length > 0}
+                      <small>{server.tools.slice(0, 3).join(' • ')}{server.tools.length > 3 ? ' …' : ''}</small>
+                    {/if}
+                  </div>
+                {/if}
               </label>
             {/each}
           </div>
@@ -196,9 +199,6 @@
   }
 
   .server-option {
-    display: flex;
-    gap: $space-2;
-    align-items: flex-start;
     padding: $space-2;
     border-radius: $radius-md;
     background: var(--bg-elevated);
@@ -213,22 +213,21 @@
       opacity: 0.7;
       cursor: not-allowed;
     }
-
-    input {
-      margin-top: 2px;
-    }
   }
 
-  .server-copy {
+  .server-title-row {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+    align-items: center;
+    gap: $space-2;
 
     strong {
       color: var(--text-primary);
       font-size: $text-xs;
     }
+  }
+
+  .server-details {
+    margin-top: 2px;
 
     span,
     small {
@@ -236,13 +235,6 @@
       font-size: $text-xs;
       line-height: 1.3;
     }
-  }
-
-  .server-title-row {
-    display: flex;
-    align-items: center;
-    gap: $space-2;
-    flex-wrap: wrap;
   }
 
   .remove-btn {
@@ -268,6 +260,7 @@
   .status-chip {
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
     padding: 1px $space-2;
     border-radius: 999px;
     font-size: 10px;

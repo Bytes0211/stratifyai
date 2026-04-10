@@ -2,8 +2,18 @@ import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { svelteTesting } from '@testing-library/svelte/vite';
 import path from 'path';
+import fs from 'fs';
+
+function getProjectVersion(): string {
+  const toml = fs.readFileSync(path.resolve(__dirname, '../pyproject.toml'), 'utf-8');
+  const match = toml.match(/^version\s*=\s*"(.+?)"/m);
+  return match ? match[1] : '0.0.0';
+}
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(getProjectVersion()),
+  },
   plugins: [
     svelte({ compilerOptions: { hmr: !process.env.VITEST } }),
     svelteTesting(),

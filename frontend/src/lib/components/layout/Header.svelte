@@ -1,14 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { Menu } from 'lucide-svelte';
-  import appMeta from '../../../../package.json';
   import ThemeToggle from '../shared/ThemeToggle.svelte';
-  
+
   export let currentPage: 'chat' | 'models' | 'mcp' = 'chat';
   export let navigateTo: (page: 'chat' | 'models' | 'mcp') => void;
-  
+
   const dispatch = createEventDispatcher();
-  const versionLabel = `v${appMeta.version}`;
+  const versionLabel = `v${__APP_VERSION__}`;
   
   function handleNavClick(e: MouseEvent, page: 'chat' | 'models' | 'mcp') {
     e.preventDefault();
