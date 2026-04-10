@@ -14,6 +14,7 @@ import type {
   McpStatusResponse,
   McpConfigureRequest,
   McpConfigureResponse,
+  McpCustomServerRequest,
   McpResetRequest,
   McpResetResponse,
   McpToolsResponse,
@@ -124,6 +125,13 @@ export async function getMcpStatus(
 
 export async function configureMcp(req: McpConfigureRequest): Promise<McpConfigureResponse> {
   return request<McpConfigureResponse>('/mcp/configure', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function configureCustomMcp(req: McpCustomServerRequest): Promise<McpConfigureResponse> {
+  return request<McpConfigureResponse>('/mcp/add-custom', {
     method: 'POST',
     body: JSON.stringify(req),
   });
