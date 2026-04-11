@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import {
     configureMcp,
+    configureCustomMcp,
     getMcpCatalog,
     getMcpClientPermissions,
     getMcpClients,
@@ -29,7 +30,9 @@
     CheckCircle2,
     Copy,
     Download,
+    Minus,
     Play,
+    Plus,
     PlugZap,
     Power,
     RefreshCw,
@@ -41,6 +44,8 @@
     Wrench,
   } from 'lucide-svelte';
 
+  type ViewMode = 'catalog' | 'custom';
+
   let catalog: McpCatalogResponse | null = null;
   let clients: McpClientInfo[] = [];
   let selectedClient: McpConfigureRequest['client'] = 'cursor';
@@ -50,6 +55,15 @@
   let selectedServerIds: string[] = [];
   let envValues: Record<string, string> = {};
   let argValues: Record<string, string> = {};
+  let viewMode: ViewMode = 'catalog';
+
+  // Custom server form state
+  let customServerId = '';
+  let customCommand = '';
+  let customArgs: string[] = [''];
+  let customEnvKeys: string[] = [''];
+  let customEnvValues: string[] = [''];
+  let customFormErrors: Record<string, string> = {};
   let statusData: McpStatusResponse | null = null;
   let runtimeServers: McpClientServerInfo[] = [];
   let runtimeTools: McpClientToolInfo[] = [];
@@ -429,6 +443,119 @@
     return Boolean(statusData?.configured?.[serverId]);
   }
 
+  function isCatalogServer(serverId: string): boolean {
+    return catalog?.servers.some((server) => server.id === serverId) ?? false;
+  }
+
+  // --- Custom server form helpers ---
+
+  function validateCustomForm(): boolean {
+    const errors: Record<string, string> = {};
+    if (!customServerId.trim()) {
+      errors.serverId = 'Server ID is required.';
+    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(customServerId.trim())) {
+      errors.serverId = 'Must be lowercase alphanumeric with hyphens (e.g. my-server).';
+    }
+    if (!customCommand.trim()) {
+      errors.command = 'Command is required.';
+    }
+    customFormErrors = errors;
+    return Object.keys(errors).length === 0;
+  }
+
+  function addArgRow() {
+    customArgs = [...customArgs, ''];
+  }
+
+  function removeArgRow(index: number) {
+    customArgs = customArgs.filter((_, i) => i !== index);
+    if (customArgs.length === 0) customArgs = [''];
+  }
+
+  function updateArgRow(index: number, value: string) {
+    customArgs = customArgs.map((v, i) => (i === index ? value : v));
+  }
+
+  function addEnvRow() {
+    customEnvKeys = [...customEnvKeys, ''];
+    customEnvValues = [...customEnvValues, ''];
+  }
+
+  function removeEnvRow(index: number) {
+    customEnvKeys = customEnvKeys.filter((_, i) => i !== index);
+    customEnvValues = customEnvValues.filter((_, i) => i !== index);
+    if (customEnvKeys.length === 0) {
+      customEnvKeys = [''];
+      customEnvValues = [''];
+    }
+  }
+
+  function updateEnvKey(index: number, value: string) {
+    customEnvKeys = customEnvKeys.map((v, i) => (i === index ? value : v));
+  }
+
+  function updateEnvVal(index: number, value: string) {
+    customEnvValues = customEnvValues.map((v, i) => (i === index ? value : v));
+  }
+
+  function resetCustomForm() {
+    customServerId = '';
+    customCommand = '';
+    customArgs = [''];
+    customEnvKeys = [''];
+    customEnvValues = [''];
+    customFormErrors = {};
+  }
+
+  function buildCustomEnvMap(): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (let i = 0; i < customEnvKeys.length; i++) {
+      const key = customEnvKeys[i].trim();
+      const value = customEnvValues[i]?.trim() ?? '';
+      if (key) env[key] = value;
+    }
+    return env;
+  }
+
+  function buildCustomArgsArray(): string[] {
+    return customArgs.map((a) => a.trim()).filter(Boolean);
+  }
+
+  async function generateCustomConfig(apply = false) {
+    if (!validateCustomForm()) return;
+
+    try {
+      actionLoading = true;
+      error = null;
+      copyMessage = '';
+      preview = await configureCustomMcp({
+        server_id: customServerId.trim(),
+        command: customCommand.trim(),
+        args: buildCustomArgsArray(),
+        env: buildCustomEnvMap(),
+        client: selectedClient,
+        enabled: true,
+        auto_start: true,
+        project_root: projectRoot || undefined,
+        apply,
+      });
+      statusMessage = preview.applied
+        ? `Custom server "${customServerId}" applied${preview.path ? ` to ${preview.path}` : ''}.`
+        : selectedClient === 'claude-code'
+          ? 'Commands generated for Claude Code.'
+          : 'Custom server preview updated.';
+
+      if (apply) {
+        resetCustomForm();
+        await refreshStatus();
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to configure custom MCP server';
+    } finally {
+      actionLoading = false;
+    }
+  }
+
   $: categories = catalog
     ? ['all', ...Array.from(new Set(catalog.servers.map((server) => server.category))).sort()]
     : ['all'];
@@ -542,6 +669,11 @@
           <div class="configured-list">
             {#each Object.keys(statusData.configured) as serverId}
               <span class="chip configured">{serverId}</span>
+              {#if isCatalogServer(serverId)}
+                <span class="chip catalog-badge">catalog</span>
+              {:else}
+                <span class="chip custom-badge">custom</span>
+              {/if}
             {/each}
           </div>
         {:else}
@@ -553,17 +685,28 @@
     <section class="card filter-panel">
       <div class="section-title">
         <PlugZap size={18} />
-        <h2>Catalog Browser</h2>
+        <h2>{viewMode === 'catalog' ? 'Catalog Browser' : 'Add Custom Server'}</h2>
       </div>
 
-      <div class="filter-row">
-        <input type="text" bind:value={searchQuery} placeholder="Search by name, id, or tag" />
-        <select bind:value={selectedCategory}>
-          {#each categories as category}
-            <option value={category}>{category === 'all' ? 'All categories' : category}</option>
-          {/each}
-        </select>
+      <div class="tab-row">
+        <button class:active={viewMode === 'catalog'} class="tab-button" on:click={() => viewMode = 'catalog'}>
+          Catalog
+        </button>
+        <button class:active={viewMode === 'custom'} class="tab-button" on:click={() => viewMode = 'custom'}>
+          Custom
+        </button>
       </div>
+
+      {#if viewMode === 'catalog'}
+        <div class="filter-row">
+          <input type="text" bind:value={searchQuery} placeholder="Search by name, id, or tag" />
+          <select bind:value={selectedCategory}>
+            {#each categories as category}
+              <option value={category}>{category === 'all' ? 'All categories' : category}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
     </section>
 
     {#if displayError}
@@ -574,61 +717,146 @@
     {/if}
 
     <div class="content-grid">
-      <section class="catalog-grid">
-        {#each filteredServers as server (server.id)}
-          <article class:selected={selectedServerIds.includes(server.id)} class:configured={isConfigured(server.id)} class="server-card card">
-            <div class="server-card__header">
-              <div>
-                <h3>{server.name}</h3>
-                <p>{server.description}</p>
+      {#if viewMode === 'catalog'}
+        <section class="catalog-grid">
+          {#each filteredServers as server (server.id)}
+            <article class:selected={selectedServerIds.includes(server.id)} class:configured={isConfigured(server.id)} class="server-card card">
+              <div class="server-card__header">
+                <div>
+                  <h3>{server.name}</h3>
+                  <p>{server.description}</p>
+                </div>
+                <button class:selected={selectedServerIds.includes(server.id)} class="toggle-button" on:click={() => toggleServer(server.id)}>
+                  {selectedServerIds.includes(server.id) ? 'Selected' : 'Select'}
+                </button>
               </div>
-              <button class:selected={selectedServerIds.includes(server.id)} class="toggle-button" on:click={() => toggleServer(server.id)}>
-                {selectedServerIds.includes(server.id) ? 'Selected' : 'Select'}
-              </button>
-            </div>
 
-            <div class="server-meta">
-              <span class="chip">{server.category}</span>
-              <span class="chip">{server.install_method}</span>
-              {#if isConfigured(server.id)}
-                <span class="chip configured">Configured</span>
+              <div class="server-meta">
+                <span class="chip">{server.category}</span>
+                <span class="chip">{server.install_method}</span>
+                {#if isConfigured(server.id)}
+                  <span class="chip configured">Configured</span>
+                {/if}
+              </div>
+
+              {#if server.website}
+                <a class="website-link" href={server.website} target="_blank" rel="noreferrer">Docs ↗</a>
               {/if}
+
+              {#if selectedServerIds.includes(server.id) && (server.env_vars.length > 0 || server.user_args.length > 0)}
+                <div class="server-form">
+                  {#each server.env_vars as envVar}
+                    <label>
+                      <span>{envVar.name}{envVar.required ? ' *' : ''}</span>
+                      <input
+                        type={envVar.secret ? 'password' : 'text'}
+                        value={envValues[envVar.name] ?? ''}
+                        placeholder={envVar.description || envVar.name}
+                        on:input={(event) => updateEnvValue(envVar.name, (event.currentTarget as HTMLInputElement).value)}
+                      />
+                    </label>
+                  {/each}
+
+                  {#each server.user_args as userArg}
+                    <label>
+                      <span>{userArg.name}{userArg.required ? ' *' : ''}</span>
+                      <input
+                        type="text"
+                        value={argValues[`${server.id}.${userArg.name}`] ?? userArg.example ?? ''}
+                        placeholder={userArg.description || userArg.name}
+                        on:input={(event) => updateArgValue(server.id, userArg.name, (event.currentTarget as HTMLInputElement).value)}
+                      />
+                    </label>
+                  {/each}
+                </div>
+              {/if}
+            </article>
+          {/each}
+        </section>
+      {:else}
+        <section class="custom-form-section card">
+          <p class="muted">Define a non-catalog MCP server by providing its command, arguments, and environment variables.</p>
+
+          <div class="custom-form">
+            <label>
+              <span>Server ID *</span>
+              <input
+                type="text"
+                bind:value={customServerId}
+                placeholder="my-custom-server"
+                class:input-error={customFormErrors.serverId}
+              />
+              {#if customFormErrors.serverId}
+                <span class="field-error">{customFormErrors.serverId}</span>
+              {/if}
+            </label>
+
+            <label>
+              <span>Command *</span>
+              <input
+                type="text"
+                bind:value={customCommand}
+                placeholder="npx, uvx, node, python ..."
+                class:input-error={customFormErrors.command}
+              />
+              {#if customFormErrors.command}
+                <span class="field-error">{customFormErrors.command}</span>
+              {/if}
+            </label>
+
+            <div class="repeatable-section">
+              <div class="repeatable-header">
+                <span>Arguments</span>
+                <button class="icon-button" on:click={addArgRow} title="Add argument">
+                  <Plus size={14} />
+                </button>
+              </div>
+              {#each customArgs as arg, i}
+                <div class="repeatable-row">
+                  <input
+                    type="text"
+                    value={arg}
+                    placeholder="e.g. -y, @modelcontextprotocol/server-github"
+                    on:input={(event) => updateArgRow(i, (event.currentTarget as HTMLInputElement).value)}
+                  />
+                  <button class="icon-button danger" on:click={() => removeArgRow(i)} title="Remove argument">
+                    <Minus size={14} />
+                  </button>
+                </div>
+              {/each}
             </div>
 
-            {#if server.website}
-              <a class="website-link" href={server.website} target="_blank" rel="noreferrer">Docs ↗</a>
-            {/if}
-
-            {#if selectedServerIds.includes(server.id) && (server.env_vars.length > 0 || server.user_args.length > 0)}
-              <div class="server-form">
-                {#each server.env_vars as envVar}
-                  <label>
-                    <span>{envVar.name}{envVar.required ? ' *' : ''}</span>
-                    <input
-                      type={envVar.secret ? 'password' : 'text'}
-                      value={envValues[envVar.name] ?? ''}
-                      placeholder={envVar.description || envVar.name}
-                      on:input={(event) => updateEnvValue(envVar.name, (event.currentTarget as HTMLInputElement).value)}
-                    />
-                  </label>
-                {/each}
-
-                {#each server.user_args as userArg}
-                  <label>
-                    <span>{userArg.name}{userArg.required ? ' *' : ''}</span>
-                    <input
-                      type="text"
-                      value={argValues[`${server.id}.${userArg.name}`] ?? userArg.example ?? ''}
-                      placeholder={userArg.description || userArg.name}
-                      on:input={(event) => updateArgValue(server.id, userArg.name, (event.currentTarget as HTMLInputElement).value)}
-                    />
-                  </label>
-                {/each}
+            <div class="repeatable-section">
+              <div class="repeatable-header">
+                <span>Environment Variables</span>
+                <button class="icon-button" on:click={addEnvRow} title="Add env var">
+                  <Plus size={14} />
+                </button>
               </div>
-            {/if}
-          </article>
-        {/each}
-      </section>
+              {#each customEnvKeys as key, i}
+                <div class="repeatable-row env-row">
+                  <input
+                    type="text"
+                    value={key}
+                    placeholder="KEY"
+                    on:input={(event) => updateEnvKey(i, (event.currentTarget as HTMLInputElement).value)}
+                  />
+                  <span class="env-separator">=</span>
+                  <input
+                    type="text"
+                    value={customEnvValues[i] ?? ''}
+                    placeholder="value"
+                    on:input={(event) => updateEnvVal(i, (event.currentTarget as HTMLInputElement).value)}
+                  />
+                  <button class="icon-button danger" on:click={() => removeEnvRow(i)} title="Remove env var">
+                    <Minus size={14} />
+                  </button>
+                </div>
+              {/each}
+            </div>
+          </div>
+        </section>
+      {/if}
 
       <aside class="preview-panel card">
         <div class="section-title">
@@ -636,18 +864,33 @@
           <h2>Preview & Apply</h2>
         </div>
 
-        <div class="action-row">
-          <Button variant="primary" on:click={() => generateConfig(false)} loading={actionLoading}>
-            Preview config
-          </Button>
-          <Button
-            variant="secondary"
-            on:click={() => generateConfig(true)}
-            disabled={actionLoading || !selectedClientInfo?.supports_apply}
-          >
-            {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
-          </Button>
-        </div>
+        {#if viewMode === 'catalog'}
+          <div class="action-row">
+            <Button variant="primary" on:click={() => generateConfig(false)} loading={actionLoading}>
+              Preview config
+            </Button>
+            <Button
+              variant="secondary"
+              on:click={() => generateConfig(true)}
+              disabled={actionLoading || !selectedClientInfo?.supports_apply}
+            >
+              {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
+            </Button>
+          </div>
+        {:else}
+          <div class="action-row">
+            <Button variant="primary" on:click={() => generateCustomConfig(false)} loading={actionLoading}>
+              Preview config
+            </Button>
+            <Button
+              variant="secondary"
+              on:click={() => generateCustomConfig(true)}
+              disabled={actionLoading || !selectedClientInfo?.supports_apply}
+            >
+              {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
+            </Button>
+          </div>
+        {/if}
 
         <div class="action-row secondary-actions">
           <Button
@@ -683,7 +926,7 @@
           </div>
         {/if}
 
-        <pre class="preview-output">{renderedPreview || 'Select one or more servers, then click “Preview config”.'}</pre>
+        <pre class="preview-output">{renderedPreview || (viewMode === 'catalog' ? 'Select one or more servers, then click "Preview config".' : 'Fill in the custom server form, then click "Preview config".')}</pre>
       </aside>
     </div>
 
@@ -1150,6 +1393,131 @@
   .filter-row,
   .action-row {
     flex-wrap: wrap;
+  }
+
+  .tab-row {
+    display: flex;
+    gap: $space-2;
+    margin-bottom: $space-3;
+  }
+
+  .tab-button {
+    padding: $space-2 $space-4;
+    border-radius: $radius-lg;
+    border: 1px solid var(--bg-hover);
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    font-size: $text-sm;
+    font-weight: $font-medium;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    &.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: transparent;
+    }
+  }
+
+  .custom-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  .custom-form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+  }
+
+  .repeatable-section {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+
+  .repeatable-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: $text-sm;
+  }
+
+  .repeatable-row {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+
+    input {
+      flex: 1;
+    }
+  }
+
+  .env-row {
+    input:first-of-type {
+      flex: 0.4;
+    }
+
+    input:last-of-type {
+      flex: 0.6;
+    }
+  }
+
+  .env-separator {
+    color: var(--text-secondary);
+    font-weight: $font-medium;
+    flex-shrink: 0;
+  }
+
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: $radius-lg;
+    border: 1px solid var(--bg-hover);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    &.danger:hover {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+  }
+
+  .input-error {
+    border-color: #ef4444 !important;
+  }
+
+  .field-error {
+    color: #ef4444;
+    font-size: $text-xs;
+  }
+
+  .catalog-badge {
+    background: rgba(99, 102, 241, 0.14);
+    color: #818cf8;
+  }
+
+  .custom-badge {
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
   }
 
   .secondary-actions {
