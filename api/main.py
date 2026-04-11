@@ -50,6 +50,7 @@ from stratifyai.mcp_catalog import (
     detect_client_config_path,
     get_configured_servers,
     get_mcp_client_settings,
+    remove_server_from_config,
     remove_servers_from_config,
     validate_prerequisites,
     write_client_config,
@@ -3125,6 +3126,74 @@ async def add_custom_mcp_server(
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
 
+class MCPCustomServerUpdateRequest(BaseModel):
+    """Request model for editing an existing custom MCP server."""
+
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str] | None = None
+    client: str
+    enabled: bool | None = None
+    auto_start: bool | None = None
+    project_root: str | None = None
+    output_path: str | None = None
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        """Validate the target client identifier."""
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+    @field_validator("command")
+    @classmethod
+    def validate_command(cls, value: str | None) -> str | None:
+        """Validate command is free of shell metacharacters when provided."""
+        if value is None:
+            return value
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("command must be non-empty when provided")
+        if _SHELL_METACHAR_RE.search(stripped):
+            raise ValueError(
+                "command must not contain shell metacharacters "
+                "(;, |, &, $(), or backticks)"
+            )
+        return stripped
+
+    @field_validator("env")
+    @classmethod
+    def validate_env(cls, value: dict[str, str] | None) -> dict[str, str] | None:
+        """Reject env var names containing '=' or whitespace."""
+        if value is None:
+            return value
+        for key in value:
+            if "=" in key:
+                raise ValueError(f"env var name '{key}' must not contain '='")
+            if _re_module.search(r"\s", key):
+                raise ValueError(f"env var name '{key}' must not contain whitespace")
+        return value
+
+
+class MCPCustomServerDeleteRequest(BaseModel):
+    """Query model for deleting a custom MCP server."""
+
+    client: str
+    project_root: str | None = None
+    output_path: str | None = None
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        """Validate the target client identifier."""
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+
 def _mask_env_in_config(config: dict[str, Any], client: str) -> dict[str, Any]:
     """Return a deep copy of the config with env values replaced by '***'."""
     import copy
@@ -3140,6 +3209,135 @@ def _mask_env_in_config(config: dict[str, Any], client: str) -> dict[str, Any]:
             for key in env:
                 env[key] = "***"
     return masked
+
+
+@app.put("/api/mcp/custom/{server_id}")
+async def update_custom_mcp_server(
+    server_id: str,
+    payload: MCPCustomServerUpdateRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Edit an existing custom MCP server in a client config file."""
+    try:
+        if payload.client == "claude-code":
+            raise ValueError(
+                "Claude Code servers cannot be edited via config file. "
+                "Use `claude mcp remove` then `claude mcp add` instead."
+            )
+
+        _, existing_servers = get_configured_servers(
+            client=payload.client,
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+
+        if server_id not in existing_servers:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Server '{server_id}' not found in {payload.client} config.",
+            )
+
+        current = existing_servers[server_id]
+        if not isinstance(current, dict):
+            current = {}
+
+        # Merge only the fields that were explicitly provided.
+        updated: dict[str, Any] = dict(current)
+        if payload.command is not None:
+            updated["command"] = payload.command
+        if payload.args is not None:
+            updated["args"] = payload.args
+        if payload.env is not None:
+            updated["env"] = payload.env
+
+        # Build the config dict in the client-expected format.
+        config: dict[str, Any]
+        if payload.client == "vscode":
+            config = {"mcp": {"servers": {server_id: updated}}}
+        else:
+            config = {"mcpServers": {server_id: updated}}
+
+        written = write_client_config(
+            client=payload.client,
+            config=config,
+            project_root=payload.project_root,
+            output_path=payload.output_path,
+        )
+
+        # Update permission metadata if enabled/auto_start changed.
+        settings_updates: dict[str, Any] = {}
+        if payload.enabled is not None:
+            settings_updates["enabled"] = payload.enabled
+        if payload.auto_start is not None:
+            settings_updates["auto_start"] = payload.auto_start
+        if settings_updates:
+            write_mcp_client_settings(
+                client=payload.client,
+                settings={"servers": {server_id: settings_updates}},
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+
+        global _mcp_chat_engine
+        if _mcp_chat_engine is not None:
+            await get_mcp_chat_engine(refresh=True)
+
+        return {
+            "server_id": server_id,
+            "config": updated,
+            "path": str(written),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+@app.delete("/api/mcp/custom/{server_id}")
+async def delete_custom_mcp_server(
+    server_id: str,
+    client: str,
+    project_root: str | None = None,
+    output_path: str | None = None,
+    _: None = Depends(verify_api_key),
+):
+    """Remove a custom MCP server from a client config file."""
+    try:
+        # Validate client value.
+        allowed_clients = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if client not in allowed_clients:
+            raise ValueError(
+                f"client must be one of: {', '.join(sorted(allowed_clients))}"
+            )
+
+        if client == "claude-code":
+            raise ValueError(
+                "Claude Code servers cannot be removed via config file. "
+                "Use `claude mcp remove <server-id>` instead."
+            )
+
+        path, removed = remove_server_from_config(
+            client=client,
+            server_id=server_id,
+            project_root=project_root,
+            output_path=output_path,
+        )
+
+        if not removed:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Server '{server_id}' not found in {client} config.",
+            )
+
+        global _mcp_chat_engine
+        if _mcp_chat_engine is not None:
+            await get_mcp_chat_engine(refresh=True)
+
+        return {
+            "server_id": server_id,
+            "removed": True,
+            "path": str(path),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
 
 @app.post("/api/mcp/reset", response_model=MCPResetResponse)
