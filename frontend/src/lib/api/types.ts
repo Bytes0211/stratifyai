@@ -280,6 +280,7 @@ export interface McpCustomServerRequest {
   client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
   enabled?: boolean;
   auto_start?: boolean;
+  overwrite?: boolean;
   project_root?: string;
   output_path?: string;
   apply?: boolean;

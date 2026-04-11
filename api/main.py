@@ -5,7 +5,9 @@ import hashlib
 import hmac
 import logging
 import os
+import re as _re_module
 import shlex
+import shutil
 import threading
 import time
 from collections import defaultdict, deque
@@ -1712,6 +1714,10 @@ class MCPConfigureRequest(BaseModel):
         return value
 
 
+# Shell metacharacter pattern for custom MCP command validation (Phase 3).
+_SHELL_METACHAR_RE = _re_module.compile(r"[;|&`]|\$\(|\)")
+
+
 class MCPCustomServerRequest(BaseModel):
     """Request model for adding a non-catalog (custom) MCP server."""
 
@@ -1722,6 +1728,7 @@ class MCPCustomServerRequest(BaseModel):
     client: str
     enabled: bool = True
     auto_start: bool = True
+    overwrite: bool = False
     project_root: str | None = None
     output_path: str | None = None
     apply: bool = False
@@ -1729,6 +1736,7 @@ class MCPCustomServerRequest(BaseModel):
     @field_validator("client")
     @classmethod
     def validate_client(cls, value: str) -> str:
+        """Validate the target client identifier."""
         allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
         if value not in allowed:
             raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
@@ -1737,6 +1745,7 @@ class MCPCustomServerRequest(BaseModel):
     @field_validator("server_id")
     @classmethod
     def validate_server_id(cls, value: str) -> str:
+        """Validate that server_id is non-empty and has no path separators."""
         if not value or not value.strip():
             raise ValueError("server_id must be non-empty")
         if "/" in value or "\\" in value:
@@ -1746,9 +1755,27 @@ class MCPCustomServerRequest(BaseModel):
     @field_validator("command")
     @classmethod
     def validate_command(cls, value: str) -> str:
+        """Validate command is non-empty and free of shell metacharacters."""
         if not value or not value.strip():
             raise ValueError("command must be non-empty")
-        return value.strip()
+        stripped = value.strip()
+        if _SHELL_METACHAR_RE.search(stripped):
+            raise ValueError(
+                "command must not contain shell metacharacters "
+                "(;, |, &&, $(), or backticks)"
+            )
+        return stripped
+
+    @field_validator("env")
+    @classmethod
+    def validate_env(cls, value: dict[str, str]) -> dict[str, str]:
+        """Reject env var names containing '=' or whitespace."""
+        for key in value:
+            if "=" in key:
+                raise ValueError(f"env var name '{key}' must not contain '='")
+            if _re_module.search(r"\s", key):
+                raise ValueError(f"env var name '{key}' must not contain whitespace")
+        return value
 
 
 class MCPResetRequest(BaseModel):
@@ -2948,6 +2975,56 @@ async def add_custom_mcp_server(
     """Add a non-catalog (custom) MCP server to a client config file."""
     try:
         warnings: list[str] = []
+
+        # --- Phase 3.1: Warn if command is not found on the host ---------------
+        if not shutil.which(payload.command):
+            warnings.append(
+                f"Command '{payload.command}' was not found on the host PATH. "
+                "The server may fail to start if the path is incorrect."
+            )
+
+        # --- Phase 3.3: Warn on empty env var values --------------------------
+        for env_key, env_val in payload.env.items():
+            if env_val == "":
+                warnings.append(f"Environment variable '{env_key}' has an empty value.")
+
+        # --- Phase 3.2: Server ID conflict detection --------------------------
+        if payload.client != "claude-code":
+            _, existing_servers = get_configured_servers(
+                client=payload.client,
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+            if payload.server_id in existing_servers and not payload.overwrite:
+                warnings.append(
+                    f"Server '{payload.server_id}' already exists in the "
+                    f"{payload.client} config. Set overwrite=true to replace it."
+                )
+                # Build a preview config so the caller can inspect it.
+                server_config_preview: dict[str, Any] = {
+                    "command": payload.command,
+                }
+                if payload.args:
+                    server_config_preview["args"] = payload.args
+                if payload.env:
+                    server_config_preview["env"] = dict.fromkeys(payload.env, "***")
+                if payload.client == "vscode":
+                    preview_cfg = {
+                        "mcp": {"servers": {payload.server_id: server_config_preview}}
+                    }
+                else:
+                    preview_cfg = {
+                        "mcpServers": {payload.server_id: server_config_preview}
+                    }
+                path = detect_client_config_path(payload.client, payload.project_root)
+                return {
+                    "applied": False,
+                    "config": preview_cfg,
+                    "commands": [],
+                    "path": str(path) if path is not None else payload.output_path,
+                    "warnings": warnings,
+                }
+
         server_config: dict[str, Any] = {"command": payload.command}
         if payload.args:
             server_config["args"] = payload.args
@@ -2988,6 +3065,12 @@ async def add_custom_mcp_server(
         else:
             config = {"mcpServers": {payload.server_id: server_config}}
 
+        # --- Phase 3.3: Mask env values in preview responses ------------------
+        if not payload.apply and payload.env:
+            preview_config = _mask_env_in_config(config, payload.client)
+        else:
+            preview_config = config
+
         path = detect_client_config_path(payload.client, payload.project_root)
         applied = False
 
@@ -3001,7 +3084,7 @@ async def add_custom_mcp_server(
             path = written
             applied = True
 
-            # Write enabled/auto_start metadata.
+            # --- Phase 3.4: Write permission defaults for custom servers ------
             write_mcp_client_settings(
                 client=payload.client,
                 settings={
@@ -3009,6 +3092,12 @@ async def add_custom_mcp_server(
                         payload.server_id: {
                             "enabled": payload.enabled,
                             "auto_start": payload.auto_start,
+                            "permissions": {
+                                "default_mode": "confirm",
+                                "allow": [],
+                                "deny": [],
+                                "confirm": [],
+                            },
                         }
                     }
                 },
@@ -3022,13 +3111,30 @@ async def add_custom_mcp_server(
 
         return {
             "applied": applied,
-            "config": config,
+            "config": preview_config,
             "commands": [],
             "path": str(path) if path is not None else payload.output_path,
             "warnings": warnings,
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
+
+
+def _mask_env_in_config(config: dict[str, Any], client: str) -> dict[str, Any]:
+    """Return a deep copy of the config with env values replaced by '***'."""
+    import copy
+
+    masked = copy.deepcopy(config)
+    if client == "vscode":
+        servers = masked.get("mcp", {}).get("servers", {})
+    else:
+        servers = masked.get("mcpServers", {})
+    for server_cfg in servers.values():
+        env = server_cfg.get("env")
+        if isinstance(env, dict):
+            for key in env:
+                env[key] = "***"
+    return masked
 
 
 @app.post("/api/mcp/reset", response_model=MCPResetResponse)
