@@ -672,6 +672,225 @@ def mcp_add_custom(
         raise typer.Exit(1) from exc
 
 
+@mcp_app.command("export-custom")
+def mcp_export_custom(
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config lookup"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override config path to inspect"
+    ),
+    output_file: Path | None = typer.Option(
+        None, "--file", "-f", help="Write JSON to this file instead of stdout"
+    ),
+) -> None:
+    """Export non-catalog (custom) MCP servers as JSON."""
+    try:
+        selected_client = _resolve_mcp_client(client)
+
+        if selected_client == "claude-code":
+            console.print(
+                "[yellow]Claude Code does not use a local config file. "
+                "Export is not supported.[/yellow]"
+            )
+            raise typer.Exit(1)
+
+        path, servers = get_configured_servers(
+            client=selected_client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+
+        catalog_ids: set[str] = set()
+        try:
+            for srv in list_mcp_servers():
+                catalog_ids.add(srv.id)
+        except Exception:
+            pass
+
+        custom_entries: list[dict[str, Any]] = []
+        for server_id, config in sorted(servers.items()):
+            if server_id in catalog_ids:
+                continue
+            if not isinstance(config, dict):
+                continue
+            custom_entries.append(
+                {
+                    "server_id": server_id,
+                    "command": config.get("command", ""),
+                    "args": config.get("args", []),
+                    "env": config.get("env", {}),
+                }
+            )
+
+        output_text = json.dumps(custom_entries, indent=2)
+
+        if output_file:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(output_text + "\n", encoding="utf-8")
+            console.print(
+                f"[green]✓ Exported {len(custom_entries)} custom server(s) to[/green] {output_file}"
+            )
+        else:
+            typer.echo(output_text)
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        console.print(f"[red]Export failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mcp_app.command("import-custom")
+def mcp_import_custom(
+    client: str | None = typer.Option(
+        None,
+        "--client",
+        help="Target client: claude-desktop, claude-code, cursor, vscode",
+    ),
+    input_file: Path | None = typer.Option(
+        None, "--file", "-f", help="Read JSON from this file instead of stdin"
+    ),
+    project_root: Path | None = typer.Option(
+        None, "--project-root", help="Project root for Cursor/VS Code config generation"
+    ),
+    output_path: Path | None = typer.Option(
+        None, "--output", help="Override output config path"
+    ),
+    overwrite: bool = typer.Option(
+        False, "--overwrite", help="Overwrite existing servers with the same id"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Preview what would be imported without writing"
+    ),
+) -> None:
+    """Import custom MCP servers from a JSON file or stdin."""
+    import re as _re
+
+    _shell_metachar_re = _re.compile(r"[;|&`]|\$\(")
+
+    try:
+        selected_client = _resolve_mcp_client(client)
+
+        if selected_client == "claude-code":
+            console.print(
+                "[yellow]Claude Code does not use a local config file. "
+                "Import is not supported.[/yellow]"
+            )
+            raise typer.Exit(1)
+
+        if input_file:
+            raw_text = input_file.read_text(encoding="utf-8")
+        else:
+            raw_text = sys.stdin.read()
+
+        entries = json.loads(raw_text)
+        if not isinstance(entries, list):
+            console.print("[red]Import file must contain a JSON array.[/red]")
+            raise typer.Exit(1)
+
+        _, existing_servers = get_configured_servers(
+            client=selected_client,
+            project_root=project_root,
+            output_path=output_path,
+        )
+
+        added = 0
+        skipped = 0
+        errors = 0
+
+        for entry in entries:
+            sid = str(entry.get("server_id", "")).strip()
+            cmd = str(entry.get("command", "")).strip()
+
+            if not sid:
+                console.print("[red]✗ Skipping entry with empty server_id[/red]")
+                errors += 1
+                continue
+
+            if not cmd:
+                console.print(f"[red]✗ {sid}: empty command[/red]")
+                errors += 1
+                continue
+
+            if _shell_metachar_re.search(cmd):
+                console.print(
+                    f"[red]✗ {sid}: command contains shell metacharacters[/red]"
+                )
+                errors += 1
+                continue
+
+            if sid in existing_servers and not overwrite:
+                console.print(
+                    f"[yellow]⊘ {sid}: already exists (use --overwrite)[/yellow]"
+                )
+                skipped += 1
+                continue
+
+            server_config: dict[str, Any] = {"command": cmd}
+            args = entry.get("args", [])
+            env = entry.get("env", {})
+            if args:
+                server_config["args"] = list(args)
+            if env:
+                server_config["env"] = dict(env)
+
+            if dry_run:
+                console.print(f"[dim]+ {sid}: {cmd}[/dim]")
+                added += 1
+                continue
+
+            if selected_client == "vscode":
+                config = {"mcp": {"servers": {sid: server_config}}}
+            else:
+                config = {"mcpServers": {sid: server_config}}
+
+            write_client_config(
+                client=selected_client,
+                config=config,
+                project_root=project_root,
+                output_path=output_path,
+            )
+            write_mcp_client_settings(
+                client=selected_client,
+                settings={
+                    "servers": {
+                        sid: {
+                            "enabled": True,
+                            "auto_start": True,
+                            "permissions": {
+                                "default_mode": "confirm",
+                                "allow": [],
+                                "deny": [],
+                                "confirm": [],
+                            },
+                        }
+                    }
+                },
+                project_root=project_root,
+                output_path=output_path,
+            )
+            existing_servers[sid] = server_config
+            console.print(f"[green]✓ {sid}[/green]")
+            added += 1
+
+        prefix = "[dim]Dry run:[/dim] " if dry_run else ""
+        console.print(
+            f"\n{prefix}[green]{added} added[/green], "
+            f"[yellow]{skipped} skipped[/yellow], "
+            f"[red]{errors} errors[/red]"
+        )
+    except typer.Exit:
+        raise
+    except Exception as exc:
+        console.print(f"[red]Import failed:[/red] {exc}")
+        raise typer.Exit(1) from exc
+
+
 @mcp_app.command("remove")
 def mcp_remove(
     server_id: str = typer.Argument(..., help="Configured server id to remove"),

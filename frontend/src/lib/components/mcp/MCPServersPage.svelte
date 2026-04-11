@@ -3,10 +3,12 @@
   import {
     configureMcp,
     deleteCustomMcp,
+    exportCustomMcp,
     getMcpCatalog,
     getMcpClientPermissions,
     getMcpClients,
     getMcpStatus,
+    importCustomMcp,
     resetMcpConfig,
     updateCustomMcp,
     updateMcpClientPermissions,
@@ -41,6 +43,7 @@
     Shield,
     Square,
     Trash2,
+    Upload,
     Wrench,
     X,
   } from 'lucide-svelte';
@@ -81,6 +84,9 @@
   let editCommand = '';
   let editArgs: string[] = [];
   let editEnvPairs: Array<{ key: string; value: string }> = [];
+
+  // --- Phase 5: Import file input reference ---
+  let importFileInput: HTMLInputElement;
 
   onMount(() => {
     void initialize();
@@ -264,6 +270,72 @@
       error = err instanceof Error ? err.message : `Failed to update ${editingServerId}`;
     } finally {
       runtimeActionLoading = '';
+    }
+  }
+
+  // --- Phase 5: Export / Import handlers ---
+
+  async function exportServers() {
+    try {
+      actionLoading = true;
+      error = null;
+      const result = await exportCustomMcp(selectedClient, projectRoot || undefined);
+      if (result.count === 0) {
+        statusMessage = 'No custom (non-catalog) servers to export.';
+        return;
+      }
+      const blob = new Blob([JSON.stringify(result.servers, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${selectedClient}-custom-servers.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      statusMessage = `Exported ${result.count} custom server(s).`;
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to export custom servers';
+    } finally {
+      actionLoading = false;
+    }
+  }
+
+  function triggerImportFile() {
+    importFileInput?.click();
+  }
+
+  async function handleImportFile(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      actionLoading = true;
+      error = null;
+      const text = await file.text();
+      const servers = JSON.parse(text);
+      if (!Array.isArray(servers)) {
+        error = 'Import file must contain a JSON array of server entries.';
+        return;
+      }
+      const result = await importCustomMcp({
+        client: selectedClient,
+        servers,
+        overwrite: false,
+        project_root: projectRoot || undefined,
+      });
+      const parts: string[] = [];
+      if (result.added > 0) parts.push(`${result.added} added`);
+      if (result.skipped > 0) parts.push(`${result.skipped} skipped`);
+      if (result.errors > 0) parts.push(`${result.errors} errors`);
+      statusMessage = `Import complete: ${parts.join(', ')}.`;
+      await refreshStatus();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to import custom servers';
+    } finally {
+      actionLoading = false;
+      input.value = '';
     }
   }
 
@@ -769,6 +841,34 @@
             <Download size={14} />
             Download
           </Button>
+        </div>
+
+        <div class="action-row secondary-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            on:click={exportServers}
+            disabled={actionLoading || !selectedClientInfo?.supports_apply}
+          >
+            <Download size={14} />
+            Export custom
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            on:click={triggerImportFile}
+            disabled={actionLoading || !selectedClientInfo?.supports_apply}
+          >
+            <Upload size={14} />
+            Import custom
+          </Button>
+          <input
+            bind:this={importFileInput}
+            type="file"
+            accept=".json"
+            style="display:none"
+            on:change={handleImportFile}
+          />
         </div>
 
         {#if statusMessage}

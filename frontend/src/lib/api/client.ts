@@ -18,6 +18,9 @@ import type {
   McpCustomServerUpdateRequest,
   McpCustomServerUpdateResponse,
   McpCustomServerDeleteResponse,
+  McpCustomExportResponse,
+  McpCustomImportRequest,
+  McpCustomImportResponse,
   McpResetRequest,
   McpResetResponse,
   McpToolsResponse,
@@ -170,6 +173,30 @@ export async function deleteCustomMcp(
     `/mcp/custom/${encodeURIComponent(serverId)}?${params.toString()}`,
     { method: 'DELETE' }
   );
+}
+
+export async function exportCustomMcp(
+  client: McpConfigureRequest['client'],
+  projectRoot?: string,
+  outputPath?: string
+): Promise<McpCustomExportResponse> {
+  const params = new URLSearchParams({ client });
+  if (projectRoot) {
+    params.set('project_root', projectRoot);
+  }
+  if (outputPath) {
+    params.set('output_path', outputPath);
+  }
+  return request<McpCustomExportResponse>(`/mcp/custom/export?${params.toString()}`);
+}
+
+export async function importCustomMcp(
+  req: McpCustomImportRequest
+): Promise<McpCustomImportResponse> {
+  return request<McpCustomImportResponse>('/mcp/custom/import', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
 }
 
 export async function resetMcpConfig(req: McpResetRequest): Promise<McpResetResponse> {

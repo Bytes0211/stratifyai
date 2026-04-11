@@ -1270,3 +1270,364 @@ def test_delete_custom_mcp_server_claude_code_rejected():
         headers=headers,
     )
     assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Import and Export Custom Servers
+# ---------------------------------------------------------------------------
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_export_custom_returns_only_non_catalog_servers(tmp_path):
+    """Export returns custom (non-catalog) servers only."""
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "stratifyai": {"command": "npx", "args": ["stratifyai-mcp"]},
+                    "my-custom-tool": {
+                        "command": "python",
+                        "args": ["-m", "my_tool"],
+                        "env": {"KEY": "val"},
+                    },
+                    "another-custom": {"command": "node", "args": ["server.js"]},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.get(
+        f"/api/mcp/custom/export?client=cursor&output_path={config_path}",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    exported_ids = [s["server_id"] for s in body["servers"]]
+    # "stratifyai" is a catalog server; the two custom ones should be exported.
+    assert "stratifyai" not in exported_ids
+    assert "my-custom-tool" in exported_ids
+    assert "another-custom" in exported_ids
+    assert body["count"] == 2
+    # Verify full structure of exported entries.
+    custom_tool = next(s for s in body["servers"] if s["server_id"] == "my-custom-tool")
+    assert custom_tool["command"] == "python"
+    assert custom_tool["args"] == ["-m", "my_tool"]
+    assert custom_tool["env"] == {"KEY": "val"}
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_export_custom_empty_when_all_catalog(tmp_path):
+    """Export returns empty array when only catalog servers are configured."""
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"mcpServers": {"stratifyai": {"command": "npx"}}}),
+        encoding="utf-8",
+    )
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.get(
+        f"/api/mcp/custom/export?client=cursor&output_path={config_path}",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 0
+    assert resp.json()["servers"] == []
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_export_custom_claude_code_rejected():
+    """Export with claude-code client returns 400."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.get(
+        "/api/mcp/custom/export?client=claude-code",
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_import_custom_validates_and_writes_correctly(tmp_path):
+    """Import validates each entry and writes to the config file."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.post(
+            "/api/mcp/custom/import",
+            json={
+                "client": "cursor",
+                "output_path": str(config_path),
+                "servers": [
+                    {
+                        "server_id": "tool-a",
+                        "command": "python",
+                        "args": ["-m", "a"],
+                        "env": {"K": "v"},
+                    },
+                    {
+                        "server_id": "tool-b",
+                        "command": "node",
+                        "args": ["b.js"],
+                        "env": {},
+                    },
+                ],
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["added"] == 2
+        assert body["skipped"] == 0
+        assert body["errors"] == 0
+
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert "tool-a" in written["mcpServers"]
+        assert written["mcpServers"]["tool-a"]["command"] == "python"
+        assert "tool-b" in written["mcpServers"]
+        assert written["mcpServers"]["tool-b"]["command"] == "node"
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_import_custom_handles_duplicates_gracefully(tmp_path):
+    """Import skips duplicate server_ids when overwrite is not set."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"mcpServers": {"existing": {"command": "node"}}}),
+        encoding="utf-8",
+    )
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.post(
+            "/api/mcp/custom/import",
+            json={
+                "client": "cursor",
+                "output_path": str(config_path),
+                "servers": [
+                    {"server_id": "existing", "command": "python"},
+                    {"server_id": "new-tool", "command": "deno"},
+                ],
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["added"] == 1
+        assert body["skipped"] == 1
+        assert body["errors"] == 0
+
+        # "existing" should keep original config; "new-tool" should be written.
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert written["mcpServers"]["existing"]["command"] == "node"
+        assert written["mcpServers"]["new-tool"]["command"] == "deno"
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_import_custom_with_overwrite_replaces_existing(tmp_path):
+    """Import with overwrite=true replaces existing servers."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"mcpServers": {"existing": {"command": "node"}}}),
+        encoding="utf-8",
+    )
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.post(
+            "/api/mcp/custom/import",
+            json={
+                "client": "cursor",
+                "output_path": str(config_path),
+                "overwrite": True,
+                "servers": [
+                    {"server_id": "existing", "command": "python"},
+                ],
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["added"] == 1
+        assert body["skipped"] == 0
+
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert written["mcpServers"]["existing"]["command"] == "python"
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_import_custom_rejects_bad_entries(tmp_path):
+    """Import reports errors for invalid entries (empty cmd, metacharacters)."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.post(
+            "/api/mcp/custom/import",
+            json={
+                "client": "cursor",
+                "output_path": str(config_path),
+                "servers": [
+                    {"server_id": "", "command": "python"},
+                    {"server_id": "evil", "command": "node; rm -rf /"},
+                    {"server_id": "no-cmd", "command": ""},
+                    {"server_id": "good", "command": "deno"},
+                ],
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["added"] == 1
+        assert body["errors"] == 3
+
+        # Only "good" should be written.
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert "good" in written["mcpServers"]
+        assert "evil" not in written["mcpServers"]
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_import_custom_claude_code_rejected():
+    """Import with claude-code client returns 400."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.post(
+        "/api/mcp/custom/import",
+        json={
+            "client": "claude-code",
+            "servers": [{"server_id": "a", "command": "b"}],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_export_then_import_round_trip(tmp_path):
+    """Export followed by import into a fresh config preserves all fields."""
+    import api.main as api_main
+    from api.main import app
+
+    # Set up source config with custom servers.
+    src_path = tmp_path / "src" / ".cursor" / "mcp.json"
+    src_path.parent.mkdir(parents=True, exist_ok=True)
+    src_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "custom-a": {
+                        "command": "python",
+                        "args": ["-m", "a"],
+                        "env": {"X": "1"},
+                    },
+                    "custom-b": {"command": "node", "args": ["b.js"]},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    # Set up destination config.
+    dst_path = tmp_path / "dst" / ".cursor" / "mcp.json"
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    dst_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        # Export from source.
+        export_resp = client.get(
+            f"/api/mcp/custom/export?client=cursor&output_path={src_path}",
+            headers=headers,
+        )
+        assert export_resp.status_code == 200
+        exported = export_resp.json()["servers"]
+        assert len(exported) == 2
+
+        # Import into destination.
+        import_resp = client.post(
+            "/api/mcp/custom/import",
+            json={
+                "client": "cursor",
+                "output_path": str(dst_path),
+                "servers": exported,
+            },
+            headers=headers,
+        )
+        assert import_resp.status_code == 200
+        assert import_resp.json()["added"] == 2
+
+        # Verify round-trip fidelity.
+        written = json.loads(dst_path.read_text(encoding="utf-8"))
+        assert written["mcpServers"]["custom-a"]["command"] == "python"
+        assert written["mcpServers"]["custom-a"]["args"] == ["-m", "a"]
+        assert written["mcpServers"]["custom-a"]["env"] == {"X": "1"}
+        assert written["mcpServers"]["custom-b"]["command"] == "node"
+        assert written["mcpServers"]["custom-b"]["args"] == ["b.js"]
+    finally:
+        api_main._mcp_chat_engine = original_engine
