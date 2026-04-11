@@ -253,8 +253,8 @@
       await updateCustomMcp(editingServerId, {
         client: selectedClient,
         command: editCommand || undefined,
-        args: editArgs.length > 0 ? editArgs : undefined,
-        env: Object.keys(envObj).length > 0 ? envObj : undefined,
+        args: editArgs,
+        env: Object.keys(envObj).length > 0 ? envObj : {},
         project_root: projectRoot || undefined,
       });
       statusMessage = `Server "${editingServerId}" updated.`;

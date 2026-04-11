@@ -3177,23 +3177,6 @@ class MCPCustomServerUpdateRequest(BaseModel):
         return value
 
 
-class MCPCustomServerDeleteRequest(BaseModel):
-    """Query model for deleting a custom MCP server."""
-
-    client: str
-    project_root: str | None = None
-    output_path: str | None = None
-
-    @field_validator("client")
-    @classmethod
-    def validate_client(cls, value: str) -> str:
-        """Validate the target client identifier."""
-        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
-        if value not in allowed:
-            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
-        return value
-
-
 def _mask_env_in_config(config: dict[str, Any], client: str) -> dict[str, Any]:
     """Return a deep copy of the config with env values replaced by '***'."""
     import copy
@@ -3242,7 +3225,9 @@ async def update_custom_mcp_server(
             current = {}
 
         # Merge only the fields that were explicitly provided.
-        updated: dict[str, Any] = dict(current)
+        import copy
+
+        updated: dict[str, Any] = copy.deepcopy(current)
         if payload.command is not None:
             updated["command"] = payload.command
         if payload.args is not None:
