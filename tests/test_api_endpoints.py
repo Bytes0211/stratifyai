@@ -1050,3 +1050,223 @@ def test_add_custom_mcp_empty_env_value_warns():
     assert resp.status_code == 200
     body = resp.json()
     assert any("EMPTY_VAR" in w and "empty" in w for w in body["warnings"])
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Edit and Delete Custom Servers
+# ---------------------------------------------------------------------------
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_update_custom_mcp_server_merges_changed_fields(tmp_path):
+    """PUT endpoint merges only the fields that are provided."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "my-server": {
+                        "command": "node",
+                        "args": ["old.js"],
+                        "env": {"KEY": "old"},
+                    },
+                    "other-server": {
+                        "command": "python",
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.put(
+            "/api/mcp/custom/my-server",
+            json={
+                "client": "cursor",
+                "command": "deno",
+                "output_path": str(config_path),
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["server_id"] == "my-server"
+        # Command updated, args and env preserved from original config.
+        assert body["config"]["command"] == "deno"
+        assert body["config"]["args"] == ["old.js"]
+        assert body["config"]["env"] == {"KEY": "old"}
+
+        # Verify on disk: other-server is untouched.
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert written["mcpServers"]["other-server"]["command"] == "python"
+        assert written["mcpServers"]["my-server"]["command"] == "deno"
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_update_custom_mcp_server_not_found_returns_404(tmp_path):
+    """PUT on a non-existent server_id returns 404."""
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.put(
+        "/api/mcp/custom/ghost-server",
+        json={
+            "client": "cursor",
+            "command": "node",
+            "output_path": str(config_path),
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 404
+    assert "ghost-server" in resp.json()["detail"]
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_update_custom_mcp_server_updates_settings(tmp_path):
+    """PUT with enabled/auto_start writes to permission metadata."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"mcpServers": {"my-server": {"command": "node"}}}),
+        encoding="utf-8",
+    )
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.put(
+            "/api/mcp/custom/my-server",
+            json={
+                "client": "cursor",
+                "enabled": False,
+                "auto_start": False,
+                "output_path": str(config_path),
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        settings = written.get("stratifyai", {}).get("mcpClient", {}).get("servers", {})
+        assert settings["my-server"]["enabled"] is False
+        assert settings["my-server"]["auto_start"] is False
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_delete_custom_mcp_server_removes_from_config(tmp_path):
+    """DELETE removes the server from the config file."""
+    import api.main as api_main
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "my-server": {"command": "node"},
+                    "other-server": {"command": "python"},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    original_engine = api_main._mcp_chat_engine
+    api_main._mcp_chat_engine = None
+    try:
+        client = TestClient(app)
+        headers = {"Authorization": "Bearer api-secret"}
+
+        resp = client.delete(
+            f"/api/mcp/custom/my-server?client=cursor&output_path={config_path}",
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["server_id"] == "my-server"
+        assert body["removed"] is True
+
+        # Verify on disk: only other-server remains.
+        written = json.loads(config_path.read_text(encoding="utf-8"))
+        assert "my-server" not in written["mcpServers"]
+        assert "other-server" in written["mcpServers"]
+    finally:
+        api_main._mcp_chat_engine = original_engine
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_delete_custom_mcp_server_not_found_returns_404(tmp_path):
+    """DELETE on a non-existent server_id returns 404."""
+    from api.main import app
+
+    config_path = tmp_path / ".cursor" / "mcp.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.delete(
+        f"/api/mcp/custom/ghost-server?client=cursor&output_path={config_path}",
+        headers=headers,
+    )
+    assert resp.status_code == 404
+    assert "ghost-server" in resp.json()["detail"]
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_update_custom_mcp_server_claude_code_rejected():
+    """PUT with claude-code client returns 400 (not supported)."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.put(
+        "/api/mcp/custom/my-server",
+        json={"client": "claude-code", "command": "node"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+
+
+@patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})
+def test_delete_custom_mcp_server_claude_code_rejected():
+    """DELETE with claude-code client returns 400 (not supported)."""
+    from api.main import app
+
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer api-secret"}
+
+    resp = client.delete(
+        "/api/mcp/custom/my-server?client=claude-code",
+        headers=headers,
+    )
+    assert resp.status_code == 400

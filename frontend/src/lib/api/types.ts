@@ -286,6 +286,29 @@ export interface McpCustomServerRequest {
   apply?: boolean;
 }
 
+export interface McpCustomServerUpdateRequest {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  enabled?: boolean;
+  auto_start?: boolean;
+  project_root?: string;
+  output_path?: string;
+}
+
+export interface McpCustomServerUpdateResponse {
+  server_id: string;
+  config: Record<string, unknown>;
+  path: string;
+}
+
+export interface McpCustomServerDeleteResponse {
+  server_id: string;
+  removed: boolean;
+  path: string;
+}
+
 export interface McpResetRequest {
   client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
   server_ids?: string[];

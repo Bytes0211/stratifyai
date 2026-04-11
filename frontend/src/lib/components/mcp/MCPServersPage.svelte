@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import {
     configureMcp,
+    deleteCustomMcp,
     getMcpCatalog,
     getMcpClientPermissions,
     getMcpClients,
     getMcpStatus,
     resetMcpConfig,
+    updateCustomMcp,
     updateMcpClientPermissions,
   } from '$lib/api/client';
   import type {
@@ -29,6 +31,7 @@
     CheckCircle2,
     Copy,
     Download,
+    Pencil,
     Play,
     PlugZap,
     Power,
@@ -39,6 +42,7 @@
     Square,
     Trash2,
     Wrench,
+    X,
   } from 'lucide-svelte';
 
   let catalog: McpCatalogResponse | null = null;
@@ -71,6 +75,12 @@
   let error: string | null = null;
   let statusMessage = '';
   let copyMessage = '';
+
+  // --- Phase 4: Edit custom server state ---
+  let editingServerId: string | null = null;
+  let editCommand = '';
+  let editArgs: string[] = [];
+  let editEnvPairs: Array<{ key: string; value: string }> = [];
 
   onMount(() => {
     void initialize();
@@ -186,6 +196,96 @@
       await refreshStatus();
     } catch (err) {
       error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
+    } finally {
+      runtimeActionLoading = '';
+    }
+  }
+
+  // --- Phase 4: Edit / delete helpers for custom servers ---
+
+  function isCatalogServer(serverId: string): boolean {
+    return catalog?.servers.some((item) => item.id === serverId) ?? false;
+  }
+
+  function startEditing(serverId: string) {
+    const serverConfig = statusData?.configured?.[serverId];
+    editingServerId = serverId;
+    editCommand = serverConfig?.command ?? '';
+    editArgs = [...(serverConfig?.args ?? [])];
+    const envRecord = serverConfig?.env ?? {};
+    editEnvPairs = Object.entries(envRecord).map(([key, value]) => ({ key, value }));
+  }
+
+  function cancelEditing() {
+    editingServerId = null;
+    editCommand = '';
+    editArgs = [];
+    editEnvPairs = [];
+  }
+
+  function addEditArg() {
+    editArgs = [...editArgs, ''];
+  }
+
+  function removeEditArg(index: number) {
+    editArgs = editArgs.filter((_, i) => i !== index);
+  }
+
+  function addEditEnvPair() {
+    editEnvPairs = [...editEnvPairs, { key: '', value: '' }];
+  }
+
+  function removeEditEnvPair(index: number) {
+    editEnvPairs = editEnvPairs.filter((_, i) => i !== index);
+  }
+
+  async function submitEdit() {
+    if (!editingServerId) return;
+    try {
+      runtimeActionLoading = `${editingServerId}:edit`;
+      error = null;
+      const envObj: Record<string, string> = {};
+      for (const pair of editEnvPairs) {
+        if (pair.key.trim()) {
+          envObj[pair.key.trim()] = pair.value;
+        }
+      }
+      await updateCustomMcp(editingServerId, {
+        client: selectedClient,
+        command: editCommand || undefined,
+        args: editArgs,
+        env: Object.keys(envObj).length > 0 ? envObj : {},
+        project_root: projectRoot || undefined,
+      });
+      statusMessage = `Server "${editingServerId}" updated.`;
+      cancelEditing();
+      await refreshStatus();
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to update ${editingServerId}`;
+    } finally {
+      runtimeActionLoading = '';
+    }
+  }
+
+  async function deleteServer(serverId: string) {
+    if (typeof window !== 'undefined' && !window.confirm(`Delete server "${serverId}" from ${selectedClient} config?`)) {
+      return;
+    }
+    try {
+      runtimeActionLoading = `${serverId}:delete`;
+      error = null;
+      await deleteCustomMcp(serverId, selectedClient, projectRoot || undefined);
+      if (editingServerId === serverId) {
+        cancelEditing();
+      }
+      selectedServerIds = selectedServerIds.filter((id) => id !== serverId);
+      if (selectedRuntimeTool.startsWith(`${serverId}.`)) {
+        selectedRuntimeTool = '';
+      }
+      statusMessage = `Deleted server "${serverId}" from ${selectedClient} config.`;
+      await refreshStatus();
+    } catch (err) {
+      error = err instanceof Error ? err.message : `Failed to delete ${serverId}`;
     } finally {
       runtimeActionLoading = '';
     }
@@ -538,10 +638,13 @@
 
         <p class="path-text">{statusData?.path ?? 'No config file path resolved for this client.'}</p>
 
-        {#if statusData && statusData.count > 0}
+      {#if statusData && statusData.count > 0}
           <div class="configured-list">
             {#each Object.keys(statusData.configured) as serverId}
               <span class="chip configured">{serverId}</span>
+              {#if !isCatalogServer(serverId)}
+                <span class="chip custom">custom</span>
+              {/if}
             {/each}
           </div>
         {:else}
@@ -725,50 +828,116 @@
               <div class="server-meta">
                 <span class="chip">{server.enabled ? 'enabled' : 'disabled'}</span>
                 <span class="chip">{server.auto_start ? 'auto-start' : 'manual start'}</span>
+                {#if isCatalogServer(server.server_id)}
+                  <span class="chip">catalog</span>
+                {:else}
+                  <span class="chip custom">custom</span>
+                {/if}
               </div>
 
               {#if server.error}
                 <p class="error-inline">{server.error}</p>
               {/if}
 
-              <div class="action-row secondary-actions">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  on:click={() => runServerAction(server.server_id, 'start')}
-                  disabled={runtimeActionLoading !== '' || !server.enabled || server.status === 'connected'}
-                >
-                  <Play size={14} />
-                  Start
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  on:click={() => runServerAction(server.server_id, 'stop')}
-                  disabled={runtimeActionLoading !== '' || server.status !== 'connected'}
-                >
-                  <Square size={14} />
-                  Stop
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  on:click={() => runServerAction(server.server_id, 'restart')}
-                  disabled={runtimeActionLoading !== '' || !server.enabled}
-                >
-                  <Power size={14} />
-                  Restart
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  on:click={() => removeServer(server.server_id)}
-                  disabled={runtimeActionLoading !== ''}
-                >
-                  <Trash2 size={14} />
-                  Remove
-                </Button>
-              </div>
+              {#if editingServerId === server.server_id}
+                <div class="edit-form">
+                  <label>
+                    <span>Command</span>
+                    <input type="text" bind:value={editCommand} placeholder="e.g. node, python" />
+                  </label>
+
+                  <div class="edit-field-group">
+                    <span class="edit-field-label">Arguments</span>
+                    {#each editArgs as arg, i}
+                      <div class="edit-inline-row">
+                        <input type="text" bind:value={editArgs[i]} placeholder="arg" />
+                        <button class="icon-btn" on:click={() => removeEditArg(i)}><X size={14} /></button>
+                      </div>
+                    {/each}
+                    <button class="text-btn" on:click={addEditArg}>+ Add argument</button>
+                  </div>
+
+                  <div class="edit-field-group">
+                    <span class="edit-field-label">Environment variables</span>
+                    {#each editEnvPairs as pair, i}
+                      <div class="edit-inline-row">
+                        <input type="text" bind:value={editEnvPairs[i].key} placeholder="KEY" />
+                        <input type="text" bind:value={editEnvPairs[i].value} placeholder="value" />
+                        <button class="icon-btn" on:click={() => removeEditEnvPair(i)}><X size={14} /></button>
+                      </div>
+                    {/each}
+                    <button class="text-btn" on:click={addEditEnvPair}>+ Add env var</button>
+                  </div>
+
+                  <div class="action-row secondary-actions">
+                    <Button variant="primary" size="sm" on:click={submitEdit} loading={runtimeActionLoading === `${server.server_id}:edit`}>
+                      Save
+                    </Button>
+                    <Button variant="ghost" size="sm" on:click={cancelEditing}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              {:else}
+                <div class="action-row secondary-actions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    on:click={() => runServerAction(server.server_id, 'start')}
+                    disabled={runtimeActionLoading !== '' || !server.enabled || server.status === 'connected'}
+                  >
+                    <Play size={14} />
+                    Start
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    on:click={() => runServerAction(server.server_id, 'stop')}
+                    disabled={runtimeActionLoading !== '' || server.status !== 'connected'}
+                  >
+                    <Square size={14} />
+                    Stop
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    on:click={() => runServerAction(server.server_id, 'restart')}
+                    disabled={runtimeActionLoading !== '' || !server.enabled}
+                  >
+                    <Power size={14} />
+                    Restart
+                  </Button>
+                  {#if !isCatalogServer(server.server_id)}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      on:click={() => startEditing(server.server_id)}
+                      disabled={runtimeActionLoading !== ''}
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      on:click={() => deleteServer(server.server_id)}
+                      disabled={runtimeActionLoading !== ''}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </Button>
+                  {/if}
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    on:click={() => removeServer(server.server_id)}
+                    disabled={runtimeActionLoading !== ''}
+                  >
+                    <Trash2 size={14} />
+                    Remove
+                  </Button>
+                </div>
+              {/if}
             </article>
           {/each}
         </div>
@@ -1070,6 +1239,11 @@
     &.configured {
       background: rgba(16, 185, 129, 0.14);
       color: #10b981;
+    }
+
+    &.custom {
+      background: rgba(139, 92, 246, 0.14);
+      color: #8b5cf6;
     }
   }
 
@@ -1385,5 +1559,67 @@
     gap: $space-3;
     min-height: 280px;
     color: var(--text-secondary);
+  }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+    border: 1px solid var(--bg-hover);
+    border-radius: $radius-lg;
+    padding: $space-3;
+    background: var(--bg-base);
+  }
+
+  .edit-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+
+  .edit-field-label {
+    font-size: $text-sm;
+    color: var(--text-secondary);
+  }
+
+  .edit-inline-row {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+
+    input {
+      flex: 1;
+    }
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: $space-1;
+    border: 1px solid var(--bg-hover);
+    border-radius: $radius-lg;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+  }
+
+  .text-btn {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: $text-sm;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 </style>
