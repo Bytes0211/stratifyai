@@ -1715,7 +1715,7 @@ class MCPConfigureRequest(BaseModel):
 
 
 # Shell metacharacter pattern for custom MCP command validation (Phase 3).
-_SHELL_METACHAR_RE = _re_module.compile(r"[;|&`]|\$\(|\)")
+_SHELL_METACHAR_RE = _re_module.compile(r"[;|&`]|\$\(")
 
 
 class MCPCustomServerRequest(BaseModel):
@@ -1762,7 +1762,7 @@ class MCPCustomServerRequest(BaseModel):
         if _SHELL_METACHAR_RE.search(stripped):
             raise ValueError(
                 "command must not contain shell metacharacters "
-                "(;, |, &&, $(), or backticks)"
+                "(;, |, &, $(), or backticks)"
             )
         return stripped
 
@@ -3024,6 +3024,11 @@ async def add_custom_mcp_server(
                     "path": str(path) if path is not None else payload.output_path,
                     "warnings": warnings,
                 }
+        else:
+            warnings.append(
+                "claude-code: duplicate server_id check skipped "
+                "(no local config file to inspect)."
+            )
 
         server_config: dict[str, Any] = {"command": payload.command}
         if payload.args:
