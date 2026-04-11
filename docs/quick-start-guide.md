@@ -1,384 +1,211 @@
 # StratifyAI Quick Start Guide
 
-> Start with `docs/GETTING-STARTED.md` for the canonical onboarding flow. This page remains as a simplified CLI walkthrough for non-technical users.
+Get the StratifyAI Web UI running in under 5 minutes.
 
-**For Non-Technical Users**
+**Last Updated:** April 11, 2026 | **Version:** 2.1.0
 
-This guide shows you how to use StratifyAI without needing to know command-line flags or technical details.
+---
 
-## Starting a Chat Session
+## Prerequisites
 
-Simply run the chat command without any arguments:
+| Dependency | Version | Check |
+|------------|---------|-------|
+| **Python** | 3.10+ | `python3 --version` |
+| **Node.js** | 18+ | `node --version` |
+| **uv** | latest | `uv --version` |
 
-```bash
-python -m cli.stratifyai_cli chat
-```
-
-You'll be guided through a series of simple prompts:
-
-### Step 1: Choose Your Provider
-
-```
-Select Provider
-  1. openai
-  2. anthropic
-  3. google
-  4. deepseek
-  5. groq
-  6. grok
-  7. ollama
-  8. openrouter
-  9. bedrock (AWS)
-
-Choose provider:
-```
-
-**What to do**: Type a number (1-9) and press Enter
-- **Recommended for beginners**: Type `1` (OpenAI) or `2` (Anthropic)
-- **For AWS users**: Type `9` (Bedrock - requires AWS credentials)
-
-### Step 2: Choose Your Model
-
-```
-Available models for openai:
-  1. gpt-4o
-  2. gpt-4o-mini
-  3. o1
-  4. o1-mini
-  5. o3-mini
-
-Select model:
-```
-
-**What to do**: Type a number and press Enter
-- **Recommended for beginners**: Type `2` (gpt-4o-mini - fast and affordable)
-- **For complex tasks**: Type `1` (gpt-4o - more capable)
-
-### Step 3: Set Temperature
-
-```
-Temperature (0.0-2.0, default 0.7): 
-```
-
-**What to do**: Press Enter to use the default (0.7), or type a number:
-- **0.0-0.3**: More focused, deterministic responses
-- **0.7**: Balanced (recommended)
-- **1.0-2.0**: More creative, varied responses
-
-### Step 4: Attach a File (Optional)
-
-```
-File Attachment (Optional)
-Attach a file to include its content in your message
-Max file size: 5 MB | Leave blank to skip
-
-File path (or press Enter to skip):
-```
-
-**What to do**:
-- **To skip**: Just press Enter
-- **To attach a file**: Type the file path and press Enter
-  - Example: `document.txt`
-  - Example: `~/Documents/report.pdf`
-  - Example: `/home/user/code/main.py`
-
-If you attach a large file (>500 KB), you'll see a warning:
-
-```
-⚠ Large file detected: 1.2 MB
-⚠ This will consume substantial tokens and may incur significant costs
-Continue loading this file? [y/N]:
-```
-
-Type `y` and press Enter to continue, or `n` to cancel.
-
-### Step 5: Enter Your Message
-
-```
-Enter your message:
-Message:
-```
-
-**What to do**: Type your question or instruction and press Enter
-
-**Examples**:
-- `What is artificial intelligence?`
-- `Summarize this document`
-- `Explain this code`
-- `Write a poem about the ocean`
-
-### Step 6: View the Response
-
-The AI will respond, and you'll see:
-
-```
-Provider: openai | Model: gpt-4o-mini
-Context: 128,000 tokens | Tokens: 234 | Cost: $0.000047
-
-[AI response here]
-
-Options: [1] Continue conversation  [2] Save & continue  [3] Save & exit  [4] Exit
-What would you like to do?:
-```
-
-**What to do**: Choose an option:
-- Type `1` to ask another question (continues conversation with context)
-- Type `2` to save the conversation to a file and continue
-- Type `3` to save and exit
-- Type `4` to exit without saving
-
-## Starting an Interactive Session
-
-For ongoing conversations with multiple questions:
+### Install uv (if needed)
 
 ```bash
-python -m cli.stratifyai_cli interactive
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-You'll go through the same steps 1-4 above, then enter an interactive chat mode:
-
-```
-StratifyAI Interactive Mode
-Provider: openai | Model: gpt-4o-mini | Context: 128,000 tokens
-Commands: /file <path> | /attach <path> | /clear | exit
-
-You: 
-```
-
-### Interactive Mode Commands
-
-**Regular messages**: Just type and press Enter
-```
-You: What is Python?
-```
-
-**Load and send a file immediately**:
-```
-You: /file code.py
-```
-
-**Attach a file to your next message**:
-```
-You: /attach document.txt
-You 📎 document.txt: Summarize this
-```
-
-**Clear a staged file**:
-```
-You 📎 document.txt: /clear
-```
-
-**Exit**:
-```
-You: exit
-```
-(or type `quit`, `q`, or press Ctrl+C)
-
-## New: RAG (Semantic Search) Features ✨
-
-StratifyAI now supports indexing documents into a vector database for semantic search and retrieval-augmented generation (RAG).
-
-### What is RAG?
-Instead of sending entire files to the AI (which costs tokens), RAG:
-1. Breaks your documents into small chunks
-2. Stores them in a searchable database
-3. Only retrieves relevant chunks when you ask questions
-4. Results in 95%+ token reduction for large document collections
-
-### Using RAG with Python
-
-```python
-from stratifyai import RAGClient
-
-# Initialize RAG
-rag = RAGClient()
-
-# Index a file or directory
-rag.index_file(
-    file_path="documentation.txt",
-    collection_name="my_docs"
-)
-
-# Query your documents
-response = rag.query(
-    collection_name="my_docs",
-    query="How do I configure authentication?"
-)
-
-print(response.content)
-print(f"Sources: {response.sources}")
-```
-
-### When to Use RAG
-- **Large document collections** (multiple files, >5MB total)
-- **Repeated queries** on the same documents
-- **Knowledge base** scenarios
-- **Document search** where you need to find specific information
-
-### When NOT to Use RAG
-- Single small files (<500KB)
-- One-time questions
-- When you need the AI to see the entire document structure
-
-## Common Use Cases
-
-### 1. Ask a Quick Question
+### Install Node.js (if needed)
 
 ```bash
-python -m cli.stratifyai_cli chat
+# Ubuntu/Debian
+sudo apt install nodejs npm
+
+# macOS
+brew install node
 ```
 
-1. Choose provider: `1` (OpenAI)
-2. Choose model: `2` (gpt-4o-mini)
-3. Temperature: Press Enter (use default)
-4. File: Press Enter (skip)
-5. Message: `What is machine learning?`
-6. View response, then type `4` to exit
+---
 
-### 2. Analyze a Document
+## Step 1: Install StratifyAI
 
 ```bash
-python -m cli.stratifyai_cli chat
+uv pip install stratifyai
 ```
 
-1. Choose provider: `2` (Anthropic)
-2. Choose model: `1` (claude-sonnet)
-3. Temperature: Press Enter
-4. File: `report.txt`
-5. Message: `Summarize the key points in bullet form`
-
-### 3. Review Code
+Or install from source:
 
 ```bash
-python -m cli.stratifyai_cli interactive
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
+uv sync
 ```
 
-1. Choose provider: `2` (Anthropic)
-2. Choose model: `1` (claude-sonnet)
-3. File: `main.py`
-4. Then ask questions:
-   - `You: What does this code do?`
-   - `You: Are there any bugs?`
-   - `You: How can I improve it?`
-   - `You: exit`
+---
 
-### 4. Multi-Document Analysis
+## Step 2: Configure an API Key
+
+Create a `.env` file in the project root with at least one provider key:
 
 ```bash
-python -m cli.stratifyai_cli interactive
+cp .env.example .env
 ```
 
-1. Set up your provider and model
-2. Skip initial file
-3. In the conversation:
-   ```
-   You: /file config.yaml
-   You: /file main.py
-   You: Are these two files consistent?
-   ```
+Edit `.env` and add your key:
 
-### 5. Query Large Document Collections (RAG)
+```bash
+# Pick one (or add multiple)
+OPENAI_API_KEY=sk-your-key-here
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+GOOGLE_API_KEY=your-key-here
 
-For very large document sets, use the Python API with RAG:
-
-```python
-from stratifyai import RAGClient
-
-# Initialize
-rag = RAGClient()
-
-# Index all your documentation
-rag.index_directory(
-    directory_path="./project_docs",
-    collection_name="project_knowledge",
-    file_patterns=["*.txt", "*.md"]
-)
-
-# Query across all documents
-response = rag.query(
-    collection_name="project_knowledge",
-    query="How do I deploy the application?",
-    n_results=5  # Retrieve top 5 most relevant chunks
-)
-
-print(response.content)
+# Required for the Web UI API
+STRATIFYAI_API_KEY=any-secret-string-you-choose
 ```
 
-This approach:
-- Indexes once, query many times
-- 95%+ token reduction vs. sending all files
-- Much faster for large document sets
-- Includes source citations
+Verify your keys are configured:
 
-## Don't Worry About Mistakes!
-
-StratifyAI is designed to be forgiving. If you make a mistake:
-
-- **You get 3 tries**: The system gives you up to 3 attempts to enter valid input
-- **Helpful messages**: Clear explanations of what went wrong and how to fix it
-- **No crashes**: The system won't exit on the first error
-- **Safe defaults**: If you can't provide valid input after 3 tries, the system uses sensible defaults
-
-### Example: Entering Letters Instead of Numbers
-
-```
-Choose provider: openai
-✗ Invalid input. Please enter a number, not letters (e.g., '1' not 'openai')
-Try again...
-
-Choose provider: 1
-✓ Selected OpenAI
+```bash
+uv run stratifyai check-keys
 ```
 
-### Example: Number Out of Range
+You should see at least one provider reported as **Configured**.
+
+---
+
+## Step 3: Build the Frontend
+
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+This compiles the Svelte SPA into `api/static/dist/`.
+
+---
+
+## Step 4: Start the Server
+
+```bash
+uv run uvicorn api.main:app --host 127.0.0.1 --port 8080
+```
+
+You should see output like:
 
 ```
-Select model: 10
-✗ Invalid number. Please enter a number between 1 and 5
-Try again...
-
-Select model: 2
-✓ Selected gpt-4o-mini
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
 ```
 
-## Tips for Non-Technical Users
+---
 
-1. **Start simple**: Use OpenAI with gpt-4o-mini for everyday questions
-2. **Use defaults**: When in doubt, just press Enter to use the default value
-3. **Don't panic if you make a mistake**: You get 3 tries, and the error messages will guide you
-4. **File paths**: You can drag and drop files into the terminal to get their paths
-5. **Costs**: Keep an eye on the "Cost:" display - gpt-4o-mini is very affordable ($0.00001-0.0001 per request)
-6. **Large files**: If prompted about a large file, choose `n` unless you're sure you need it
-7. **Interactive mode**: Use this for back-and-forth conversations where the AI needs context from previous messages
-8. **Exit anytime**: Press Ctrl+C to exit immediately if you're stuck
-9. **Large document collections**: For multiple large files (>5MB total), consider using RAG (see examples above)
+## Step 5: Open the Web UI
+
+Open your browser to **http://127.0.0.1:8080**
+
+### Send your first message
+
+1. Select a **provider** and **model** in the sidebar (e.g., OpenAI / gpt-4o-mini).
+2. Type a prompt in the chat input.
+3. Press **Send** and watch the response stream in real time.
+4. Check token usage and cost in the dashboard.
+
+---
+
+## What You Can Do in the Web UI
+
+### Chat
+
+- Stream responses from any configured provider
+- Switch models mid-conversation
+- Upload files for analysis (drag-and-drop or browse)
+- View token counts and cost per message
+
+### MCP Servers
+
+- Browse and configure curated MCP integrations from the catalog
+- Add custom MCP servers (command, args, env vars)
+- Start/stop/restart servers from the live dashboard
+- Test tools directly and manage permissions
+
+### Configuration
+
+- Compare models across providers
+- Set temperature, max tokens, and routing strategy
+- View provider status and API key health
+
+---
+
+## Common Server Options
+
+```bash
+# Development mode with auto-reload
+uv run uvicorn api.main:app --reload --host 127.0.0.1 --port 8080
+
+# Allow access from other machines on your network
+uv run uvicorn api.main:app --host 0.0.0.0 --port 8080
+
+# Run on a different port
+uv run uvicorn api.main:app --host 127.0.0.1 --port 3000
+```
+
+---
+
+## CLI (Optional)
+
+StratifyAI also includes a CLI for quick tasks without the browser:
+
+```bash
+# One-shot chat
+uv run stratifyai chat -p openai -m gpt-4o-mini -t "Say hello"
+
+# Interactive mode
+uv run stratifyai interactive
+
+# Check MCP server status with cursor MCP Server
+uv run stratifyai mcp status --client cursor
+
+# Check MCP server status with cursor MCP Server
+uv run stratifyai mcp status --client claude-desktop 
+```
+
+---
 
 ## Troubleshooting
 
-### "File not found"
-- Check that the file path is correct
-- Try using the full path (e.g., `/home/user/document.txt`)
-- Make sure the file exists
+### "Module not found" or import errors
 
-### "File too large"
-- Your file is over 5 MB
-- Try splitting it into smaller files
-- Or use a summarization tool first
+Make sure you installed dependencies:
 
-### "Cannot read file (not a text file)"
-- The file is binary (image, PDF, executable)
-- StratifyAI only supports text files
-- Convert PDF to text first if needed
+```bash
+uv sync              # backend
+cd frontend && npm install && npm run build && cd ..  # frontend
+```
 
-### Cost is too high
-- Use gpt-4o-mini instead of gpt-4o
-- Avoid uploading very large files
-- Ask more focused questions
+### Web UI shows a blank page
 
-## Need Help?
+The frontend hasn't been built. Run `npm run build` in the `frontend/` directory.
 
-- Read the full documentation: `docs/file-attachments.md`
-- Check available commands: `python -m cli.stratifyai_cli --help`
-- For interactive mode: `python -m cli.stratifyai_cli interactive --help`
-- RAG examples: See `examples/rag_example.py` for complete demonstrations
-- API Reference: `docs/API-REFERENCE.md`
+### "401 Unauthorized" in the browser
+
+Set `STRATIFYAI_API_KEY` in your `.env` file. The Web UI needs this to authenticate API requests.
+
+### Provider returns errors
+
+Run `uv run stratifyai check-keys` to verify your provider API keys are valid.
+
+---
+
+## Next Steps
+
+- **Full documentation:** `docs/GETTING-STARTED.md`
+- **Web UI guide:** `docs/UI-OVERVIEW.md`
+- **API reference:** `docs/API-REFERENCE.md`
+- **MCP setup:** `docs/MCP-QUICKSTART.md`
+- **Examples:** `examples/README.md`
