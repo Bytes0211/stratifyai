@@ -812,6 +812,11 @@ def mcp_import_custom(
                 errors += 1
                 continue
 
+            if "/" in sid or "\\" in sid:
+                console.print(f"[red]✗ {sid}: server_id contains path separators[/red]")
+                errors += 1
+                continue
+
             if not cmd:
                 console.print(f"[red]✗ {sid}: empty command[/red]")
                 errors += 1

@@ -292,7 +292,7 @@
       link.href = url;
       link.download = `${selectedClient}-custom-servers.json`;
       link.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
       statusMessage = `Exported ${result.count} custom server(s).`;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to export custom servers';

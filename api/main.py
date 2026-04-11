@@ -3493,6 +3493,8 @@ async def import_custom_mcp_servers(
         else:
             config = {"mcpServers": {sid: server_config}}
 
+        # Each server is written individually; if a later write fails the
+        # earlier ones remain (intentional partial-success — no rollback).
         try:
             path = write_client_config(
                 client=payload.client,
