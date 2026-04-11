@@ -201,7 +201,7 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
 
       expect(screen.getByText('Server ID *')).toBeInTheDocument();
       expect(screen.getByText('Command *')).toBeInTheDocument();
-      expect(screen.getByText('Arguments')).toBeInTheDocument();
+      expect(screen.getByText('Arguments (one per row)')).toBeInTheDocument();
       expect(screen.getByText('Environment Variables')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('my-custom-server')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('npx, uvx, node, python ...')).toBeInTheDocument();
@@ -211,7 +211,7 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
       await renderPage();
       await fireEvent.click(screen.getByRole('button', { name: 'Custom' }));
 
-      const argInput = screen.getByPlaceholderText('e.g. -y, @modelcontextprotocol/server-github');
+      const argInput = screen.getByPlaceholderText('e.g. -y');
       expect(argInput).toBeInTheDocument();
       expect((argInput as HTMLInputElement).value).toBe('');
     });
@@ -231,7 +231,7 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
       const addBtn = screen.getByTitle('Add argument');
       await fireEvent.click(addBtn);
 
-      const argInputs = screen.getAllByPlaceholderText('e.g. -y, @modelcontextprotocol/server-github');
+      const argInputs = screen.getAllByPlaceholderText('e.g. -y');
       expect(argInputs).toHaveLength(2);
     });
 
@@ -252,14 +252,14 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
 
       // Add a second row first
       await fireEvent.click(screen.getByTitle('Add argument'));
-      expect(screen.getAllByPlaceholderText('e.g. -y, @modelcontextprotocol/server-github')).toHaveLength(2);
+      expect(screen.getAllByPlaceholderText('e.g. -y')).toHaveLength(2);
 
       // Remove the first one
       const removeBtns = screen.getAllByTitle('Remove argument');
       await fireEvent.click(removeBtns[0]);
 
       // One row should remain (minimum of 1)
-      expect(screen.getAllByPlaceholderText('e.g. -y, @modelcontextprotocol/server-github')).toHaveLength(1);
+      expect(screen.getAllByPlaceholderText('e.g. -y')).toHaveLength(1);
     });
 
     it('removes an env var row when the remove button is clicked', async () => {
@@ -371,9 +371,12 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
       await fireEvent.input(screen.getByPlaceholderText('my-custom-server'), { target: { value: 'my-server' } });
       await fireEvent.input(screen.getByPlaceholderText('npx, uvx, node, python ...'), { target: { value: 'npx' } });
 
-      // Add an argument
-      const argInput = screen.getByPlaceholderText('e.g. -y, @modelcontextprotocol/server-github');
-      await fireEvent.input(argInput, { target: { value: '-y my-pkg' } });
+      // Fill in the first arg row and add a second
+      const argInput = screen.getByPlaceholderText('e.g. -y');
+      await fireEvent.input(argInput, { target: { value: '-y' } });
+      await fireEvent.click(screen.getByTitle('Add argument'));
+      const argInputs = screen.getAllByPlaceholderText('e.g. -y');
+      await fireEvent.input(argInputs[1], { target: { value: 'my-pkg' } });
 
       await fireEvent.click(screen.getByRole('button', { name: 'Preview config' }));
 
@@ -382,7 +385,7 @@ describe('MCPServersPage — Phase 2 (Custom Server Form)', () => {
           expect.objectContaining({
             server_id: 'my-server',
             command: 'npx',
-            args: ['-y my-pkg'],
+            args: ['-y', 'my-pkg'],
             client: 'cursor',
             apply: false,
           }),

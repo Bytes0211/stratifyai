@@ -689,10 +689,10 @@
       </div>
 
       <div class="tab-row">
-        <button class:active={viewMode === 'catalog'} class="tab-button" on:click={() => viewMode = 'catalog'}>
+        <button class:active={viewMode === 'catalog'} class="tab-button" on:click={() => { viewMode = 'catalog'; preview = null; statusMessage = ''; }}>
           Catalog
         </button>
-        <button class:active={viewMode === 'custom'} class="tab-button" on:click={() => viewMode = 'custom'}>
+        <button class:active={viewMode === 'custom'} class="tab-button" on:click={() => { viewMode = 'custom'; preview = null; statusMessage = ''; }}>
           Custom
         </button>
       </div>
@@ -806,7 +806,7 @@
 
             <div class="repeatable-section">
               <div class="repeatable-header">
-                <span>Arguments</span>
+                <span>Arguments (one per row)</span>
                 <button class="icon-button" on:click={addArgRow} title="Add argument">
                   <Plus size={14} />
                 </button>
@@ -816,7 +816,7 @@
                   <input
                     type="text"
                     value={arg}
-                    placeholder="e.g. -y, @modelcontextprotocol/server-github"
+                    placeholder="e.g. -y"
                     on:input={(event) => updateArgRow(i, (event.currentTarget as HTMLInputElement).value)}
                   />
                   <button class="icon-button danger" on:click={() => removeArgRow(i)} title="Remove argument">
@@ -843,7 +843,7 @@
                   />
                   <span class="env-separator">=</span>
                   <input
-                    type="text"
+                    type="password"
                     value={customEnvValues[i] ?? ''}
                     placeholder="value"
                     on:input={(event) => updateEnvVal(i, (event.currentTarget as HTMLInputElement).value)}
