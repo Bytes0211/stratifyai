@@ -3325,6 +3325,229 @@ async def delete_custom_mcp_server(
         raise HTTPException(status_code=400, detail=sanitize_error(str(exc))) from exc
 
 
+class MCPCustomExportEntry(BaseModel):
+    """A single custom server entry for import/export."""
+
+    server_id: str
+    command: str
+    args: list[str] = Field(default_factory=list)
+    env: dict[str, str] = Field(default_factory=dict)
+
+
+class MCPCustomImportRequest(BaseModel):
+    """Request model for bulk importing custom MCP servers."""
+
+    client: str
+    servers: list[MCPCustomExportEntry]
+    overwrite: bool = False
+    project_root: str | None = None
+    output_path: str | None = None
+
+    @field_validator("client")
+    @classmethod
+    def validate_client(cls, value: str) -> str:
+        """Validate the target client identifier."""
+        allowed = {"claude-desktop", "claude-code", "cursor", "vscode"}
+        if value not in allowed:
+            raise ValueError(f"client must be one of: {', '.join(sorted(allowed))}")
+        return value
+
+
+class MCPCustomImportResponse(BaseModel):
+    """Response model for bulk import results."""
+
+    added: int = 0
+    skipped: int = 0
+    errors: int = 0
+    details: list[dict[str, str]] = Field(default_factory=list)
+    path: str | None = None
+
+
+@app.get("/api/mcp/custom/export")
+async def export_custom_mcp_servers(
+    client: str,
+    project_root: str | None = None,
+    output_path: str | None = None,
+    _: None = Depends(verify_api_key),
+):
+    """Export all non-catalog (custom) MCP servers as a JSON array."""
+    allowed_clients = {"claude-desktop", "claude-code", "cursor", "vscode"}
+    if client not in allowed_clients:
+        raise HTTPException(
+            status_code=400,
+            detail=f"client must be one of: {', '.join(sorted(allowed_clients))}",
+        )
+
+    if client == "claude-code":
+        raise HTTPException(
+            status_code=400,
+            detail="Claude Code does not use a local config file. Export is not supported.",
+        )
+
+    _, configured = get_configured_servers(
+        client=client,
+        project_root=project_root,
+        output_path=output_path,
+    )
+
+    catalog = load_mcp_server_catalog()
+    catalog_ids = {s.id for s in catalog.servers}
+
+    custom_servers: list[dict[str, Any]] = []
+    for server_id, config in sorted(configured.items()):
+        if server_id in catalog_ids:
+            continue
+        if not isinstance(config, dict):
+            continue
+        custom_servers.append(
+            {
+                "server_id": server_id,
+                "command": config.get("command", ""),
+                "args": config.get("args", []),
+                "env": config.get("env", {}),
+            }
+        )
+
+    return {"client": client, "servers": custom_servers, "count": len(custom_servers)}
+
+
+@app.post("/api/mcp/custom/import", response_model=MCPCustomImportResponse)
+async def import_custom_mcp_servers(
+    payload: MCPCustomImportRequest,
+    _: None = Depends(verify_api_key),
+):
+    """Bulk import custom MCP server definitions into a client config."""
+    if payload.client == "claude-code":
+        raise HTTPException(
+            status_code=400,
+            detail="Claude Code does not use a local config file. Import is not supported.",
+        )
+
+    _, existing_servers = get_configured_servers(
+        client=payload.client,
+        project_root=payload.project_root,
+        output_path=payload.output_path,
+    )
+
+    added = 0
+    skipped = 0
+    errors = 0
+    details: list[dict[str, str]] = []
+    path: Path | None = None
+
+    for entry in payload.servers:
+        sid = entry.server_id.strip()
+        if not sid:
+            errors += 1
+            details.append(
+                {"server_id": sid, "status": "error", "reason": "empty server_id"}
+            )
+            continue
+
+        if "/" in sid or "\\" in sid:
+            errors += 1
+            details.append(
+                {
+                    "server_id": sid,
+                    "status": "error",
+                    "reason": "server_id contains path separators",
+                }
+            )
+            continue
+
+        cmd = entry.command.strip()
+        if not cmd:
+            errors += 1
+            details.append(
+                {"server_id": sid, "status": "error", "reason": "empty command"}
+            )
+            continue
+
+        if _SHELL_METACHAR_RE.search(cmd):
+            errors += 1
+            details.append(
+                {
+                    "server_id": sid,
+                    "status": "error",
+                    "reason": "command contains shell metacharacters",
+                }
+            )
+            continue
+
+        if sid in existing_servers and not payload.overwrite:
+            skipped += 1
+            details.append(
+                {"server_id": sid, "status": "skipped", "reason": "already exists"}
+            )
+            continue
+
+        server_config: dict[str, Any] = {"command": cmd}
+        if entry.args:
+            server_config["args"] = entry.args
+        if entry.env:
+            server_config["env"] = entry.env
+
+        config: dict[str, Any]
+        if payload.client == "vscode":
+            config = {"mcp": {"servers": {sid: server_config}}}
+        else:
+            config = {"mcpServers": {sid: server_config}}
+
+        # Each server is written individually; if a later write fails the
+        # earlier ones remain (intentional partial-success — no rollback).
+        try:
+            path = write_client_config(
+                client=payload.client,
+                config=config,
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+            write_mcp_client_settings(
+                client=payload.client,
+                settings={
+                    "servers": {
+                        sid: {
+                            "enabled": True,
+                            "auto_start": True,
+                            "permissions": {
+                                "default_mode": "confirm",
+                                "allow": [],
+                                "deny": [],
+                                "confirm": [],
+                            },
+                        }
+                    }
+                },
+                project_root=payload.project_root,
+                output_path=payload.output_path,
+            )
+            existing_servers[sid] = server_config
+            added += 1
+            details.append({"server_id": sid, "status": "added"})
+        except Exception as exc:
+            errors += 1
+            details.append(
+                {
+                    "server_id": sid,
+                    "status": "error",
+                    "reason": sanitize_error(str(exc)),
+                }
+            )
+
+    if added > 0:
+        global _mcp_chat_engine
+        if _mcp_chat_engine is not None:
+            await get_mcp_chat_engine(refresh=True)
+
+    return MCPCustomImportResponse(
+        added=added,
+        skipped=skipped,
+        errors=errors,
+        details=details,
+        path=str(path) if path is not None else None,
+    )
+
+
 @app.post("/api/mcp/reset", response_model=MCPResetResponse)
 async def reset_mcp_config(
     payload: MCPResetRequest,

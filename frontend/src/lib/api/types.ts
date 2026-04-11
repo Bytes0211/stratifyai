@@ -309,6 +309,35 @@ export interface McpCustomServerDeleteResponse {
   path: string;
 }
 
+export interface McpCustomExportEntry {
+  server_id: string;
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+}
+
+export interface McpCustomExportResponse {
+  client: string;
+  servers: McpCustomExportEntry[];
+  count: number;
+}
+
+export interface McpCustomImportRequest {
+  client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
+  servers: McpCustomExportEntry[];
+  overwrite?: boolean;
+  project_root?: string;
+  output_path?: string;
+}
+
+export interface McpCustomImportResponse {
+  added: number;
+  skipped: number;
+  errors: number;
+  details: Array<{ server_id: string; status: string; reason?: string }>;
+  path?: string | null;
+}
+
 export interface McpResetRequest {
   client: 'claude-desktop' | 'claude-code' | 'cursor' | 'vscode';
   server_ids?: string[];
