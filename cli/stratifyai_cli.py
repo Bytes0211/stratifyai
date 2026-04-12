@@ -3693,11 +3693,21 @@ def interactive(
                     for _tr in mcp_tool_results:
                         _server = _tr.get("server_id", "?")
                         _tool = _tr.get("tool_name", "?")
-                        _content = str(_tr.get("content", ""))
-                        _preview = (
-                            _content[:80] + "..." if len(_content) > 80 else _content
-                        )
-                        console.print(f"[dim][MCP: {_server}.{_tool}] {_preview}[/dim]")
+                        _error = _tr.get("error")
+                        if _error:
+                            console.print(
+                                f"[red][MCP: {_server}.{_tool}] ERROR: {_error}[/red]"
+                            )
+                        else:
+                            _content = str(_tr.get("content", _tr.get("result", "")))
+                            _preview = (
+                                _content[:80] + "..."
+                                if len(_content) > 80
+                                else _content
+                            )
+                            console.print(
+                                f"[dim][MCP: {_server}.{_tool}] {_preview}[/dim]"
+                            )
 
                 # Display metadata and response (interactive mode - cyan)
                 console.print(

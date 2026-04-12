@@ -1007,3 +1007,205 @@ class TestMCPHelpUpdate:
         out = strip_ansi(result.output)
         assert "MCP active:" in out
         assert "postgresql" in out
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Error handling and edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestMCPStartupFailureNonFatal:
+    """4.1: Server startup failure must warn and continue, not crash."""
+
+    def test_startup_failure_prints_warning_and_continues(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="broken-server", status="stopped"),
+        ]
+        mock_engine.list_tools.return_value = []
+
+        result = _invoke_interactive_with_mcp(
+            runner,
+            extra_args=["--mcp-server", "broken-server"],
+            simple_catalog=simple_catalog,
+            mock_engine=mock_engine,
+            run_sync_side_effect=RuntimeError("spawn failed"),
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Failed to start" in result.output
+        assert "StratifyAI Interactive Mode" in result.output
+
+
+class TestMCPToolExecutionError:
+    """4.2: Tool execution errors must be displayed, session continues."""
+
+    def test_tool_error_displayed_in_output(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        resp = _make_chat_response(
+            content="I encountered an error.",
+            raw_response={
+                "mcp_tool_results": [
+                    {
+                        "server_id": "postgresql",
+                        "tool_name": "query",
+                        "error": "connection refused",
+                        "result": None,
+                    },
+                ],
+            },
+        )
+        result, _ = _invoke_interactive_with_chat(
+            runner,
+            simple_catalog,
+            mock_engine,
+            resp,
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "ERROR: connection refused" in result.output
+        assert "postgresql.query" in result.output
+
+    def test_chat_exception_does_not_crash_session(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        mock_client = MagicMock()
+        mock_client.chat_with_mcp_sync.side_effect = RuntimeError("tool loop failed")
+
+        mock_client_class = MagicMock(return_value=mock_client)
+
+        with (
+            patch("cli.stratifyai_cli.MODEL_CATALOG", simple_catalog),
+            patch("cli.stratifyai_cli.LLMClient", mock_client_class),
+            patch(
+                "stratifyai.mcp_client.MCPClientEngine",
+                return_value=mock_engine,
+            ),
+            patch("cli.stratifyai_cli.run_sync", return_value=None),
+            patch(
+                "cli.stratifyai_cli.Prompt.ask",
+                side_effect=["", "test query", "exit"],
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "interactive",
+                    "--provider",
+                    "openai",
+                    "--model",
+                    "gpt-4o-mini",
+                    "--mcp-server",
+                    "postgresql",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        assert "tool loop failed" in result.output
+
+
+class TestMCPEngineInitFailure:
+    """4.3: Engine init failure must fall back to non-MCP mode."""
+
+    def test_engine_init_failure_falls_back(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        with (
+            patch("cli.stratifyai_cli.MODEL_CATALOG", simple_catalog),
+            patch("cli.stratifyai_cli.LLMClient"),
+            patch(
+                "stratifyai.mcp_client.MCPClientEngine",
+                side_effect=RuntimeError("no configs found"),
+            ),
+            patch(
+                "cli.stratifyai_cli.Prompt.ask",
+                side_effect=["", "exit"],
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "interactive",
+                    "--provider",
+                    "openai",
+                    "--model",
+                    "gpt-4o-mini",
+                    "--mcp-server",
+                    "postgresql",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        assert "MCP initialization failed" in result.output
+        assert "Continuing without MCP" in result.output
+        assert "StratifyAI Interactive Mode" in result.output
+
+
+class TestMCPGracefulShutdown:
+    """4.4: Session exit must call engine.stop() for cleanup."""
+
+    def test_exit_triggers_engine_stop(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+        mock_engine.stop.return_value = None
+
+        _invoke_interactive_with_mcp(
+            runner,
+            extra_args=["--mcp-server", "postgresql"],
+            simple_catalog=simple_catalog,
+            mock_engine=mock_engine,
+        )
+
+        # The finally block calls run_sync(mcp_engine.stop()).
+        # Since run_sync is mocked, the stop() coroutine is passed to it.
+        # Verify the engine's stop method was at least invoked.
+        assert mock_engine.stop.called
+
+    def test_shutdown_exception_is_swallowed(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """Even if engine.stop() throws, session exits cleanly."""
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+        mock_engine.stop.side_effect = RuntimeError("cleanup failed")
+
+        result = _invoke_interactive_with_mcp(
+            runner,
+            extra_args=["--mcp-server", "postgresql"],
+            simple_catalog=simple_catalog,
+            mock_engine=mock_engine,
+        )
+
+        # Session must exit cleanly despite stop() failure
+        assert result.exit_code == 0, result.output
