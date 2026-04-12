@@ -2,11 +2,12 @@
 
 # **StratifyAI — Unified Intelligence Across Every Model Layer**
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-739%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-1244%20passing-brightgreen) ![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
 **Status:** Production Ready — MCP Ecosystem Complete  
+**Version:** 2.1.0  
 **Providers:** 9 Fully Integrated  
-**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Svelte 5 SPA • Vision • Smart Chunking • Async-First • **Prompt Templates** • **MCP Server & Client Engine**
+**Capabilities:** Routing • RAG • Caching • Streaming • CLI • Svelte 5 SPA • Vision • Smart Chunking • Async-First • **Prompt Templates** • **MCP Server & Client Engine** • **Custom MCP Management** • **CLI Interactive MCP**
 
 StratifyAI is a production‑ready Python framework that unifies access to frontier LLM providers through a single, consistent API. It eliminates vendor lock‑in, simplifies multi‑model development, and provides intelligent routing, cost tracking, caching, streaming, and RAG capabilities for enterprise‑grade AI systems.
 
@@ -107,6 +108,17 @@ StratifyAI is a multi‑provider LLM abstraction layer that allows developers to
 - **Prompt Templates**: 10 built-in reusable templates for common tasks
 - User-extensible template system with YAML configuration
 - Template integration with ChatBuilder, CLI, and REST API
+
+## **4.7 MCP Ecosystem**
+
+Complete Model Context Protocol implementation across server, client, and management layers:
+
+- **MCP Server**: 8 tools, 5 resources, 13+ prompts exposing StratifyAI capabilities to MCP clients
+- **MCP Client Engine**: Spawn and manage external MCP servers, aggregate tools into chat sessions
+- **MCP Abstraction Layer**: Curated catalog of 20 MCP servers, CLI wizard, config generation for Claude Desktop/Code/Cursor/VS Code
+- **Custom MCP Management**: Add, edit, delete, import, and export non-catalog servers via Web UI, CLI, or API
+- **CLI Interactive MCP**: `stratifyai interactive --mcp-server postgresql` for MCP-powered CLI chat with runtime `/mcp` commands (status, on/off, tools, refresh)
+- **Permission System**: Allow/deny/confirm rules with destructive tool gating and per-server policies
 
 ## **4.6 Svelte 5 Web UI**
 
@@ -226,13 +238,13 @@ flowchart LR
 ```bash
 git clone https://github.com/Bytes0211/stratifyai.git
 cd stratifyai
-pip install -e .
+uv sync
 ```
 
-Or with `uv`:
+Or from PyPI:
 
 ```bash
-uv sync
+uv pip install stratifyai
 ```
 
 ## **7.2 Configure API Keys**
@@ -325,7 +337,9 @@ async for chunk in client.chat_stream("Write a story"):
 # **8. CLI Features**
 
 - Chat (streaming or non‑streaming)  
-- Interactive mode with file attachments  
+- Interactive mode with file attachments and MCP server support
+- MCP interactive commands: `--mcp-server`, `--mcp-all`, runtime `/mcp` subcommands
+- MCP server management: `mcp add-custom`, `mcp export-custom`, `mcp import-custom`, `mcp status`
 - Routing with cost/quality/latency/hybrid strategies  
 - Model and provider listing  
 - Cache inspection and clearing  
@@ -369,8 +383,11 @@ stratifyai/
 │   ├── chat/             # Simplified chat modules
 │   │   ├── builder.py    # ChatBuilder class
 │   │   └── stratifyai_*.py # Provider-specific modules
+│   ├── mcp_server/       # MCP server (8 tools, 5 resources, 13+ prompts)
+│   ├── mcp_client/       # MCP client engine (spawn/manage external servers)
+│   ├── mcp_catalog/      # MCP server catalog (20 curated servers)
 │   └── utils/            # Utilities (token counting, extraction)
-├── cli/                  # Typer CLI
+├── cli/                  # Typer CLI (chat, interactive [--mcp-server], mcp management)
 ├── examples/             # Usage examples
 └── docs/                 # Technical documentation
 ```
@@ -380,35 +397,38 @@ stratifyai/
 # **11. Testing**
 
 ```bash
-pytest
-pytest -v
+uv run pytest                                    # run all tests
+uv run pytest --cov=stratifyai --cov=api         # with coverage
+cd frontend && npx vitest run                    # frontend tests
 ```
+
+**CI pipeline:** ruff lint/format, mypy type checks, pytest with 80% coverage gate, pip-audit vulnerability scanning.
 
 ---
 
 # **12. Project Status**
 
-**Current Phase:** Production Ready (Phase 7.11 Complete)  
-**Progress:** All phases 1–7.11 Complete  
+**Current Phase:** Production Ready — MCP Ecosystem Complete  
+**Progress:** All phases 1–15 complete, MCP ecosystem fully delivered  
 
 ### Completed Phases
 
-- **Phase 1-6:** Core implementation, providers, CLI, routing, caching
-- **Phase 7.1:** Large file handling with token estimation & chunking
-- **Phase 7.2:** Intelligent extraction (CSV, JSON, logs, code)
-- **Phase 7.3:** Model auto-selection for extraction tasks
-- **Phase 7.4:** Enhanced caching UI with analytics
-- **Phase 7.5:** RAG/Vector DB integration with ChromaDB
-- **Phase 7.6:** Chat package with simplified API
-- **Phase 7.7:** Async-first conversion with native SDK clients
-- **Phase 7.8:** Builder pattern & required model parameter
-- **Phase 7.9:** Web UI enhancements (vision, chunking, markdown rendering)
-- **Phase 7.10:** Catalog modernization with JSON schema and CI validation
-- **Phase 7.11:** Svelte 5 SPA with tabbed interface, real-time streaming, and file attachments
+- **Phases 1-6:** Core implementation, providers, CLI, routing, caching
+- **Phase 7:** Large file handling, extraction, RAG, chat package, async-first, builder pattern, Svelte 5 SPA
+- **Phases 8-9:** Prompt templates, CI/CD infrastructure
+- **Phases 10-11:** Error handling, validation hardening
+- **Phases 12-13:** Observability, performance (O(1) cache, concurrency limits)
+- **Phase 14:** Developer experience (doctor CLI, structured errors)
+- **Phase 15:** Security audit and hardening
+- **MCP Server:** 8 tools, 5 resources, 13+ prompts (Phases 1-5, 7-8)
+- **MCP Abstraction Layer:** Curated catalog, CLI wizard, Web UI, tool tester (AL-1 to AL-4)
+- **MCP Client Engine:** Core engine, tool registry, chat integration, permissions, Web UI, API (CE-1 to CE-6)
+- **Custom MCP Management:** Add, edit, delete, import/export via API, CLI, and Web UI (Phases 1-5)
+- **CLI Interactive MCP:** Server discovery, chat routing, /mcp commands, error handling (Phases 1-4)
 
-**Test Coverage:** 300+ tests across all modules
+**Test Coverage:** 1,244 tests, 89% coverage
 
-A detailed breakdown of all phases is included in the full README and project documentation.
+A detailed breakdown is in `docs/project-status.md` and `AGENTS.md`.
 
 ---
 

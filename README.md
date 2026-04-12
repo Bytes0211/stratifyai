@@ -43,6 +43,7 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - **MCP Abstraction Layer** — curated server catalog, CLI wizard, inline tool tester
 - **Permission system** for MCP tool safety (allow/deny/confirm, destructive tool gating)
 - **Custom MCP import/export** — bulk backup and restore non-catalog servers via CLI, API, or Web UI
+- **CLI interactive MCP** — `stratifyai interactive --mcp-server postgresql` for MCP-powered CLI chat with runtime `/mcp` commands
 
 ### Advanced
 
@@ -182,6 +183,7 @@ Both commands accept `--project-root` and `--output` for workspace-scoped config
 stratifyai chat -p openai -m gpt-4o-mini -t "Hello"
 stratifyai route "Explain relativity" --strategy hybrid
 stratifyai interactive
+stratifyai interactive --mcp-server postgresql --mcp-server filesystem
 stratifyai cache-stats
 ```
 

@@ -154,7 +154,7 @@ stratifyai/                             # Project root
 │   └── README.md                       # Catalog contribution guidelines
 ├── cli/
 │   ├── __init__.py
-│   └── stratifyai_cli.py               # Typer CLI (chat, route, interactive, analyze, cache-stats, cache-clear, check-keys, mcp)
+│   └── stratifyai_cli.py               # Typer CLI (chat, route, interactive [--mcp-server], analyze, cache-stats, cache-clear, check-keys, mcp)
 ├── docs/                               # Documentation (see Documentation section)
 ├── examples/
 │   ├── auto_selection_demo.py
@@ -186,6 +186,7 @@ stratifyai/                             # Project root
 │   ├── test_mcp_resources.py           # MCP resource layer
 │   ├── test_mcp_schemas.py             # MCP schema validation
 │   ├── test_mcp_tools.py              # MCP tool registration
+│   ├── test_cli.py                    # CLI interactive MCP support (Phases 1-4)
 │   ├── test_middleware.py              # TrackedLLMClient middleware tests
 │   ├── test_model_selector.py
 │   ├── test_models.py
@@ -398,10 +399,10 @@ stratifyai mcp import-custom --client cursor --file custom-servers.json
 
 ## Project Status
 
-**Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer, Custom MCP Import/Export all delivered
-**Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4); Custom MCP Phases 1-5
-**Latest Updates:** Custom MCP import/export (bulk backup/restore via CLI, API, Web UI), P2 security fixes (path-separator validation, revokeObjectURL race) (Apr 11, 2026)
-**Test Suite:** 1077 tests (85% coverage)
+**Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer, Custom MCP, CLI Interactive MCP all delivered
+**Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4); Custom MCP Phases 1-5; CLI Interactive MCP Phases 1-4
+**Latest Updates:** CLI interactive MCP support (--mcp-server flags, chat routing through MCP engine, /mcp runtime commands, error handling), provider_validator coverage boost to 99% (Apr 12, 2026)
+**Test Suite:** 1244 tests (89% coverage)
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -671,6 +672,14 @@ stratifyai mcp import-custom --client cursor --file custom-servers.json
   - 196 new tests in `test_api_endpoints.py`
   - Historical snapshot at phase completion: **1077 total tests collected**, 85% coverage
 
+- ✅ CLI Interactive MCP Support (Phases 1-4) - Apr 12, 2026
+  - Phase 1: `--mcp-server` / `--mcp-all` flags, server discovery, banner with tool counts
+  - Phase 2: Conditional routing through `chat_with_mcp_sync`, tool result display, MCP warnings, tool count in metadata
+  - Phase 3: `/mcp` runtime commands (status, on/off, tools, refresh) with live server control
+  - Phase 4: Error handling — non-fatal startup failures, tool error display, engine init fallback, graceful shutdown via `engine.stop()`
+  - 31 CLI tests in `test_cli.py`; `provider_validator.py` coverage boosted from 77% to 99% (+20 tests)
+  - Historical snapshot at phase completion: **1244 total tests collected**, 89% coverage
+
 ### Future Enhancements
 
 - 📝 AL-5: Abstraction Layer polish
@@ -680,7 +689,7 @@ stratifyai mcp import-custom --client cursor --file custom-servers.json
 - ⏳ UI deprecation warnings from catalog
 - ⏳ Weekly catalog auto-sync workflow
 - 📝 Code Review Action Plan: concurrency fixes, test coverage, code organization
-- 📝 Shared MCP Svelte store: unify server/tool state across Chat and MCP tabs (issue #60)
+- ✅ Shared MCP Svelte store: unified server/tool state across Chat and MCP tabs (issue #60 — closed)
 
 ## Documentation
 
