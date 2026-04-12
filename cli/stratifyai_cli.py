@@ -2104,6 +2104,16 @@ def interactive(
         dir_okay=False,
         readable=True,
     ),
+    mcp_server: list[str] = typer.Option(
+        [],
+        "--mcp-server",
+        help="MCP server ID to enable (repeatable, e.g. --mcp-server postgresql)",
+    ),
+    mcp_all: bool = typer.Option(
+        False,
+        "--mcp-all",
+        help="Enable all discovered MCP servers for this session",
+    ),
 ):
     """Start interactive chat session."""
 
@@ -2113,6 +2123,8 @@ def interactive(
     LARGE_FILE_THRESHOLD_KB = 500
     client: LLMClient | None = None
     temperature: float | None = None
+    mcp_engine: Any = None
+    active_mcp_servers: list[str] = []
 
     try:
         # Helper function to load file with size validation and intelligent extraction
@@ -2751,6 +2763,104 @@ def interactive(
         client = LLMClient(provider=provider)
         messages: list[Message] = []
 
+        # ── MCP engine initialization (Phase 1) ──────────────────────────────
+        use_mcp = bool(mcp_server) or mcp_all
+        if use_mcp:
+            from stratifyai.mcp_client import MCPClientEngine  # noqa: PLC0415
+
+            try:
+                with console.status(
+                    "[cyan]Initializing MCP client engine...", spinner="dots"
+                ):
+                    mcp_engine = MCPClientEngine(client="auto")
+
+                all_statuses = mcp_engine.list_servers()
+                discovered_ids = [s.server_id for s in all_statuses]
+
+                if not discovered_ids:
+                    console.print(
+                        "[yellow]⚠ No MCP servers configured. Continuing without MCP.[/yellow]"
+                    )
+                    use_mcp = False
+                else:
+                    requested_ids: list[str] = (
+                        discovered_ids if mcp_all else list(mcp_server)
+                    )
+
+                    # Warn about unknown server IDs
+                    for sid in requested_ids:
+                        if sid not in discovered_ids:
+                            console.print(
+                                f"[yellow]⚠ Unknown MCP server: '{sid}' — skipping[/yellow]"
+                            )
+
+                    # Start valid servers (non-fatal on individual failure)
+                    to_start = [sid for sid in requested_ids if sid in discovered_ids]
+                    for sid in to_start:
+                        try:
+                            with console.status(
+                                f"[cyan]Starting MCP server: {sid}...", spinner="dots"
+                            ):
+                                run_sync(mcp_engine.start_server(sid))
+                            active_mcp_servers.append(sid)
+                        except Exception as _start_exc:
+                            console.print(
+                                f"[yellow]⚠ Failed to start MCP server '{sid}': {_start_exc}[/yellow]"
+                            )
+
+                    # Build tool-count map from registry
+                    tools_by_server: dict[str, int] = {}
+                    for _td in mcp_engine.list_tools():
+                        tools_by_server[_td.server_id] = (
+                            tools_by_server.get(_td.server_id, 0) + 1
+                        )
+
+                    # Summary table
+                    mcp_table = Table(
+                        title="MCP Servers",
+                        show_header=True,
+                        header_style="bold cyan",
+                    )
+                    mcp_table.add_column("Server", style="cyan")
+                    mcp_table.add_column("Status")
+                    mcp_table.add_column("Tools")
+
+                    for _status in mcp_engine.list_servers():
+                        _is_active = _status.server_id in active_mcp_servers
+                        _tool_count = tools_by_server.get(_status.server_id, 0)
+                        _indicator = "● " if _is_active else "  "
+                        if _status.status == "connected":
+                            _status_str = "[green]connected[/green]"
+                        elif _status.status in ("stopped", "disabled"):
+                            _status_str = f"[dim]{_status.status}[/dim]"
+                        else:
+                            _status_str = f"[red]{_status.status}[/red]"
+                        _tools_str = (
+                            f"[green]{_tool_count}[/green]"
+                            if _is_active and _tool_count > 0
+                            else "[dim]—[/dim]"
+                        )
+                        mcp_table.add_row(
+                            f"{_indicator}{_status.server_id}",
+                            _status_str,
+                            _tools_str,
+                        )
+
+                    console.print(mcp_table)
+
+                    if not active_mcp_servers:
+                        console.print(
+                            "[yellow]⚠ No MCP servers started. Continuing without MCP.[/yellow]"
+                        )
+                        use_mcp = False
+
+            except Exception as _mcp_init_exc:
+                console.print(
+                    f"[yellow]⚠ MCP initialization failed: {_mcp_init_exc}. Continuing without MCP.[/yellow]"
+                )
+                mcp_engine = None
+                use_mcp = False
+
         # Get model info for context window (already retrieved above for temperature check)
         context_window = model_info.get("context", "N/A")
 
@@ -2836,8 +2946,21 @@ def interactive(
                 f"Provider: [{INTERACTIVE_COLOR}]{provider}[/{INTERACTIVE_COLOR}] | Model: [{INTERACTIVE_COLOR}]{model}[/{INTERACTIVE_COLOR}] | Context: [{INTERACTIVE_COLOR}]{context_window:,} tokens[/{INTERACTIVE_COLOR}]"
             )
 
+        # Show active MCP servers in banner when enabled
+        if active_mcp_servers and mcp_engine is not None:
+            _banner_tools: dict[str, int] = {}
+            for _td in mcp_engine.list_tools():
+                _banner_tools[_td.server_id] = _banner_tools.get(_td.server_id, 0) + 1
+            _mcp_parts = [
+                f"{sid} ({_banner_tools.get(sid, 0)} tools)"
+                for sid in active_mcp_servers
+            ]
+            console.print(
+                f"MCP: [{INTERACTIVE_COLOR}]{', '.join(_mcp_parts)}[/{INTERACTIVE_COLOR}]"
+            )
+
         console.print(
-            "[dim]Commands: /file <path> | /attach <path> | /clear | /save [path] | /provider | /help | exit[/dim]"
+            "[dim]Commands: /file <path> | /attach <path> | /mcp | /clear | /save [path] | /provider | /help | exit[/dim]"
         )
         console.print(
             f"[dim]File size limit: {MAX_FILE_SIZE_MB} MB | Ctrl+C to exit[/dim]\n"
@@ -3218,6 +3341,9 @@ def interactive(
                     "  [green]/provider[/green]      - Switch provider and model"
                 )
                 console.print(
+                    "  [green]/mcp[/green]           - Show MCP server status (Phase 2)"
+                )
+                console.print(
                     "  [green]/help[/green]          - Show this help message"
                 )
                 console.print("  [green]exit, quit, q[/green]  - Exit interactive mode")
@@ -3241,7 +3367,7 @@ def interactive(
                     f"[yellow]Unknown command: {user_input.split()[0]}[/yellow]"
                 )
                 console.print(
-                    "[dim]Available commands: /file, /attach, /clear, /save, /provider, /help | Type 'exit' to quit[/dim]"
+                    "[dim]Available commands: /file, /attach, /mcp, /clear, /save, /provider, /help | Type 'exit' to quit[/dim]"
                 )
                 continue
 
@@ -3473,6 +3599,13 @@ def interactive(
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1) from e
+    finally:
+        # Gracefully stop any running MCP servers when the session ends
+        if mcp_engine is not None:
+            try:
+                run_sync(mcp_engine.stop())
+            except Exception:
+                pass
 
 
 @app.command()
