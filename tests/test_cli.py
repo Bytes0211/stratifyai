@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,6 +11,13 @@ from typer.testing import CliRunner
 from cli.stratifyai_cli import app
 from stratifyai.mcp_client.server_manager import ServerStatus
 from stratifyai.mcp_client.tool_registry import ToolDescriptor
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences from text."""
+    return _ANSI_RE.sub("", text)
 
 
 @pytest.fixture
@@ -120,7 +128,7 @@ class TestMCPFlagRegistration:
         """
         result = runner.invoke(app, ["interactive", "--help"])
         assert result.exit_code == 0, result.output
-        assert "--mcp-server" in result.output
+        assert "--mcp-server" in strip_ansi(result.output)
 
     def test_mcp_all_flag_documented_in_help(self, runner: CliRunner) -> None:
         """--mcp-all must appear in 'interactive --help' output.
@@ -130,7 +138,7 @@ class TestMCPFlagRegistration:
         """
         result = runner.invoke(app, ["interactive", "--help"])
         assert result.exit_code == 0, result.output
-        assert "--mcp-all" in result.output
+        assert "--mcp-all" in strip_ansi(result.output)
 
 
 # ---------------------------------------------------------------------------
