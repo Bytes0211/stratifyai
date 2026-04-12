@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import {
+    configureCustomMcp,
     configureMcp,
     deleteCustomMcp,
     exportCustomMcp,
@@ -35,6 +36,7 @@
     Download,
     Pencil,
     Play,
+    Plus,
     PlugZap,
     Power,
     RefreshCw,
@@ -78,6 +80,15 @@
   let error: string | null = null;
   let statusMessage = '';
   let copyMessage = '';
+
+  // --- Phase 2: Add custom server state ---
+  let browserTab: 'catalog' | 'custom' = 'catalog';
+  let customServerId = '';
+  let customCommand = '';
+  let customArgs: string[] = [];
+  let customEnvPairs: Array<{ key: string; value: string }> = [];
+  let customServerIdError = '';
+  let customCommandError = '';
 
   // --- Phase 4: Edit custom server state ---
   let editingServerId: string | null = null;
@@ -204,6 +215,103 @@
       error = err instanceof Error ? err.message : `Failed to remove ${serverId}`;
     } finally {
       runtimeActionLoading = '';
+    }
+  }
+
+  // --- Phase 2: Add custom server helpers ---
+
+  const CUSTOM_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+  function validateCustomForm(): boolean {
+    let valid = true;
+    customServerIdError = '';
+    customCommandError = '';
+
+    if (!customServerId.trim()) {
+      customServerIdError = 'Server ID is required.';
+      valid = false;
+    } else if (!CUSTOM_ID_RE.test(customServerId.trim())) {
+      customServerIdError = 'Lowercase alphanumeric and hyphens only.';
+      valid = false;
+    }
+
+    if (!customCommand.trim()) {
+      customCommandError = 'Command is required.';
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  function resetCustomForm() {
+    customServerId = '';
+    customCommand = '';
+    customArgs = [];
+    customEnvPairs = [];
+    customServerIdError = '';
+    customCommandError = '';
+  }
+
+  function addCustomArg() {
+    customArgs = [...customArgs, ''];
+  }
+
+  function removeCustomArg(index: number) {
+    customArgs = customArgs.filter((_, i) => i !== index);
+  }
+
+  function addCustomEnvPair() {
+    customEnvPairs = [...customEnvPairs, { key: '', value: '' }];
+  }
+
+  function removeCustomEnvPair(index: number) {
+    customEnvPairs = customEnvPairs.filter((_, i) => i !== index);
+  }
+
+  async function previewCustomServer() {
+    if (!validateCustomForm()) return;
+    await submitCustomServer(false);
+  }
+
+  async function applyCustomServer() {
+    if (!validateCustomForm()) return;
+    await submitCustomServer(true);
+  }
+
+  async function submitCustomServer(apply: boolean) {
+    try {
+      actionLoading = true;
+      error = null;
+      copyMessage = '';
+      const envObj: Record<string, string> = {};
+      for (const pair of customEnvPairs) {
+        if (pair.key.trim()) {
+          envObj[pair.key.trim()] = pair.value;
+        }
+      }
+      preview = await configureCustomMcp({
+        server_id: customServerId.trim(),
+        command: customCommand.trim(),
+        args: customArgs.filter((a) => a.trim() !== ''),
+        env: Object.keys(envObj).length > 0 ? envObj : undefined,
+        client: selectedClient,
+        project_root: projectRoot || undefined,
+        apply,
+      });
+      if (preview.applied) {
+        statusMessage = `Custom server "${customServerId.trim()}" applied${preview.path ? ` to ${preview.path}` : ''}.`;
+        resetCustomForm();
+        browserTab = 'catalog';
+        await refreshStatus();
+      } else {
+        statusMessage = selectedClient === 'claude-code'
+          ? 'Commands generated for Claude Code.'
+          : 'Preview updated.';
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to configure custom MCP server';
+    } finally {
+      actionLoading = false;
     }
   }
 
@@ -728,17 +836,30 @@
     <section class="card filter-panel">
       <div class="section-title">
         <PlugZap size={18} />
-        <h2>Catalog Browser</h2>
+        <h2>Server Browser</h2>
       </div>
 
-      <div class="filter-row">
-        <input type="text" bind:value={searchQuery} placeholder="Search by name, id, or tag" />
-        <select bind:value={selectedCategory}>
-          {#each categories as category}
-            <option value={category}>{category === 'all' ? 'All categories' : category}</option>
-          {/each}
-        </select>
+      <div class="tab-row">
+        <button class="tab-button" class:active={browserTab === 'catalog'} on:click={() => browserTab = 'catalog'}>
+          <Server size={14} />
+          Catalog
+        </button>
+        <button class="tab-button" class:active={browserTab === 'custom'} on:click={() => browserTab = 'custom'}>
+          <Plus size={14} />
+          Add Custom
+        </button>
       </div>
+
+      {#if browserTab === 'catalog'}
+        <div class="filter-row">
+          <input type="text" bind:value={searchQuery} placeholder="Search by name, id, or tag" />
+          <select bind:value={selectedCategory}>
+            {#each categories as category}
+              <option value={category}>{category === 'all' ? 'All categories' : category}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
     </section>
 
     {#if displayError}
@@ -749,61 +870,121 @@
     {/if}
 
     <div class="content-grid">
-      <section class="catalog-grid">
-        {#each filteredServers as server (server.id)}
-          <article class:selected={selectedServerIds.includes(server.id)} class:configured={isConfigured(server.id)} class="server-card card">
-            <div class="server-card__header">
-              <div>
-                <h3>{server.name}</h3>
-                <p>{server.description}</p>
+      {#if browserTab === 'catalog'}
+        <section class="catalog-grid">
+          {#each filteredServers as server (server.id)}
+            <article class:selected={selectedServerIds.includes(server.id)} class:configured={isConfigured(server.id)} class="server-card card">
+              <div class="server-card__header">
+                <div>
+                  <h3>{server.name}</h3>
+                  <p>{server.description}</p>
+                </div>
+                <button class:selected={selectedServerIds.includes(server.id)} class="toggle-button" on:click={() => toggleServer(server.id)}>
+                  {selectedServerIds.includes(server.id) ? 'Selected' : 'Select'}
+                </button>
               </div>
-              <button class:selected={selectedServerIds.includes(server.id)} class="toggle-button" on:click={() => toggleServer(server.id)}>
-                {selectedServerIds.includes(server.id) ? 'Selected' : 'Select'}
-              </button>
-            </div>
 
-            <div class="server-meta">
-              <span class="chip">{server.category}</span>
-              <span class="chip">{server.install_method}</span>
-              {#if isConfigured(server.id)}
-                <span class="chip configured">Configured</span>
+              <div class="server-meta">
+                <span class="chip">{server.category}</span>
+                <span class="chip">{server.install_method}</span>
+                {#if isConfigured(server.id)}
+                  <span class="chip configured">Configured</span>
+                {/if}
+              </div>
+
+              {#if server.website}
+                <a class="website-link" href={server.website} target="_blank" rel="noreferrer">Docs ↗</a>
               {/if}
+
+              {#if selectedServerIds.includes(server.id) && (server.env_vars.length > 0 || server.user_args.length > 0)}
+                <div class="server-form">
+                  {#each server.env_vars as envVar}
+                    <label>
+                      <span>{envVar.name}{envVar.required ? ' *' : ''}</span>
+                      <input
+                        type={envVar.secret ? 'password' : 'text'}
+                        value={envValues[envVar.name] ?? ''}
+                        placeholder={envVar.description || envVar.name}
+                        on:input={(event) => updateEnvValue(envVar.name, (event.currentTarget as HTMLInputElement).value)}
+                      />
+                    </label>
+                  {/each}
+
+                  {#each server.user_args as userArg}
+                    <label>
+                      <span>{userArg.name}{userArg.required ? ' *' : ''}</span>
+                      <input
+                        type="text"
+                        value={argValues[`${server.id}.${userArg.name}`] ?? userArg.example ?? ''}
+                        placeholder={userArg.description || userArg.name}
+                        on:input={(event) => updateArgValue(server.id, userArg.name, (event.currentTarget as HTMLInputElement).value)}
+                      />
+                    </label>
+                  {/each}
+                </div>
+              {/if}
+            </article>
+          {/each}
+        </section>
+      {:else}
+        <section class="custom-form-panel card">
+          <div class="section-title">
+            <Plus size={18} />
+            <h2>Add Custom Server</h2>
+          </div>
+
+          <div class="server-form">
+            <label>
+              <span>Server ID *</span>
+              <input
+                type="text"
+                bind:value={customServerId}
+                placeholder="my-custom-server"
+                class:input-error={customServerIdError}
+              />
+              {#if customServerIdError}
+                <span class="field-error">{customServerIdError}</span>
+              {/if}
+            </label>
+
+            <label>
+              <span>Command *</span>
+              <input
+                type="text"
+                bind:value={customCommand}
+                placeholder="e.g. node, python, npx"
+                class:input-error={customCommandError}
+              />
+              {#if customCommandError}
+                <span class="field-error">{customCommandError}</span>
+              {/if}
+            </label>
+
+            <div class="edit-field-group">
+              <span class="edit-field-label">Arguments</span>
+              {#each customArgs as _arg, i}
+                <div class="edit-inline-row">
+                  <input type="text" bind:value={customArgs[i]} placeholder="argument" />
+                  <button class="icon-btn" on:click={() => removeCustomArg(i)}><X size={14} /></button>
+                </div>
+              {/each}
+              <button class="text-btn" on:click={addCustomArg}>+ Add argument</button>
             </div>
 
-            {#if server.website}
-              <a class="website-link" href={server.website} target="_blank" rel="noreferrer">Docs ↗</a>
-            {/if}
-
-            {#if selectedServerIds.includes(server.id) && (server.env_vars.length > 0 || server.user_args.length > 0)}
-              <div class="server-form">
-                {#each server.env_vars as envVar}
-                  <label>
-                    <span>{envVar.name}{envVar.required ? ' *' : ''}</span>
-                    <input
-                      type={envVar.secret ? 'password' : 'text'}
-                      value={envValues[envVar.name] ?? ''}
-                      placeholder={envVar.description || envVar.name}
-                      on:input={(event) => updateEnvValue(envVar.name, (event.currentTarget as HTMLInputElement).value)}
-                    />
-                  </label>
-                {/each}
-
-                {#each server.user_args as userArg}
-                  <label>
-                    <span>{userArg.name}{userArg.required ? ' *' : ''}</span>
-                    <input
-                      type="text"
-                      value={argValues[`${server.id}.${userArg.name}`] ?? userArg.example ?? ''}
-                      placeholder={userArg.description || userArg.name}
-                      on:input={(event) => updateArgValue(server.id, userArg.name, (event.currentTarget as HTMLInputElement).value)}
-                    />
-                  </label>
-                {/each}
-              </div>
-            {/if}
-          </article>
-        {/each}
-      </section>
+            <div class="edit-field-group">
+              <span class="edit-field-label">Environment variables</span>
+              {#each customEnvPairs as _pair, i}
+                <div class="edit-inline-row">
+                  <input type="text" bind:value={customEnvPairs[i].key} placeholder="KEY" />
+                  <input type="text" bind:value={customEnvPairs[i].value} placeholder="value" />
+                  <button class="icon-btn" on:click={() => removeCustomEnvPair(i)}><X size={14} /></button>
+                </div>
+              {/each}
+              <button class="text-btn" on:click={addCustomEnvPair}>+ Add env var</button>
+            </div>
+          </div>
+        </section>
+      {/if}
 
       <aside class="preview-panel card">
         <div class="section-title">
@@ -811,18 +992,33 @@
           <h2>Preview & Apply</h2>
         </div>
 
-        <div class="action-row">
-          <Button variant="primary" on:click={() => generateConfig(false)} loading={actionLoading}>
-            Preview config
-          </Button>
-          <Button
-            variant="secondary"
-            on:click={() => generateConfig(true)}
-            disabled={actionLoading || !selectedClientInfo?.supports_apply}
-          >
-            {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
-          </Button>
-        </div>
+        {#if browserTab === 'catalog'}
+          <div class="action-row">
+            <Button variant="primary" on:click={() => generateConfig(false)} loading={actionLoading}>
+              Preview config
+            </Button>
+            <Button
+              variant="secondary"
+              on:click={() => generateConfig(true)}
+              disabled={actionLoading || !selectedClientInfo?.supports_apply}
+            >
+              {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
+            </Button>
+          </div>
+        {:else}
+          <div class="action-row">
+            <Button variant="primary" on:click={previewCustomServer} loading={actionLoading}>
+              Preview config
+            </Button>
+            <Button
+              variant="secondary"
+              on:click={applyCustomServer}
+              disabled={actionLoading || !selectedClientInfo?.supports_apply}
+            >
+              {selectedClientInfo?.supports_apply ? 'Apply config' : 'Commands only'}
+            </Button>
+          </div>
+        {/if}
 
         <div class="action-row secondary-actions">
           <Button
@@ -886,7 +1082,7 @@
           </div>
         {/if}
 
-        <pre class="preview-output">{renderedPreview || 'Select one or more servers, then click “Preview config”.'}</pre>
+        <pre class="preview-output">{renderedPreview || (browserTab === 'custom' ? 'Fill in the form and click "Preview config".' : 'Select one or more servers, then click "Preview config".')}</pre>
       </aside>
     </div>
 
@@ -948,7 +1144,7 @@
 
                   <div class="edit-field-group">
                     <span class="edit-field-label">Arguments</span>
-                    {#each editArgs as arg, i}
+                    {#each editArgs as _arg, i}
                       <div class="edit-inline-row">
                         <input type="text" bind:value={editArgs[i]} placeholder="arg" />
                         <button class="icon-btn" on:click={() => removeEditArg(i)}><X size={14} /></button>
@@ -959,7 +1155,7 @@
 
                   <div class="edit-field-group">
                     <span class="edit-field-label">Environment variables</span>
-                    {#each editEnvPairs as pair, i}
+                    {#each editEnvPairs as _pair, i}
                       <div class="edit-inline-row">
                         <input type="text" bind:value={editEnvPairs[i].key} placeholder="KEY" />
                         <input type="text" bind:value={editEnvPairs[i].value} placeholder="value" />
@@ -1721,5 +1917,45 @@
     &:hover {
       text-decoration: underline;
     }
+  }
+
+  .tab-row {
+    display: flex;
+    gap: $space-2;
+    margin-bottom: $space-3;
+  }
+
+  .tab-button {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-2;
+    padding: $space-2 $space-3;
+    border: 1px solid var(--bg-hover);
+    border-radius: $radius-lg;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: $text-sm;
+    cursor: pointer;
+
+    &.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: transparent;
+    }
+  }
+
+  .custom-form-panel {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  .field-error {
+    color: #ef4444;
+    font-size: $text-xs;
+  }
+
+  .input-error {
+    border-color: #ef4444;
   }
 </style>

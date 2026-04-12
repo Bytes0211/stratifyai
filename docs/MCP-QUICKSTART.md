@@ -64,31 +64,87 @@ claude mcp add stratifyai stratifyai-mcp
 
 See [MCP-CLIENT-CONFIG.md](MCP-CLIENT-CONFIG.md) for more clients (Cursor, VS Code, etc.).
 
-## 4b. Add a Custom MCP Server (Optional)
+## 4b. Add a Custom MCP Server
 
-If the server you want is not in the curated catalog, add it directly to a supported client config.
+If the server you want isn't in the curated catalog, you can add any MCP-compatible server using the Web UI, CLI, or API.
 
-Example for an Excel-style MCP server:
+### Web UI (recommended)
+
+1. Open the StratifyAI Web UI and navigate to the **MCP Servers** tab.
+2. Click the **Add Custom** tab (next to Catalog).
+3. Fill in the form:
+   - **Server ID** — a short, lowercase identifier (e.g., `excel`, `my-tools`)
+   - **Command** — the executable to run (e.g., `npx`, `python`, `node`)
+   - **Arguments** — click "+ Add argument" for each arg
+   - **Environment variables** — click "+ Add env var" for key/value pairs
+4. Click **Preview config** to review the generated configuration.
+5. Click **Apply config** to write it to your selected client's config file.
+
+The server will appear in the Live MCP Client Dashboard where you can start, stop, and test it.
+
+#### Example: Excel MCP Server
+
+| Field | Value |
+| ----- | ----- |
+| Server ID | `excel` |
+| Command | `npx` |
+| Argument 1 | `-y` |
+| Argument 2 | `@negokaz/excel-mcp-server` |
+
+#### Example: Local Python Server
+
+| Field | Value |
+| ----- | ----- |
+| Server ID | `my-tools` |
+| Command | `python` |
+| Argument 1 | `-m` |
+| Argument 2 | `my_mcp_server` |
+| Env var | `API_KEY` = `your-key-here` |
+
+### CLI
 
 ```bash
+# Add an npx-based server
 uv run stratifyai mcp add-custom excel \
-  --client claude-desktop \
+  --client cursor \
   --command npx \
   --command-arg -y \
-  --command-arg your-excel-mcp-package
+  --command-arg @negokaz/excel-mcp-server
+
+# Add a local script with env vars
+uv run stratifyai mcp add-custom my-tools \
+  --client cursor \
+  --command python \
+  --command-arg -m \
+  --command-arg my_mcp_server \
+  --env API_KEY=your-key-here
 ```
 
-Example using a local script plus environment variables:
+### API
 
 ```bash
-uv run stratifyai mcp add-custom excel \
-  --client claude-desktop \
-  --command python \
-  --command-arg /path/to/excel_mcp_server.py \
-  --env API_KEY=your_key_here
+curl -X POST http://127.0.0.1:8080/api/mcp/add-custom \
+  -H "Authorization: Bearer $STRATIFYAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server_id": "excel",
+    "command": "npx",
+    "args": ["-y", "@negokaz/excel-mcp-server"],
+    "client": "cursor",
+    "apply": true
+  }'
 ```
 
-Supported targets include `claude-desktop`, `cursor`, and `vscode`. After adding the server, restart or refresh the client so it gets discovered.
+### Managing Custom Servers
+
+Once added, custom servers can be:
+
+- **Edited** — click the pencil icon in the Live Dashboard, or use `PUT /api/mcp/custom/{server_id}`
+- **Deleted** — click the trash icon, or use `DELETE /api/mcp/custom/{server_id}`
+- **Exported** — click "Export custom" in the Preview & Apply panel, or use `uv run stratifyai mcp export-custom --client cursor`
+- **Imported** — click "Import custom" to load a JSON file, or use `uv run stratifyai mcp import-custom --client cursor --file servers.json`
+
+Supported client targets: `claude-desktop`, `claude-code`, `cursor`, `vscode`.
 
 ## 5. Try It Out
 

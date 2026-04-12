@@ -1,14 +1,12 @@
 {
   "mcpServers": {
-    "tavily": {
+    "filesystem": {
       "command": "npx",
       "args": [
         "-y",
-        "tavily-mcp@latest"
-      ],
-      "env": {
-        "TAVILY_API_KEY": "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"
-      }
+        "@modelcontextprotocol/server-filesystem",
+        "/home/scotton/dev/projects"
+      ]
     }
   },
   "stratifyai": {

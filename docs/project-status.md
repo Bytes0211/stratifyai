@@ -1,10 +1,10 @@
 # StratifyAI - Project Status
 
 **Project Start:** January 30, 2026
-**Last Update:** April 5, 2026
-**Current Status:** MCP Ecosystem Complete — R3 quality/doc polish and local MCP chat reliability fixes delivered; code-organization refactors remain
+**Last Update:** April 11, 2026
+**Current Status:** MCP Ecosystem Complete — Custom MCP server management (add, edit, delete, import, export) fully delivered across CLI, API, and Web UI
 **Providers:** 9 operational (all with concurrency limit support)
-**Test Suite:** 743 tests (739 passing, 4 skipped), 78% coverage
+**Test Suite:** 1077 tests, 85% coverage
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ---
@@ -24,6 +24,7 @@
 - Completed: MCP Server Phases 1-5, 7-8 (server scaffold, 8 tools, 5 resources, 13+ prompts, 75 tests, docs).
 - Completed: MCP Abstraction Layer AL-1 to AL-4 (catalog, CLI wizard, Web UI, inline tool tester).
 - Completed: MCP Client Engine CE-1 to CE-6 (core engine, tool registry, chat integration, permissions, Web UI panels, API diagnostics).
+- Completed: Custom MCP server management Phases 1-5 (API layer, frontend form, validation/safety, edit/delete, import/export via CLI + API + Web UI).
 - Completed: Comprehensive code review with action plan (developer/code-review-action-plan.md).
 
 ---
@@ -38,6 +39,7 @@
 
 ## Recently Completed
 
+- Custom MCP import/export delivered (Apr 11, 2026): `GET /api/mcp/custom/export` and `POST /api/mcp/custom/import` API endpoints; `stratifyai mcp export-custom` and `stratifyai mcp import-custom` CLI commands with `--dry-run`, `--overwrite`, `--file` flags; Export/Import buttons in the Web UI MCP tab. PR #73 P2 security fixes applied: CLI import now validates `server_id` path separators (mirrors API); `URL.revokeObjectURL` deferred with `setTimeout` to fix browser download race.
 - Local MCP chat reliability pass delivered (Apr 5, 2026): auto-discovery now merges supported Claude Desktop/Cursor/VS Code configs, passive refresh no longer auto-starts broken servers, the dashboard preserves the last good state on transient refresh failures, the UI shows the source client, **Reset config** can clear selected or all applied MCP entries, and Anthropic-safe MCP tool aliases unblock Postgres/Brave tool use in chat.
 - Code Review Action Plan Phase R3 delivered: shared reasoning-model detection, provider-response validation, file-size guards, bounded `CostTracker` history, `/v1/*` REST aliases, vision/examples docs, validator coverage, and configurable thread-pool sizing.
 - Code Review Action Plan Phase R2 hardening/test coverage pass delivered: new summarization/RAG/API coverage suites, deterministic cache timing tests, health/websocket/retry hardening, Anthropic/cache-key bug fixes, and a verified 75% coverage gate.
@@ -88,9 +90,9 @@ Reference: `developer/PRD-MCP-implemenation.md` (v1.2), `developer/MCP-IMPLEMENT
 
 ## Next Milestones
 
-- Code Review Action Plan Phase R2: finish the remaining CLI/API decomposition steps (R2.1-R2.2)
 - AL-5: Abstraction Layer polish
 - CE-7: Client Engine tests and documentation
+- Code Review Action Plan Phase R2: finish the remaining CLI/API decomposition steps (R2.1-R2.2)
 - Server Phase 6: Streamable HTTP transport (deferred post-GA)
 - Server Phase 9: Rollout and verification (deferred until Client Engine proves full stack)
 

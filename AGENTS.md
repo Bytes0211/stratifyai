@@ -370,6 +370,8 @@ stratifyai analyze path/to/file.csv
 stratifyai cache-stats --detailed
 stratifyai cache-clear
 stratifyai check-keys
+stratifyai mcp export-custom --client claude-desktop > custom-servers.json
+stratifyai mcp import-custom --client cursor --file custom-servers.json
 ```
 
 ## Architecture Principles
@@ -396,10 +398,10 @@ stratifyai check-keys
 
 ## Project Status
 
-**Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer all delivered
-**Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4)
-**Latest Updates:** Per-tool/server removal (issue #59), stdio connection fix, shared MCP chat-state persistence, PostgreSQL read-only permission fix, coverage boost to 85%, CI threshold set to 80% (Apr 5, 2026)
-**Test Suite:** 881 tests (877 passed, 4 skipped), 85% coverage
+**Current Phase:** MCP Ecosystem Complete — Server, Client Engine, Abstraction Layer, Custom MCP Import/Export all delivered
+**Progress:** Phases 1-15 complete; MCP Server (8 tools, 5 resources, 13+ prompts); MCP Client Engine (CE-1 to CE-6); Abstraction Layer (AL-1 to AL-4); Custom MCP Phases 1-5
+**Latest Updates:** Custom MCP import/export (bulk backup/restore via CLI, API, Web UI), P2 security fixes (path-separator validation, revokeObjectURL race) (Apr 11, 2026)
+**Test Suite:** 1077 tests (85% coverage)
 **Dependencies:** All vulnerability-free (pip-audit clean)
 
 ### Completed Phases
@@ -658,6 +660,16 @@ stratifyai check-keys
   - CE-5: Web UI panels (MCPServersPage, live status, tool browser, permission manager)
   - CE-6: API and diagnostics (REST endpoints for server lifecycle, tool execution, health)
   - Apr 5 follow-up reliability pass: auto-merge supported local client configs, surface `source_client`, keep dashboard refresh non-destructive, and normalize Anthropic MCP tool names for chat.
+
+- ✅ Custom MCP Server Management (Phases 1-5) - Apr 11, 2026
+  - Phase 1: API layer — `POST /api/mcp/add-custom` endpoint with Pydantic validation
+  - Phase 2: Frontend — custom server form in MCPServersPage (server ID, command, args, env)
+  - Phase 3: Validation & safety — shell metacharacter rejection, path-separator checks, conflict detection
+  - Phase 4: Edit & delete — `PUT /api/mcp/custom/{server_id}`, `DELETE /api/mcp/custom/{server_id}`, inline UI actions
+  - Phase 5: Import/export — `GET /api/mcp/custom/export`, `POST /api/mcp/custom/import`, CLI `mcp export-custom` / `mcp import-custom`, Web UI Export/Import buttons
+  - Security hardening (PR #73): CLI import now validates `server_id` path separators; `URL.revokeObjectURL` race condition fixed with `setTimeout`
+  - 196 new tests in `test_api_endpoints.py`
+  - Historical snapshot at phase completion: **1077 total tests collected**, 85% coverage
 
 ### Future Enhancements
 

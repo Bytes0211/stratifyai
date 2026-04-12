@@ -1,9 +1,9 @@
 ![StratifyAI](stratifyai_trans_logo2.png)
 
 
-# StratifyAI — Unified Multi‑Provider LLM Interface v2.0.6
+# StratifyAI — Unified Multi‑Provider LLM Interface v2.1.0
 
-![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-877%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Tests](https://img.shields.io/badge/tests-1077%20passing-brightgreen) ![Providers](https://img.shields.io/badge/providers-9-orange)
 
 **Status:** Production Ready — MCP Ecosystem Complete (Server + Client Engine + Abstraction Layer)
 **Providers:** 9 Operational
@@ -42,6 +42,7 @@ StratifyAI is a production‑ready Python framework that provides a unified inte
 - **MCP Client Engine** — spawn and manage external MCP servers, tool aggregation, chat integration
 - **MCP Abstraction Layer** — curated server catalog, CLI wizard, inline tool tester
 - **Permission system** for MCP tool safety (allow/deny/confirm, destructive tool gating)
+- **Custom MCP import/export** — bulk backup and restore non-catalog servers via CLI, API, or Web UI
 
 ### Advanced
 
@@ -137,17 +138,39 @@ Documentation:
 
 #### Add a custom MCP server
 
-If the server you want is not in the curated catalog (for example, an Excel connector), you can add it directly:
+If the server you want isn't in the curated catalog, add it via the **Web UI**, CLI, or API.
+
+**Web UI (recommended):** Open the MCP Servers tab, click **Add Custom**, fill in the server ID, command, arguments, and optional env vars, then click **Apply config**. The server appears in the Live Dashboard where you can start, stop, and test it immediately.
+
+**CLI:**
 
 ```bash
 uv run stratifyai mcp add-custom excel \
-  --client claude-desktop \
+  --client cursor \
   --command npx \
   --command-arg -y \
-  --command-arg your-excel-mcp-package
+  --command-arg @negokaz/excel-mcp-server
 ```
 
-You can also pass `--env KEY=VALUE` and extra `--command-arg ...` values for custom servers, then refresh the MCP dashboard or restart the client.
+You can also pass `--env KEY=VALUE` for environment variables. Custom servers support editing, deletion, and bulk import/export from both the Web UI and CLI.
+
+See [MCP-QUICKSTART.md](docs/MCP-QUICKSTART.md#4b-add-a-custom-mcp-server) for full details including API examples.
+
+#### Export and import custom servers
+
+Back up all non-catalog custom servers to a file:
+
+```bash
+stratifyai mcp export-custom --client claude-desktop > my-custom-servers.json
+```
+
+Restore (or migrate to another client) from that file:
+
+```bash
+stratifyai mcp import-custom --client cursor --file my-custom-servers.json
+```
+
+Both commands accept `--project-root` and `--output` for workspace-scoped configs. The import command supports `--overwrite` to replace existing entries and `--dry-run` to preview what would change. The Web UI MCP tab also exposes **Export** and **Import** buttons for the same workflow.
 
 ---
 
@@ -411,7 +434,7 @@ pytest           # Run all tests
 pytest -v        # Verbose output
 ```
 
-**Test Coverage:** 877 tests across all modules (85% code coverage)
+**Test Coverage:** 1077 tests across all modules (85% code coverage)
 
 ---
 

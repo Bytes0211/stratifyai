@@ -1,0 +1,1001 @@
+Vendor Name,Invoice Number,Purchase Order (PO) ID,Payment Status,Discount Due Date,Asset ID,Asset Description,Acquisition Date,Depreciation Method,Useful Life (Years),Salvage Value
+Metro Print & Copy,INV-809570,PO-81482,Paid,2020-04-11,FF-0001,Chair,2020-04-01,MACRS,5,5950.09
+Ironclad Security,INV-688508,PO-36062,Scheduled,2019-05-21,IT-0002,Server,2019-05-11,Units of Production,5,18656.77
+Cornerstone IT,INV-263032,PO-38221,Overdue,2024-02-13,IT-0003,Server,2024-01-14,Straight-Line,20,11243.97
+Summit Logistics,INV-865179,PO-70217,Scheduled,2023-04-16,FF-0004,Filing Cabinet,2023-04-06,Straight-Line,15,11947.82
+Bridgeport Packaging,INV-479201,PO-85674,Pending,2023-04-10,BL-0005,Warehouse Expansion,2023-03-31,Straight-Line,20,29733.66
+TechVault Solutions,INV-391476,PO-69429,Overdue,2026-06-16,FF-0006,Desk,2026-06-01,Double Declining Balance,5,14830.99
+Sterling Furniture,INV-864544,PO-42087,Pending,2023-01-10,FF-0007,Desk,2022-12-26,Units of Production,15,12633.62
+Nexus Software,INV-430776,PO-62581,Overdue,2022-01-25,FF-0008,Desk,2022-01-10,Straight-Line,5,11836.21
+Meridian Consulting,INV-581141,PO-28726,Overdue,2025-06-11,VH-0009,Company Car,2025-05-12,Double Declining Balance,10,43503.75
+Cornerstone IT,INV-245051,PO-76784,Partial,2025-05-18,BL-0010,Warehouse Expansion,2025-04-18,Straight-Line,15,10972.3
+Phoenix Data Centers,INV-503457,PO-60019,Scheduled,2019-07-22,VH-0011,Van,2019-07-12,Units of Production,20,15503.36
+Redwood Analytics,INV-772097,PO-54587,Paid,2021-11-05,IT-0012,Switch,2021-10-26,Sum-of-Years-Digits,15,17765.11
+Ironclad Security,INV-898975,PO-33416,Scheduled,2020-11-23,IT-0013,Switch,2020-10-09,Straight-Line,20,13615.74
+Crestview Landscaping,INV-269396,PO-80697,Scheduled,2026-02-04,BL-0014,Parking Lot,2026-01-05,Straight-Line,5,4303.42
+Catalyst Training Group,INV-945964,PO-50306,Pending,2022-10-04,IT-0015,Laptop,2022-08-20,Straight-Line,7,45661.91
+Cornerstone IT,INV-897549,PO-79822,Pending,2025-05-22,IT-0016,Switch,2025-05-12,Double Declining Balance,10,12946.78
+Silverline Insurance,INV-865388,PO-36365,Overdue,2024-05-15,FF-0017,Conference Table,2024-04-30,Units of Production,5,31939.41
+Silverline Insurance,INV-454508,PO-12757,Scheduled,2026-05-15,EQ-0018,HVAC Unit,2026-04-15,MACRS,3,5481.48
+Cornerstone IT,INV-170674,PO-14117,Overdue,2025-08-22,IT-0019,Laptop,2025-08-07,Straight-Line,20,9762.37
+Redwood Analytics,INV-698782,PO-85525,Partial,2021-10-01,EQ-0020,Compressor,2021-09-01,Double Declining Balance,15,5576.77
+Keystone Legal Services,INV-544154,PO-63883,Partial,2024-06-05,VH-0021,Truck,2024-04-21,Straight-Line,3,19864.21
+Silverline Insurance,INV-214576,PO-42591,Pending,2026-05-10,IT-0022,Printer,2026-04-30,Double Declining Balance,20,15213.77
+Granite Construction,INV-179046,PO-68082,Scheduled,2024-01-27,EQ-0023,Compressor,2024-01-12,Straight-Line,7,10651.78
+TechVault Solutions,INV-324130,PO-62565,Paid,2026-05-05,IT-0024,Server,2026-04-25,Double Declining Balance,5,13149.33
+Nexus Software,INV-865990,PO-82845,Partial,2019-02-23,FF-0025,Conference Table,2019-01-09,Double Declining Balance,7,17208.19
+Meridian Consulting,INV-428838,PO-17492,Paid,2022-05-15,IT-0026,Router,2022-04-30,MACRS,20,8435.83
+Pacific Fleet Services,INV-723939,PO-18907,Pending,2024-09-05,IT-0027,Router,2024-08-21,Units of Production,3,17418.33
+Greenfield Energy,INV-789305,PO-86503,Scheduled,2025-06-06,BL-0028,Parking Lot,2025-05-22,MACRS,3,10146.21
+Horizon Telecom,INV-776856,PO-49321,Partial,2021-12-19,FF-0029,Chair,2021-12-04,Sum-of-Years-Digits,7,7259.25
+Bridgeport Packaging,INV-378082,PO-27361,Overdue,2019-11-04,EQ-0030,Generator,2019-10-25,Straight-Line,3,11594.04
+Quantum Electronics,INV-417212,PO-90173,Scheduled,2021-10-27,FF-0031,Chair,2021-09-27,Straight-Line,10,28802.73
+Silverline Insurance,INV-878480,PO-82512,Pending,2025-04-20,IT-0032,Server,2025-03-21,Sum-of-Years-Digits,7,5642.77
+Evergreen Facilities,INV-629959,PO-74032,Overdue,2025-10-28,FF-0033,Chair,2025-10-13,Straight-Line,20,29672.94
+Summit Logistics,INV-768061,PO-44335,Pending,2026-03-28,FF-0034,Desk,2026-02-11,Units of Production,3,14568.67
+Granite Construction,INV-824586,PO-29536,Scheduled,2027-01-14,BL-0035,Office Renovation,2026-11-30,Straight-Line,3,3878.11
+Harbor Freight Supplies,INV-934794,PO-15229,Overdue,2023-03-08,EQ-0036,Compressor,2023-02-21,Double Declining Balance,3,8512.76
+Silverline Insurance,INV-348237,PO-31299,Pending,2021-10-29,FF-0037,Conference Table,2021-10-19,Units of Production,15,14414.93
+Acme Office Supplies,INV-213346,PO-60140,Paid,2021-02-03,EQ-0038,Compressor,2021-01-04,Units of Production,7,7099.46
+Cornerstone IT,INV-302511,PO-62227,Overdue,2021-05-12,FF-0039,Filing Cabinet,2021-03-28,Sum-of-Years-Digits,5,3156.11
+Crestview Landscaping,INV-128941,PO-25118,Overdue,2019-11-11,FF-0040,Conference Table,2019-10-12,Double Declining Balance,20,28911.64
+Apex Janitorial,INV-428914,PO-67199,Scheduled,2022-01-02,IT-0041,Router,2021-12-23,MACRS,10,14513.59
+Greenfield Energy,INV-945687,PO-80575,Pending,2023-05-12,FF-0042,Desk,2023-04-27,Sum-of-Years-Digits,20,5769.58
+Ironclad Security,INV-414910,PO-76469,Overdue,2019-11-13,BL-0043,Warehouse Expansion,2019-10-14,Units of Production,20,15305.12
+Horizon Telecom,INV-497562,PO-98777,Pending,2023-08-06,BL-0044,Office Renovation,2023-07-07,MACRS,5,16578.7
+Apex Janitorial,INV-923927,PO-86019,Scheduled,2022-07-01,BL-0045,Office Renovation,2022-05-17,Sum-of-Years-Digits,7,6172.6
+BlueSky Marketing,INV-397571,PO-77561,Scheduled,2024-01-29,VH-0046,Company Car,2023-12-15,Sum-of-Years-Digits,20,6694.71
+Summit Logistics,INV-598216,PO-90120,Paid,2021-09-19,VH-0047,Van,2021-08-20,Units of Production,5,392.95
+Ironclad Security,INV-821024,PO-10726,Paid,2026-02-07,EQ-0048,HVAC Unit,2026-01-23,Units of Production,10,4649.8
+Cornerstone IT,INV-578634,PO-27477,Partial,2021-02-04,IT-0049,Router,2020-12-21,MACRS,5,42718.95
+Granite Construction,INV-879779,PO-72216,Partial,2025-10-04,EQ-0050,HVAC Unit,2025-09-04,Sum-of-Years-Digits,15,21668.54
+Phoenix Data Centers,INV-181247,PO-47450,Pending,2021-11-08,BL-0051,Warehouse Expansion,2021-10-09,Sum-of-Years-Digits,20,5764.64
+Horizon Telecom,INV-840734,PO-38043,Paid,2022-08-12,VH-0052,Van,2022-08-02,Units of Production,5,15549.47
+Ironclad Security,INV-907189,PO-86556,Paid,2022-11-01,EQ-0053,Generator,2022-09-17,MACRS,5,24733.29
+Nexus Software,INV-976325,PO-64921,Scheduled,2024-05-17,FF-0054,Filing Cabinet,2024-05-07,MACRS,10,41200.68
+Keystone Legal Services,INV-507746,PO-54057,Partial,2025-10-21,EQ-0055,Compressor,2025-10-06,Double Declining Balance,7,14096.74
+Harbor Freight Supplies,INV-691807,PO-96900,Paid,2024-04-13,BL-0056,Parking Lot,2024-03-29,Straight-Line,3,25993.25
+Metro Print & Copy,INV-321941,PO-69598,Overdue,2023-11-06,EQ-0057,Compressor,2023-10-22,Sum-of-Years-Digits,3,7341.45
+Phoenix Data Centers,INV-665621,PO-16826,Overdue,2023-05-02,EQ-0058,CNC Machine,2023-04-02,Double Declining Balance,3,6549.31
+Metro Print & Copy,INV-259784,PO-41266,Pending,2019-10-19,IT-0059,Server,2019-10-09,Units of Production,5,11698.96
+Silverline Insurance,INV-884256,PO-25012,Pending,2020-04-28,EQ-0060,CNC Machine,2020-04-13,Sum-of-Years-Digits,7,6267.08
+Greenfield Energy,INV-179688,PO-87607,Pending,2025-07-08,FF-0061,Conference Table,2025-06-28,Straight-Line,10,38888.47
+Trident HVAC Systems,INV-488571,PO-19038,Scheduled,2022-05-30,BL-0062,Office Renovation,2022-05-20,Sum-of-Years-Digits,7,16013.65
+Acme Office Supplies,INV-582071,PO-30052,Partial,2023-11-01,IT-0063,Printer,2023-09-17,Double Declining Balance,7,30704.9
+Oasis Water Services,INV-866536,PO-87656,Overdue,2024-12-07,BL-0064,Parking Lot,2024-11-07,Sum-of-Years-Digits,10,14112.88
+Crestview Landscaping,INV-739979,PO-97580,Partial,2021-10-12,FF-0065,Conference Table,2021-10-02,Sum-of-Years-Digits,5,23609.91
+Acme Office Supplies,INV-456871,PO-46655,Scheduled,2024-08-16,VH-0066,Company Car,2024-07-17,Sum-of-Years-Digits,5,15867.14
+Granite Construction,INV-894993,PO-41499,Partial,2019-02-26,IT-0067,Server,2019-02-11,Units of Production,20,13196.85
+BlueSky Marketing,INV-796212,PO-86225,Overdue,2019-03-22,FF-0068,Chair,2019-03-12,Units of Production,10,15729.0
+Granite Construction,INV-421517,PO-42951,Pending,2025-01-13,EQ-0069,CNC Machine,2024-12-14,Straight-Line,7,21811.8
+Oasis Water Services,INV-294143,PO-35105,Pending,2021-03-29,IT-0070,Switch,2021-02-27,Units of Production,15,41043.66
+Vanguard Equipment Co,INV-416950,PO-11854,Scheduled,2025-09-10,IT-0071,Server,2025-08-11,Double Declining Balance,7,6261.78
+Vanguard Equipment Co,INV-889359,PO-74340,Paid,2019-07-16,BL-0072,Warehouse Expansion,2019-07-06,Straight-Line,20,17096.7
+Apex Janitorial,INV-364742,PO-72616,Paid,2022-04-24,EQ-0073,HVAC Unit,2022-03-10,Straight-Line,7,9513.09
+Nexus Software,INV-950544,PO-83772,Overdue,2024-07-17,BL-0074,Parking Lot,2024-07-07,Straight-Line,20,1058.86
+Cornerstone IT,INV-498855,PO-69049,Partial,2020-06-14,BL-0075,Parking Lot,2020-04-30,Sum-of-Years-Digits,15,9925.01
+Crestview Landscaping,INV-899787,PO-37235,Pending,2025-09-21,FF-0076,Desk,2025-08-07,Sum-of-Years-Digits,15,12620.72
+Silverline Insurance,INV-528361,PO-69048,Scheduled,2019-12-14,VH-0077,Van,2019-11-29,Units of Production,15,1482.6
+Evergreen Facilities,INV-820775,PO-40595,Overdue,2019-05-29,FF-0078,Filing Cabinet,2019-05-14,MACRS,20,26672.77
+Silverline Insurance,INV-378535,PO-28643,Paid,2021-05-05,IT-0079,Router,2021-03-21,Straight-Line,5,12318.98
+Atlas Cloud Services,INV-522060,PO-45683,Scheduled,2022-07-13,EQ-0080,Generator,2022-06-13,MACRS,10,17309.14
+Pacific Fleet Services,INV-362529,PO-13390,Paid,2023-12-09,BL-0081,Office Renovation,2023-11-29,Double Declining Balance,10,18986.42
+Silverline Insurance,INV-563711,PO-46458,Pending,2025-06-24,FF-0082,Desk,2025-06-14,MACRS,5,15832.02
+Ironclad Security,INV-802685,PO-23710,Pending,2026-03-30,IT-0083,Printer,2026-02-13,Sum-of-Years-Digits,7,10754.2
+Ironclad Security,INV-429795,PO-43082,Overdue,2026-11-26,FF-0084,Conference Table,2026-10-12,Straight-Line,15,1196.31
+Phoenix Data Centers,INV-479353,PO-91609,Partial,2023-07-24,BL-0085,Warehouse Expansion,2023-07-14,Units of Production,10,1149.32
+Phoenix Data Centers,INV-608257,PO-25915,Paid,2019-08-15,FF-0086,Chair,2019-07-31,MACRS,7,21008.17
+Keystone Legal Services,INV-982277,PO-24871,Partial,2021-09-22,FF-0087,Desk,2021-09-07,Straight-Line,15,6874.93
+Metro Print & Copy,INV-595158,PO-41946,Partial,2020-11-06,FF-0088,Filing Cabinet,2020-09-22,MACRS,10,26838.9
+Pinnacle Manufacturing,INV-173201,PO-46208,Partial,2023-05-06,BL-0089,Parking Lot,2023-04-21,Sum-of-Years-Digits,20,16280.72
+Bridgeport Packaging,INV-708093,PO-96499,Partial,2024-10-10,IT-0090,Monitor,2024-09-10,Double Declining Balance,20,13832.64
+BlueSky Marketing,INV-577463,PO-52176,Pending,2025-03-01,FF-0091,Filing Cabinet,2025-01-15,Double Declining Balance,15,26366.29
+Apex Janitorial,INV-950823,PO-59968,Partial,2023-05-03,EQ-0092,Generator,2023-04-18,Double Declining Balance,7,23671.52
+Pacific Fleet Services,INV-986088,PO-67711,Paid,2019-06-16,BL-0093,Parking Lot,2019-06-01,MACRS,7,14864.09
+Bridgeport Packaging,INV-919488,PO-44737,Overdue,2024-02-25,VH-0094,Company Car,2024-02-15,MACRS,20,2507.99
+Trident HVAC Systems,INV-896290,PO-73956,Scheduled,2023-06-27,FF-0095,Conference Table,2023-06-17,Straight-Line,7,26008.43
+Catalyst Training Group,INV-203225,PO-93066,Paid,2019-10-23,FF-0096,Chair,2019-10-08,Units of Production,20,2784.4
+Atlas Cloud Services,INV-475876,PO-59131,Partial,2026-11-12,IT-0097,Laptop,2026-10-13,Double Declining Balance,7,12221.26
+Cornerstone IT,INV-739098,PO-60140,Scheduled,2025-01-29,BL-0098,Parking Lot,2024-12-15,Double Declining Balance,5,3436.29
+Pacific Fleet Services,INV-799233,PO-11231,Partial,2025-07-31,VH-0099,Company Car,2025-07-16,Sum-of-Years-Digits,20,7977.96
+Silverline Insurance,INV-544920,PO-42780,Partial,2025-03-03,IT-0100,Printer,2025-02-16,Sum-of-Years-Digits,7,14660.56
+Meridian Consulting,INV-410244,PO-48696,Paid,2023-06-09,IT-0101,Server,2023-04-25,Units of Production,10,15620.82
+Vanguard Equipment Co,INV-400096,PO-40162,Scheduled,2019-02-13,BL-0102,Parking Lot,2019-02-03,Sum-of-Years-Digits,10,40618.65
+Cornerstone IT,INV-791201,PO-99241,Pending,2026-03-07,BL-0103,Warehouse Expansion,2026-02-20,Straight-Line,20,31401.71
+Quantum Electronics,INV-237795,PO-21813,Overdue,2026-01-24,FF-0104,Conference Table,2026-01-14,Sum-of-Years-Digits,3,15963.97
+Oasis Water Services,INV-656639,PO-75771,Overdue,2023-09-13,VH-0105,Van,2023-08-29,Double Declining Balance,15,45066.89
+Vanguard Equipment Co,INV-336574,PO-98647,Partial,2024-06-26,FF-0106,Desk,2024-05-27,MACRS,10,1439.27
+Sterling Furniture,INV-805511,PO-98125,Overdue,2020-02-19,IT-0107,Monitor,2020-01-05,MACRS,15,3889.13
+Nexus Software,INV-688678,PO-52992,Scheduled,2026-03-30,IT-0108,Switch,2026-02-28,Double Declining Balance,5,6670.51
+Metro Print & Copy,INV-139019,PO-49893,Partial,2019-10-31,FF-0109,Conference Table,2019-09-16,Straight-Line,3,2109.68
+Greenfield Energy,INV-830316,PO-80804,Partial,2021-09-03,EQ-0110,HVAC Unit,2021-08-19,MACRS,7,33914.26
+Oasis Water Services,INV-393328,PO-14288,Overdue,2020-11-08,IT-0111,Printer,2020-09-24,Double Declining Balance,15,20514.37
+BlueSky Marketing,INV-776149,PO-57012,Paid,2024-01-11,FF-0112,Desk,2023-12-27,Units of Production,20,12744.85
+Vanguard Equipment Co,INV-726152,PO-12799,Paid,2021-02-26,EQ-0113,Generator,2021-02-16,Sum-of-Years-Digits,20,8205.24
+Cornerstone IT,INV-344316,PO-53064,Pending,2020-06-14,IT-0114,Router,2020-05-30,MACRS,5,12706.27
+Acme Office Supplies,INV-127032,PO-27275,Paid,2022-02-24,VH-0115,Forklift,2022-02-09,Sum-of-Years-Digits,5,4372.73
+Keystone Legal Services,INV-541409,PO-78955,Paid,2021-10-01,IT-0116,Server,2021-09-01,Straight-Line,7,982.48
+Pacific Fleet Services,INV-744986,PO-15683,Scheduled,2024-02-10,BL-0117,Parking Lot,2024-01-11,Sum-of-Years-Digits,3,14942.26
+BlueSky Marketing,INV-614084,PO-68138,Paid,2026-03-30,IT-0118,Printer,2026-03-20,Straight-Line,10,17163.9
+Horizon Telecom,INV-674993,PO-52622,Partial,2025-11-11,IT-0119,Server,2025-10-27,MACRS,7,23797.03
+Redwood Analytics,INV-219971,PO-95814,Scheduled,2022-06-06,BL-0120,Parking Lot,2022-04-22,Double Declining Balance,10,4477.39
+Ironclad Security,INV-199704,PO-50966,Partial,2024-02-08,EQ-0121,CNC Machine,2024-01-24,Sum-of-Years-Digits,10,11804.53
+Silverline Insurance,INV-197758,PO-66606,Paid,2021-12-10,VH-0122,Company Car,2021-11-10,Sum-of-Years-Digits,3,4266.73
+Keystone Legal Services,INV-530764,PO-56346,Partial,2020-06-26,BL-0123,Parking Lot,2020-06-16,Straight-Line,15,13080.73
+Evergreen Facilities,INV-788637,PO-73201,Pending,2025-10-25,FF-0124,Desk,2025-09-25,Straight-Line,15,10936.32
+Sterling Furniture,INV-986209,PO-83526,Scheduled,2025-04-27,IT-0125,Monitor,2025-03-28,MACRS,15,10228.38
+Silverline Insurance,INV-386544,PO-50499,Overdue,2026-03-27,BL-0126,Parking Lot,2026-03-17,Sum-of-Years-Digits,20,3837.1
+Acme Office Supplies,INV-763928,PO-14018,Paid,2021-01-28,BL-0127,Parking Lot,2021-01-13,MACRS,10,1335.88
+Meridian Consulting,INV-440140,PO-84395,Scheduled,2023-05-05,EQ-0128,CNC Machine,2023-03-21,Straight-Line,5,9433.37
+Quantum Electronics,INV-794093,PO-65576,Partial,2019-08-19,VH-0129,Truck,2019-08-04,MACRS,20,1987.59
+BlueSky Marketing,INV-811163,PO-98930,Scheduled,2023-09-23,VH-0130,Truck,2023-08-24,Units of Production,7,7542.84
+Redwood Analytics,INV-314353,PO-49507,Pending,2026-07-25,IT-0131,Server,2026-06-25,Double Declining Balance,10,9175.57
+Phoenix Data Centers,INV-284229,PO-26932,Partial,2021-12-12,FF-0132,Desk,2021-11-12,MACRS,3,21210.35
+Trident HVAC Systems,INV-582087,PO-20205,Overdue,2021-08-30,IT-0133,Printer,2021-07-31,MACRS,20,1337.75
+Ironclad Security,INV-440544,PO-32527,Scheduled,2025-07-21,EQ-0134,CNC Machine,2025-06-06,Units of Production,3,5667.53
+Harbor Freight Supplies,INV-519902,PO-78676,Paid,2026-10-25,IT-0135,Printer,2026-09-25,Units of Production,3,7415.14
+Crestview Landscaping,INV-219565,PO-79547,Scheduled,2022-07-24,VH-0136,Forklift,2022-06-24,Double Declining Balance,5,2597.52
+Quantum Electronics,INV-281926,PO-88957,Pending,2023-01-01,VH-0137,Van,2022-12-02,Straight-Line,3,3437.6
+Atlas Cloud Services,INV-774225,PO-93269,Scheduled,2026-03-02,EQ-0138,HVAC Unit,2026-01-16,Sum-of-Years-Digits,20,44257.08
+Crestview Landscaping,INV-417530,PO-46002,Scheduled,2026-02-12,VH-0139,Company Car,2026-01-13,Straight-Line,3,14358.06
+Sterling Furniture,INV-972097,PO-47627,Paid,2024-09-19,FF-0140,Conference Table,2024-09-09,Straight-Line,10,606.29
+Catalyst Training Group,INV-783501,PO-34672,Overdue,2025-10-14,EQ-0141,Generator,2025-08-30,MACRS,10,40947.78
+Pacific Fleet Services,INV-460120,PO-21053,Scheduled,2024-08-30,IT-0142,Printer,2024-08-15,Double Declining Balance,3,39393.74
+TechVault Solutions,INV-506235,PO-63578,Overdue,2021-11-25,EQ-0143,Compressor,2021-10-11,MACRS,7,18438.72
+TechVault Solutions,INV-397949,PO-43029,Scheduled,2026-02-27,IT-0144,Monitor,2026-01-28,Double Declining Balance,3,22272.75
+Horizon Telecom,INV-235215,PO-87993,Paid,2019-12-15,FF-0145,Filing Cabinet,2019-11-30,Sum-of-Years-Digits,20,27415.5
+Granite Construction,INV-479404,PO-12389,Overdue,2023-04-22,VH-0146,Truck,2023-03-23,Sum-of-Years-Digits,20,20006.99
+Atlas Cloud Services,INV-410160,PO-23256,Scheduled,2021-06-26,EQ-0147,Compressor,2021-05-27,MACRS,5,2677.79
+Harbor Freight Supplies,INV-289630,PO-91885,Pending,2024-12-06,FF-0148,Chair,2024-11-26,Units of Production,15,7259.23
+TechVault Solutions,INV-921874,PO-68841,Pending,2023-09-09,VH-0149,Company Car,2023-08-10,MACRS,15,12245.67
+Cornerstone IT,INV-561999,PO-70513,Overdue,2022-08-05,VH-0150,Forklift,2022-06-21,Units of Production,20,33725.88
+Redwood Analytics,INV-154714,PO-94040,Partial,2025-01-14,VH-0151,Van,2024-11-30,Sum-of-Years-Digits,15,6655.35
+Granite Construction,INV-638289,PO-29313,Partial,2020-03-06,FF-0152,Desk,2020-02-25,Straight-Line,5,8453.82
+Bridgeport Packaging,INV-492127,PO-40903,Partial,2021-08-12,FF-0153,Desk,2021-06-28,Straight-Line,10,1582.91
+Sterling Furniture,INV-253143,PO-28035,Paid,2021-07-18,FF-0154,Desk,2021-07-08,Sum-of-Years-Digits,20,17138.46
+Bridgeport Packaging,INV-119927,PO-43544,Pending,2024-05-04,EQ-0155,HVAC Unit,2024-04-19,Double Declining Balance,15,348.71
+Granite Construction,INV-350021,PO-65027,Scheduled,2025-12-13,IT-0156,Monitor,2025-10-29,Units of Production,5,5424.22
+Summit Logistics,INV-353690,PO-28818,Overdue,2020-05-14,BL-0157,Parking Lot,2020-03-30,Units of Production,3,21153.61
+Acme Office Supplies,INV-648913,PO-57265,Paid,2025-12-23,VH-0158,Company Car,2025-11-23,MACRS,5,26239.56
+Granite Construction,INV-491435,PO-43246,Paid,2024-09-19,EQ-0159,HVAC Unit,2024-09-09,Sum-of-Years-Digits,3,18056.18
+Keystone Legal Services,INV-239890,PO-15811,Overdue,2019-11-03,VH-0160,Truck,2019-10-04,MACRS,15,31592.48
+Horizon Telecom,INV-166165,PO-69988,Paid,2026-04-01,EQ-0161,HVAC Unit,2026-03-17,Sum-of-Years-Digits,20,8291.38
+Meridian Consulting,INV-955015,PO-81176,Partial,2019-07-14,IT-0162,Monitor,2019-06-29,Sum-of-Years-Digits,7,14880.32
+TechVault Solutions,INV-386488,PO-26315,Overdue,2026-04-18,FF-0163,Filing Cabinet,2026-04-03,Units of Production,3,33746.34
+Quantum Electronics,INV-485191,PO-78062,Overdue,2023-08-11,EQ-0164,CNC Machine,2023-06-27,Straight-Line,5,20083.93
+Oasis Water Services,INV-183958,PO-52981,Overdue,2023-10-15,EQ-0165,Compressor,2023-10-05,Sum-of-Years-Digits,15,7609.97
+BlueSky Marketing,INV-469685,PO-90589,Partial,2025-11-18,VH-0166,Company Car,2025-10-04,Sum-of-Years-Digits,7,6633.46
+Metro Print & Copy,INV-267758,PO-14081,Pending,2019-09-02,EQ-0167,CNC Machine,2019-08-23,MACRS,15,34203.35
+Silverline Insurance,INV-479742,PO-60181,Scheduled,2023-12-10,VH-0168,Truck,2023-11-30,Straight-Line,5,30027.55
+Catalyst Training Group,INV-244383,PO-79397,Overdue,2020-11-04,FF-0169,Filing Cabinet,2020-09-20,Units of Production,10,12339.67
+Horizon Telecom,INV-642895,PO-60723,Scheduled,2026-05-14,VH-0170,Truck,2026-04-14,Straight-Line,3,15063.51
+Vanguard Equipment Co,INV-309902,PO-26074,Pending,2022-01-16,VH-0171,Forklift,2021-12-02,Straight-Line,20,48100.28
+BlueSky Marketing,INV-168093,PO-82089,Scheduled,2021-01-22,IT-0172,Switch,2020-12-08,Sum-of-Years-Digits,7,17928.12
+Quantum Electronics,INV-310743,PO-28202,Pending,2022-05-28,VH-0173,Forklift,2022-05-13,Units of Production,15,4043.36
+Acme Office Supplies,INV-424314,PO-62187,Partial,2023-02-17,EQ-0174,Compressor,2023-01-18,MACRS,15,14619.12
+Ironclad Security,INV-813145,PO-77811,Overdue,2023-08-15,VH-0175,Forklift,2023-08-05,Double Declining Balance,20,2342.99
+Quantum Electronics,INV-971776,PO-26274,Scheduled,2025-03-23,VH-0176,Company Car,2025-03-08,Double Declining Balance,15,43118.1
+Evergreen Facilities,INV-397846,PO-20336,Overdue,2020-11-20,FF-0177,Chair,2020-11-05,Double Declining Balance,7,47569.26
+Metro Print & Copy,INV-772124,PO-32103,Scheduled,2025-04-05,VH-0178,Forklift,2025-03-06,MACRS,15,8984.27
+Pinnacle Manufacturing,INV-772612,PO-85598,Overdue,2021-01-01,BL-0179,Office Renovation,2020-12-02,Double Declining Balance,3,1238.21
+Phoenix Data Centers,INV-672079,PO-47967,Overdue,2025-07-16,BL-0180,Parking Lot,2025-06-01,Units of Production,3,24029.24
+Cornerstone IT,INV-560959,PO-64476,Partial,2026-10-21,FF-0181,Conference Table,2026-09-06,Units of Production,3,10677.52
+Meridian Consulting,INV-518084,PO-27139,Overdue,2022-11-09,FF-0182,Filing Cabinet,2022-10-25,MACRS,20,23023.03
+Granite Construction,INV-247720,PO-22689,Paid,2020-04-09,VH-0183,Company Car,2020-03-10,Sum-of-Years-Digits,3,8293.1
+Nexus Software,INV-427905,PO-34881,Pending,2026-01-09,VH-0184,Van,2025-11-25,Units of Production,7,33517.85
+Redwood Analytics,INV-629996,PO-69930,Pending,2024-05-11,FF-0185,Conference Table,2024-03-27,Double Declining Balance,3,4622.98
+Apex Janitorial,INV-786041,PO-98148,Partial,2022-12-26,IT-0186,Monitor,2022-12-16,Sum-of-Years-Digits,10,28653.71
+Granite Construction,INV-522842,PO-57964,Paid,2019-02-13,EQ-0187,Compressor,2019-02-03,Units of Production,7,20051.66
+TechVault Solutions,INV-901535,PO-82070,Overdue,2025-06-08,FF-0188,Filing Cabinet,2025-05-24,MACRS,3,12787.34
+Silverline Insurance,INV-455556,PO-83116,Overdue,2025-11-17,VH-0189,Truck,2025-11-07,Double Declining Balance,10,16641.01
+Meridian Consulting,INV-449218,PO-72094,Scheduled,2025-11-17,BL-0190,Office Renovation,2025-10-03,Units of Production,3,755.01
+Pinnacle Manufacturing,INV-875232,PO-49221,Scheduled,2025-11-03,FF-0191,Filing Cabinet,2025-10-19,Sum-of-Years-Digits,5,20556.3
+Redwood Analytics,INV-447329,PO-98317,Paid,2024-11-02,BL-0192,Warehouse Expansion,2024-09-18,Units of Production,10,11252.05
+Apex Janitorial,INV-913864,PO-85821,Scheduled,2022-06-24,BL-0193,Warehouse Expansion,2022-06-14,Double Declining Balance,7,28859.03
+Oasis Water Services,INV-133104,PO-85047,Paid,2019-09-13,VH-0194,Company Car,2019-07-30,Double Declining Balance,5,32839.28
+Acme Office Supplies,INV-626195,PO-90147,Partial,2024-01-11,EQ-0195,Compressor,2023-12-12,Straight-Line,10,14626.76
+Trident HVAC Systems,INV-428993,PO-32699,Partial,2020-08-03,BL-0196,Warehouse Expansion,2020-07-19,MACRS,20,16218.89
+Horizon Telecom,INV-412999,PO-39473,Overdue,2025-03-17,FF-0197,Conference Table,2025-02-15,Sum-of-Years-Digits,5,5981.61
+Trident HVAC Systems,INV-934042,PO-45842,Overdue,2021-06-13,FF-0198,Conference Table,2021-04-29,Straight-Line,7,28019.44
+Apex Janitorial,INV-848831,PO-20358,Overdue,2026-09-17,EQ-0199,CNC Machine,2026-08-03,Units of Production,5,4315.6
+Metro Print & Copy,INV-829988,PO-45601,Pending,2021-12-31,VH-0200,Van,2021-11-16,Straight-Line,15,13595.93
+Catalyst Training Group,INV-768933,PO-40518,Paid,2025-08-15,VH-0201,Truck,2025-07-31,Straight-Line,20,30830.69
+Ironclad Security,INV-265613,PO-63334,Partial,2022-10-29,IT-0202,Switch,2022-09-14,Units of Production,5,361.71
+Metro Print & Copy,INV-193806,PO-95498,Scheduled,2021-04-26,FF-0203,Filing Cabinet,2021-03-27,Double Declining Balance,20,2980.72
+Granite Construction,INV-619447,PO-34420,Overdue,2019-06-17,EQ-0204,Compressor,2019-06-02,Straight-Line,3,24068.5
+Acme Office Supplies,INV-617904,PO-27589,Scheduled,2022-05-17,FF-0205,Filing Cabinet,2022-05-07,Units of Production,10,22172.17
+Vanguard Equipment Co,INV-853504,PO-34405,Paid,2021-03-10,FF-0206,Chair,2021-02-28,Sum-of-Years-Digits,20,17787.08
+Keystone Legal Services,INV-520304,PO-97720,Paid,2022-05-08,VH-0207,Company Car,2022-04-23,Double Declining Balance,10,13447.75
+Pinnacle Manufacturing,INV-890371,PO-44995,Overdue,2024-06-08,VH-0208,Truck,2024-05-09,Sum-of-Years-Digits,7,8622.5
+Apex Janitorial,INV-223967,PO-71000,Overdue,2025-06-14,FF-0209,Filing Cabinet,2025-06-04,Double Declining Balance,20,3704.15
+Nexus Software,INV-329772,PO-27507,Partial,2026-10-11,IT-0210,Switch,2026-09-11,Double Declining Balance,7,13771.33
+BlueSky Marketing,INV-329021,PO-42435,Scheduled,2025-11-16,EQ-0211,HVAC Unit,2025-10-17,Straight-Line,15,31529.39
+Redwood Analytics,INV-630041,PO-36497,Scheduled,2024-02-03,IT-0212,Router,2024-01-04,MACRS,3,2909.16
+Pinnacle Manufacturing,INV-711474,PO-74071,Paid,2020-12-04,BL-0213,Warehouse Expansion,2020-11-04,MACRS,3,14451.7
+BlueSky Marketing,INV-584838,PO-98181,Overdue,2019-09-30,VH-0214,Company Car,2019-08-16,Straight-Line,10,8700.82
+Nexus Software,INV-166857,PO-80931,Paid,2021-11-18,VH-0215,Truck,2021-11-08,Straight-Line,3,11344.26
+Bridgeport Packaging,INV-772687,PO-94656,Partial,2024-04-27,FF-0216,Conference Table,2024-04-17,Sum-of-Years-Digits,5,14209.19
+Quantum Electronics,INV-665497,PO-27431,Overdue,2023-05-31,EQ-0217,HVAC Unit,2023-04-16,Straight-Line,3,34929.33
+Atlas Cloud Services,INV-892911,PO-12979,Overdue,2025-02-23,BL-0218,Office Renovation,2025-01-09,Units of Production,20,10316.44
+Silverline Insurance,INV-262656,PO-46129,Pending,2025-03-25,BL-0219,Warehouse Expansion,2025-02-08,Straight-Line,5,7786.71
+TechVault Solutions,INV-722795,PO-14400,Partial,2026-07-12,BL-0220,Office Renovation,2026-05-28,MACRS,5,3276.49
+Silverline Insurance,INV-327823,PO-17398,Pending,2026-11-30,VH-0221,Truck,2026-11-20,MACRS,10,9840.97
+Evergreen Facilities,INV-416422,PO-28777,Scheduled,2021-09-16,BL-0222,Parking Lot,2021-08-17,Double Declining Balance,20,21094.79
+Ironclad Security,INV-283640,PO-92050,Partial,2022-06-14,IT-0223,Router,2022-05-15,MACRS,15,37042.89
+Pacific Fleet Services,INV-414455,PO-59343,Pending,2019-08-11,EQ-0224,CNC Machine,2019-07-12,MACRS,20,12195.9
+Pacific Fleet Services,INV-532723,PO-64592,Scheduled,2021-09-29,FF-0225,Chair,2021-09-14,MACRS,10,14091.64
+Pinnacle Manufacturing,INV-571635,PO-58637,Paid,2023-05-25,FF-0226,Chair,2023-05-10,MACRS,7,10518.15
+Oasis Water Services,INV-176319,PO-34662,Scheduled,2021-03-01,FF-0227,Conference Table,2021-02-19,MACRS,20,22342.19
+Meridian Consulting,INV-877493,PO-25376,Partial,2024-06-01,FF-0228,Filing Cabinet,2024-05-17,Double Declining Balance,3,10676.72
+Trident HVAC Systems,INV-499152,PO-71112,Scheduled,2025-10-26,EQ-0229,Compressor,2025-10-11,Sum-of-Years-Digits,15,14106.03
+Evergreen Facilities,INV-857505,PO-71537,Overdue,2022-01-06,BL-0230,Warehouse Expansion,2021-12-07,Double Declining Balance,10,4490.46
+Sterling Furniture,INV-373441,PO-82523,Scheduled,2022-08-19,IT-0231,Router,2022-07-05,MACRS,5,14004.87
+Oasis Water Services,INV-973844,PO-42208,Partial,2023-10-07,VH-0232,Van,2023-09-07,MACRS,7,6503.92
+Metro Print & Copy,INV-583214,PO-32050,Overdue,2026-10-06,FF-0233,Conference Table,2026-09-06,Double Declining Balance,20,27153.0
+Pinnacle Manufacturing,INV-177941,PO-97584,Paid,2025-04-02,VH-0234,Truck,2025-02-16,Straight-Line,15,1647.11
+Ironclad Security,INV-578160,PO-58916,Paid,2020-08-01,IT-0235,Switch,2020-07-17,MACRS,5,239.81
+Metro Print & Copy,INV-112426,PO-12192,Scheduled,2026-08-08,EQ-0236,Generator,2026-06-24,Sum-of-Years-Digits,3,18586.64
+Granite Construction,INV-287974,PO-24026,Paid,2022-03-30,BL-0237,Parking Lot,2022-03-20,MACRS,20,19378.13
+Pinnacle Manufacturing,INV-933551,PO-62022,Paid,2021-09-29,BL-0238,Parking Lot,2021-09-14,Sum-of-Years-Digits,7,22098.5
+Nexus Software,INV-785491,PO-95182,Paid,2024-03-10,VH-0239,Forklift,2024-02-24,Straight-Line,20,38549.24
+Nexus Software,INV-279708,PO-20837,Partial,2023-05-18,BL-0240,Warehouse Expansion,2023-04-03,Units of Production,3,8608.27
+Metro Print & Copy,INV-825916,PO-84289,Partial,2022-09-28,BL-0241,Office Renovation,2022-09-18,Sum-of-Years-Digits,5,10356.06
+TechVault Solutions,INV-991737,PO-51220,Paid,2019-12-01,BL-0242,Parking Lot,2019-11-01,Double Declining Balance,20,701.74
+Apex Janitorial,INV-975194,PO-61007,Scheduled,2020-09-27,IT-0243,Monitor,2020-08-13,Sum-of-Years-Digits,5,12767.57
+Nexus Software,INV-343420,PO-19963,Overdue,2020-08-06,BL-0244,Parking Lot,2020-07-27,MACRS,7,942.38
+Phoenix Data Centers,INV-572436,PO-74304,Pending,2026-01-03,FF-0245,Desk,2025-11-19,Sum-of-Years-Digits,20,12087.62
+Granite Construction,INV-936821,PO-42302,Paid,2023-05-02,VH-0246,Company Car,2023-03-18,Straight-Line,3,28975.29
+Vanguard Equipment Co,INV-105447,PO-50405,Partial,2020-11-07,VH-0247,Company Car,2020-09-23,Sum-of-Years-Digits,7,6271.98
+Phoenix Data Centers,INV-681687,PO-77166,Partial,2022-01-19,VH-0248,Truck,2022-01-09,Straight-Line,5,13313.98
+Acme Office Supplies,INV-503951,PO-11617,Overdue,2020-02-02,BL-0249,Office Renovation,2020-01-03,Units of Production,15,26369.3
+Nexus Software,INV-245584,PO-45247,Overdue,2019-12-28,BL-0250,Parking Lot,2019-12-13,Sum-of-Years-Digits,5,19295.94
+Pacific Fleet Services,INV-920685,PO-20082,Overdue,2020-08-30,VH-0251,Company Car,2020-08-20,Sum-of-Years-Digits,7,10530.33
+Cornerstone IT,INV-419457,PO-10887,Partial,2026-02-18,BL-0252,Parking Lot,2026-01-04,Sum-of-Years-Digits,5,7960.18
+Harbor Freight Supplies,INV-782661,PO-87908,Pending,2026-01-29,FF-0253,Conference Table,2025-12-15,Sum-of-Years-Digits,7,19538.31
+Horizon Telecom,INV-405605,PO-92955,Partial,2025-10-21,EQ-0254,CNC Machine,2025-10-06,MACRS,5,20487.11
+Keystone Legal Services,INV-691240,PO-36188,Scheduled,2021-10-19,EQ-0255,CNC Machine,2021-09-19,MACRS,10,6452.46
+Atlas Cloud Services,INV-826490,PO-19064,Partial,2026-09-03,EQ-0256,Compressor,2026-08-24,Units of Production,10,19640.2
+Pinnacle Manufacturing,INV-927406,PO-59412,Paid,2026-03-09,VH-0257,Forklift,2026-02-07,Units of Production,20,6434.08
+Catalyst Training Group,INV-929130,PO-57124,Scheduled,2024-06-30,BL-0258,Parking Lot,2024-05-16,MACRS,20,14490.54
+Metro Print & Copy,INV-690579,PO-94545,Partial,2019-12-25,VH-0259,Forklift,2019-12-15,Sum-of-Years-Digits,5,24138.47
+Keystone Legal Services,INV-643998,PO-83137,Scheduled,2023-11-09,IT-0260,Laptop,2023-10-30,MACRS,7,7431.0
+Cornerstone IT,INV-258067,PO-55215,Paid,2024-01-30,EQ-0261,HVAC Unit,2023-12-31,Units of Production,20,23771.19
+Greenfield Energy,INV-459731,PO-69681,Pending,2022-06-09,IT-0262,Laptop,2022-04-25,MACRS,20,3848.56
+Pacific Fleet Services,INV-170437,PO-49356,Paid,2023-01-11,IT-0263,Printer,2022-11-27,Straight-Line,20,21587.59
+Acme Office Supplies,INV-447067,PO-83380,Partial,2022-11-16,VH-0264,Van,2022-11-06,Units of Production,15,6138.85
+Cornerstone IT,INV-306909,PO-68926,Scheduled,2023-08-02,VH-0265,Company Car,2023-07-18,Units of Production,10,1309.28
+Nexus Software,INV-705393,PO-23336,Scheduled,2019-02-03,VH-0266,Forklift,2019-01-19,Double Declining Balance,20,35998.26
+Sterling Furniture,INV-653349,PO-93769,Overdue,2022-09-12,EQ-0267,Generator,2022-08-28,MACRS,7,31631.01
+Nexus Software,INV-747351,PO-32613,Overdue,2025-12-23,BL-0268,Office Renovation,2025-11-08,MACRS,7,16404.3
+Apex Janitorial,INV-491439,PO-28528,Scheduled,2019-12-29,FF-0269,Desk,2019-12-14,Units of Production,5,5440.74
+Ironclad Security,INV-663483,PO-94575,Pending,2025-09-23,BL-0270,Warehouse Expansion,2025-09-08,MACRS,10,6050.89
+Atlas Cloud Services,INV-156215,PO-57059,Paid,2024-07-28,VH-0271,Van,2024-06-28,Units of Production,7,26026.68
+Pinnacle Manufacturing,INV-615611,PO-64477,Partial,2021-04-24,BL-0272,Parking Lot,2021-03-10,Units of Production,20,14506.3
+Atlas Cloud Services,INV-402692,PO-32047,Partial,2019-12-15,VH-0273,Forklift,2019-12-05,MACRS,3,6074.44
+Oasis Water Services,INV-484682,PO-81046,Paid,2024-07-31,BL-0274,Office Renovation,2024-07-21,Units of Production,7,26778.43
+Granite Construction,INV-133796,PO-68947,Overdue,2021-07-29,IT-0275,Switch,2021-06-14,Sum-of-Years-Digits,20,17204.64
+Crestview Landscaping,INV-822608,PO-55957,Scheduled,2020-02-06,IT-0276,Server,2019-12-23,Units of Production,5,34219.95
+Atlas Cloud Services,INV-394739,PO-88231,Scheduled,2025-12-13,VH-0277,Van,2025-11-28,Double Declining Balance,3,15387.29
+Horizon Telecom,INV-199850,PO-27771,Partial,2026-12-23,FF-0278,Filing Cabinet,2026-11-23,Straight-Line,15,35918.59
+Vanguard Equipment Co,INV-359579,PO-98635,Partial,2026-05-25,VH-0279,Van,2026-05-10,Units of Production,5,18383.53
+Pinnacle Manufacturing,INV-906233,PO-22202,Partial,2025-07-23,EQ-0280,HVAC Unit,2025-06-23,MACRS,10,2943.82
+Oasis Water Services,INV-911739,PO-22208,Partial,2022-03-15,EQ-0281,HVAC Unit,2022-02-13,Sum-of-Years-Digits,7,7709.58
+Crestview Landscaping,INV-968581,PO-47171,Overdue,2019-11-01,VH-0282,Company Car,2019-09-17,MACRS,5,11753.26
+Apex Janitorial,INV-977345,PO-70238,Paid,2020-08-02,FF-0283,Desk,2020-06-18,Straight-Line,3,3828.74
+Bridgeport Packaging,INV-238320,PO-95196,Overdue,2020-11-23,EQ-0284,Generator,2020-10-09,Double Declining Balance,10,10672.62
+Crestview Landscaping,INV-780432,PO-31695,Paid,2022-02-06,FF-0285,Filing Cabinet,2022-01-27,Units of Production,3,14664.69
+Metro Print & Copy,INV-599968,PO-20215,Pending,2022-06-20,EQ-0286,Generator,2022-06-05,MACRS,20,1276.7
+Cornerstone IT,INV-542828,PO-27324,Partial,2024-12-12,IT-0287,Laptop,2024-10-28,Straight-Line,20,15628.47
+Cornerstone IT,INV-243790,PO-60164,Pending,2023-04-29,IT-0288,Laptop,2023-04-19,Double Declining Balance,7,17641.8
+Summit Logistics,INV-323404,PO-92323,Pending,2024-12-22,BL-0289,Parking Lot,2024-12-12,Units of Production,5,11897.22
+Catalyst Training Group,INV-718213,PO-60335,Overdue,2026-10-28,VH-0290,Truck,2026-09-13,Units of Production,3,6059.14
+Horizon Telecom,INV-856211,PO-89638,Overdue,2020-08-10,FF-0291,Desk,2020-07-26,Straight-Line,5,20401.47
+Crestview Landscaping,INV-157219,PO-41370,Partial,2026-06-19,VH-0292,Van,2026-05-20,Units of Production,20,9734.52
+Greenfield Energy,INV-478638,PO-51480,Pending,2021-10-29,BL-0293,Office Renovation,2021-09-14,Units of Production,15,45913.53
+Crestview Landscaping,INV-715895,PO-18851,Paid,2025-07-01,FF-0294,Chair,2025-05-17,Sum-of-Years-Digits,10,12338.9
+Meridian Consulting,INV-535612,PO-65518,Partial,2019-06-23,EQ-0295,CNC Machine,2019-06-13,Straight-Line,20,23443.35
+Metro Print & Copy,INV-313068,PO-30365,Scheduled,2025-01-21,FF-0296,Desk,2025-01-06,Sum-of-Years-Digits,7,2687.85
+Nexus Software,INV-356355,PO-21300,Partial,2025-08-09,FF-0297,Conference Table,2025-07-30,Straight-Line,20,19080.6
+BlueSky Marketing,INV-835575,PO-11487,Pending,2025-11-22,FF-0298,Chair,2025-11-12,Units of Production,3,596.63
+Sterling Furniture,INV-381819,PO-25473,Paid,2024-12-12,VH-0299,Forklift,2024-11-12,Sum-of-Years-Digits,5,32940.4
+Keystone Legal Services,INV-758015,PO-20101,Partial,2023-11-24,BL-0300,Office Renovation,2023-10-25,Units of Production,7,36745.5
+Redwood Analytics,INV-207903,PO-85223,Paid,2023-01-25,EQ-0301,Compressor,2023-01-15,Double Declining Balance,7,3684.02
+Oasis Water Services,INV-501583,PO-29671,Pending,2024-09-25,IT-0302,Laptop,2024-09-15,Straight-Line,5,1515.96
+Granite Construction,INV-435476,PO-45554,Paid,2026-06-23,VH-0303,Forklift,2026-05-09,MACRS,5,20540.21
+Sterling Furniture,INV-172274,PO-70960,Overdue,2020-05-14,VH-0304,Van,2020-05-04,Sum-of-Years-Digits,15,2421.43
+Horizon Telecom,INV-418672,PO-91620,Pending,2020-02-03,IT-0305,Monitor,2019-12-20,Units of Production,5,10353.76
+Sterling Furniture,INV-125071,PO-40539,Scheduled,2025-10-04,VH-0306,Van,2025-08-20,Sum-of-Years-Digits,5,412.19
+Metro Print & Copy,INV-862540,PO-50306,Paid,2026-10-21,FF-0307,Desk,2026-10-11,Double Declining Balance,20,17582.21
+Redwood Analytics,INV-146032,PO-40339,Scheduled,2021-10-17,EQ-0308,Generator,2021-09-02,Units of Production,5,17204.16
+Trident HVAC Systems,INV-959793,PO-61688,Paid,2023-04-20,IT-0309,Router,2023-03-06,MACRS,3,9313.18
+Apex Janitorial,INV-939717,PO-61505,Overdue,2019-10-28,VH-0310,Van,2019-09-13,Sum-of-Years-Digits,7,12242.21
+BlueSky Marketing,INV-214266,PO-30369,Paid,2022-02-02,IT-0311,Server,2022-01-18,Double Declining Balance,5,33924.56
+BlueSky Marketing,INV-317722,PO-69233,Overdue,2024-04-22,EQ-0312,Generator,2024-03-23,Units of Production,15,18383.51
+Vanguard Equipment Co,INV-325465,PO-52964,Pending,2020-05-16,VH-0313,Forklift,2020-05-06,Straight-Line,20,25736.22
+Trident HVAC Systems,INV-282313,PO-14073,Partial,2021-11-12,EQ-0314,Generator,2021-10-13,Units of Production,20,7018.64
+Granite Construction,INV-227352,PO-11567,Paid,2025-03-18,IT-0315,Printer,2025-03-03,Double Declining Balance,3,35713.98
+Pinnacle Manufacturing,INV-952227,PO-19828,Paid,2021-05-06,FF-0316,Desk,2021-03-22,Straight-Line,15,13691.81
+Meridian Consulting,INV-583388,PO-16637,Pending,2026-05-14,VH-0317,Truck,2026-03-30,MACRS,7,1839.86
+Ironclad Security,INV-325146,PO-34530,Overdue,2023-07-21,IT-0318,Printer,2023-06-06,Sum-of-Years-Digits,20,8529.51
+BlueSky Marketing,INV-623125,PO-64000,Scheduled,2020-09-10,BL-0319,Parking Lot,2020-08-31,Units of Production,15,9550.82
+TechVault Solutions,INV-935922,PO-78919,Pending,2020-01-25,EQ-0320,Compressor,2019-12-26,MACRS,10,7727.76
+Keystone Legal Services,INV-693128,PO-75849,Overdue,2019-05-05,FF-0321,Conference Table,2019-03-21,Units of Production,15,25196.59
+Vanguard Equipment Co,INV-394579,PO-17679,Partial,2021-01-16,FF-0322,Chair,2021-01-06,MACRS,3,40381.54
+Sterling Furniture,INV-659614,PO-17328,Pending,2025-08-04,VH-0323,Truck,2025-07-20,MACRS,5,14881.46
+Crestview Landscaping,INV-873959,PO-57026,Scheduled,2023-06-09,VH-0324,Van,2023-05-10,Straight-Line,5,15224.2
+Trident HVAC Systems,INV-977340,PO-74517,Scheduled,2026-12-09,BL-0325,Parking Lot,2026-11-09,Sum-of-Years-Digits,5,28475.89
+Atlas Cloud Services,INV-652021,PO-72650,Paid,2024-07-11,IT-0326,Laptop,2024-07-01,Sum-of-Years-Digits,5,13104.16
+Bridgeport Packaging,INV-985296,PO-52413,Paid,2025-12-05,VH-0327,Forklift,2025-11-20,Straight-Line,20,8831.16
+Pinnacle Manufacturing,INV-794303,PO-61851,Scheduled,2025-08-14,IT-0328,Router,2025-07-30,Straight-Line,7,2069.13
+Horizon Telecom,INV-770318,PO-73858,Overdue,2022-06-20,VH-0329,Van,2022-05-21,Double Declining Balance,20,28789.45
+Trident HVAC Systems,INV-408823,PO-26691,Pending,2025-05-20,VH-0330,Van,2025-04-20,Straight-Line,10,12956.99
+Trident HVAC Systems,INV-948095,PO-90134,Pending,2025-07-19,BL-0331,Office Renovation,2025-06-04,MACRS,5,15482.01
+Greenfield Energy,INV-276042,PO-93386,Paid,2024-08-09,FF-0332,Desk,2024-07-25,Sum-of-Years-Digits,5,18041.19
+BlueSky Marketing,INV-925250,PO-24160,Paid,2019-03-18,VH-0333,Van,2019-02-16,Straight-Line,20,1874.1
+Nexus Software,INV-672547,PO-59197,Paid,2024-01-14,VH-0334,Company Car,2023-11-30,Units of Production,10,24741.82
+Keystone Legal Services,INV-409234,PO-12631,Overdue,2025-07-10,VH-0335,Company Car,2025-06-25,Sum-of-Years-Digits,3,37142.23
+Greenfield Energy,INV-197627,PO-54295,Scheduled,2019-11-30,VH-0336,Company Car,2019-10-31,MACRS,5,11783.65
+Quantum Electronics,INV-156157,PO-23272,Overdue,2024-06-10,EQ-0337,Compressor,2024-05-31,Double Declining Balance,15,26910.85
+Meridian Consulting,INV-699544,PO-82045,Partial,2023-09-03,FF-0338,Filing Cabinet,2023-08-04,Double Declining Balance,5,1473.07
+TechVault Solutions,INV-729371,PO-72957,Pending,2023-01-27,EQ-0339,Generator,2023-01-17,Straight-Line,7,32320.97
+Acme Office Supplies,INV-923002,PO-62096,Partial,2021-05-12,FF-0340,Desk,2021-04-27,Units of Production,10,14925.51
+Quantum Electronics,INV-499974,PO-58418,Pending,2026-06-30,IT-0341,Switch,2026-05-31,Units of Production,15,7935.45
+TechVault Solutions,INV-164633,PO-29808,Paid,2022-01-28,EQ-0342,CNC Machine,2021-12-14,Straight-Line,5,19856.68
+Silverline Insurance,INV-958160,PO-78495,Partial,2022-12-24,BL-0343,Office Renovation,2022-11-09,MACRS,15,2903.51
+Silverline Insurance,INV-849003,PO-14551,Scheduled,2024-05-13,EQ-0344,CNC Machine,2024-04-28,MACRS,3,19282.4
+Quantum Electronics,INV-322182,PO-35260,Pending,2024-11-01,IT-0345,Printer,2024-10-17,Straight-Line,5,49273.46
+Ironclad Security,INV-862422,PO-18783,Paid,2020-01-01,VH-0346,Van,2019-11-17,Units of Production,15,6671.53
+Granite Construction,INV-716118,PO-78493,Partial,2023-07-16,FF-0347,Conference Table,2023-06-16,Straight-Line,3,32049.57
+Ironclad Security,INV-205071,PO-23845,Scheduled,2020-09-19,BL-0348,Parking Lot,2020-09-04,Straight-Line,15,38809.42
+Keystone Legal Services,INV-738543,PO-72003,Paid,2022-04-16,EQ-0349,CNC Machine,2022-03-17,Double Declining Balance,10,21146.27
+Vanguard Equipment Co,INV-515018,PO-53449,Pending,2023-07-24,BL-0350,Parking Lot,2023-07-09,Straight-Line,20,20104.33
+Oasis Water Services,INV-426053,PO-46745,Partial,2024-05-30,FF-0351,Desk,2024-04-30,Straight-Line,7,36306.74
+Crestview Landscaping,INV-734366,PO-94614,Paid,2021-08-06,FF-0352,Conference Table,2021-07-22,Double Declining Balance,7,11331.79
+BlueSky Marketing,INV-168804,PO-50779,Scheduled,2021-06-29,EQ-0353,CNC Machine,2021-05-15,Units of Production,3,22874.53
+Pinnacle Manufacturing,INV-134677,PO-69827,Paid,2024-11-27,VH-0354,Van,2024-11-17,Sum-of-Years-Digits,5,12896.31
+Trident HVAC Systems,INV-229890,PO-99282,Paid,2021-04-25,FF-0355,Conference Table,2021-03-26,Double Declining Balance,15,15193.19
+Sterling Furniture,INV-271456,PO-43903,Paid,2024-08-09,VH-0356,Company Car,2024-06-25,Sum-of-Years-Digits,15,14860.15
+Acme Office Supplies,INV-316773,PO-45269,Partial,2023-05-13,VH-0357,Van,2023-05-03,MACRS,5,14257.61
+Acme Office Supplies,INV-108874,PO-39329,Overdue,2026-09-05,EQ-0358,Compressor,2026-08-26,MACRS,20,6434.28
+Keystone Legal Services,INV-589368,PO-49602,Scheduled,2022-07-05,EQ-0359,HVAC Unit,2022-06-05,MACRS,7,10608.24
+Nexus Software,INV-688730,PO-94848,Scheduled,2025-08-01,IT-0360,Router,2025-07-22,MACRS,20,38974.08
+Evergreen Facilities,INV-390334,PO-44229,Overdue,2022-05-17,EQ-0361,Generator,2022-05-07,Double Declining Balance,7,10661.3
+Pinnacle Manufacturing,INV-246726,PO-13336,Partial,2024-11-03,IT-0362,Router,2024-10-19,Sum-of-Years-Digits,10,17007.3
+Vanguard Equipment Co,INV-955653,PO-34892,Overdue,2023-10-26,EQ-0363,Generator,2023-09-11,Double Declining Balance,15,37076.74
+Silverline Insurance,INV-685365,PO-33741,Overdue,2025-02-12,FF-0364,Filing Cabinet,2024-12-29,Straight-Line,5,32830.31
+Pacific Fleet Services,INV-193637,PO-39131,Overdue,2020-07-08,BL-0365,Office Renovation,2020-06-08,Double Declining Balance,20,23713.7
+Oasis Water Services,INV-992562,PO-25437,Partial,2022-07-26,FF-0366,Filing Cabinet,2022-06-11,Straight-Line,7,14492.86
+Crestview Landscaping,INV-500209,PO-79446,Overdue,2026-02-21,EQ-0367,Compressor,2026-02-11,Units of Production,15,5747.6
+TechVault Solutions,INV-579798,PO-28772,Overdue,2020-09-24,VH-0368,Forklift,2020-09-09,Double Declining Balance,10,27545.79
+Phoenix Data Centers,INV-574012,PO-45851,Pending,2020-01-12,FF-0369,Chair,2019-11-28,Double Declining Balance,7,9793.26
+Apex Janitorial,INV-522988,PO-66233,Partial,2020-11-24,IT-0370,Server,2020-10-10,Units of Production,15,16560.77
+Acme Office Supplies,INV-299834,PO-12348,Paid,2019-06-19,FF-0371,Desk,2019-06-04,Double Declining Balance,7,34804.9
+Cornerstone IT,INV-420984,PO-31891,Paid,2026-11-10,FF-0372,Chair,2026-10-11,Straight-Line,3,12681.2
+Evergreen Facilities,INV-820141,PO-27536,Overdue,2022-05-21,BL-0373,Parking Lot,2022-04-06,Units of Production,15,10246.45
+Sterling Furniture,INV-237579,PO-37681,Paid,2021-02-25,EQ-0374,Generator,2021-02-10,MACRS,5,9433.8
+Redwood Analytics,INV-908713,PO-80088,Scheduled,2020-12-03,FF-0375,Desk,2020-11-23,Straight-Line,10,33631.97
+Catalyst Training Group,INV-498724,PO-26199,Scheduled,2019-07-26,IT-0376,Laptop,2019-07-16,Sum-of-Years-Digits,20,3471.47
+Pacific Fleet Services,INV-794663,PO-78197,Overdue,2026-11-29,VH-0377,Truck,2026-11-14,MACRS,7,16541.04
+Catalyst Training Group,INV-396439,PO-24943,Paid,2026-11-25,EQ-0378,Generator,2026-11-10,Units of Production,15,26950.32
+Meridian Consulting,INV-268163,PO-15164,Scheduled,2025-11-14,FF-0379,Chair,2025-10-30,Units of Production,7,20609.7
+Bridgeport Packaging,INV-215795,PO-85255,Partial,2021-06-14,FF-0380,Chair,2021-04-30,Double Declining Balance,3,579.16
+Summit Logistics,INV-410401,PO-44619,Partial,2024-10-06,IT-0381,Monitor,2024-09-26,Straight-Line,20,7240.77
+Greenfield Energy,INV-221531,PO-22451,Paid,2020-12-26,FF-0382,Filing Cabinet,2020-12-16,Straight-Line,20,9393.73
+Crestview Landscaping,INV-868677,PO-22183,Overdue,2020-08-04,FF-0383,Filing Cabinet,2020-07-20,Sum-of-Years-Digits,10,14755.47
+Atlas Cloud Services,INV-991993,PO-72684,Partial,2020-05-26,EQ-0384,HVAC Unit,2020-04-11,Double Declining Balance,7,23682.77
+Greenfield Energy,INV-941235,PO-84572,Partial,2020-07-06,VH-0385,Truck,2020-06-26,Double Declining Balance,10,33179.96
+Catalyst Training Group,INV-237002,PO-73318,Partial,2023-05-05,BL-0386,Office Renovation,2023-04-05,Straight-Line,20,40635.7
+Quantum Electronics,INV-838793,PO-98857,Scheduled,2023-09-26,IT-0387,Laptop,2023-08-12,MACRS,7,16726.47
+Oasis Water Services,INV-605339,PO-55318,Partial,2025-05-18,FF-0388,Desk,2025-05-03,Double Declining Balance,10,27659.89
+Harbor Freight Supplies,INV-993251,PO-74990,Pending,2025-04-15,IT-0389,Switch,2025-04-05,Straight-Line,5,23589.97
+Phoenix Data Centers,INV-677236,PO-94320,Partial,2024-08-05,VH-0390,Forklift,2024-07-06,Units of Production,7,1726.61
+Harbor Freight Supplies,INV-622669,PO-68598,Overdue,2021-08-30,EQ-0391,HVAC Unit,2021-08-20,Straight-Line,15,7455.8
+Pacific Fleet Services,INV-100177,PO-21913,Scheduled,2026-05-10,IT-0392,Printer,2026-04-30,MACRS,10,1321.4
+Metro Print & Copy,INV-333746,PO-69566,Overdue,2022-06-16,EQ-0393,CNC Machine,2022-06-01,MACRS,7,12607.94
+Phoenix Data Centers,INV-332518,PO-10287,Overdue,2026-01-27,FF-0394,Conference Table,2025-12-13,Sum-of-Years-Digits,3,4268.23
+Harbor Freight Supplies,INV-272129,PO-74542,Pending,2026-03-10,BL-0395,Parking Lot,2026-02-08,Units of Production,7,12170.77
+Greenfield Energy,INV-919378,PO-34979,Overdue,2021-11-22,VH-0396,Truck,2021-11-07,Straight-Line,10,6759.52
+Phoenix Data Centers,INV-628689,PO-27647,Partial,2023-09-04,BL-0397,Office Renovation,2023-08-25,Straight-Line,10,17911.88
+Redwood Analytics,INV-285810,PO-85832,Pending,2019-09-01,BL-0398,Warehouse Expansion,2019-07-18,Double Declining Balance,15,38623.73
+Greenfield Energy,INV-899407,PO-42537,Overdue,2023-06-05,BL-0399,Warehouse Expansion,2023-05-06,Units of Production,10,30008.83
+Horizon Telecom,INV-884782,PO-77147,Overdue,2022-06-03,VH-0400,Van,2022-04-19,MACRS,10,24559.78
+Crestview Landscaping,INV-462066,PO-98129,Pending,2022-07-24,VH-0401,Van,2022-07-09,Double Declining Balance,15,17572.91
+Redwood Analytics,INV-799565,PO-64719,Scheduled,2025-03-02,IT-0402,Monitor,2025-01-31,Sum-of-Years-Digits,15,17373.58
+Quantum Electronics,INV-802812,PO-17419,Pending,2023-10-07,BL-0403,Office Renovation,2023-09-27,Sum-of-Years-Digits,3,7204.46
+Phoenix Data Centers,INV-313910,PO-80932,Paid,2020-11-20,FF-0404,Chair,2020-10-21,Sum-of-Years-Digits,3,30435.0
+Harbor Freight Supplies,INV-878476,PO-94819,Scheduled,2024-02-07,BL-0405,Parking Lot,2024-01-28,Units of Production,20,26562.46
+Cornerstone IT,INV-818430,PO-50980,Scheduled,2024-10-23,IT-0406,Printer,2024-09-23,Straight-Line,10,21227.53
+Acme Office Supplies,INV-844012,PO-94886,Overdue,2021-11-10,BL-0407,Warehouse Expansion,2021-10-26,MACRS,5,34735.15
+Granite Construction,INV-178086,PO-34507,Pending,2025-10-22,VH-0408,Forklift,2025-10-07,MACRS,10,9285.52
+Greenfield Energy,INV-712353,PO-43425,Paid,2023-04-05,EQ-0409,CNC Machine,2023-03-26,Sum-of-Years-Digits,15,4849.57
+BlueSky Marketing,INV-755744,PO-90689,Overdue,2026-12-31,IT-0410,Server,2026-12-16,Units of Production,7,9045.8
+Keystone Legal Services,INV-292800,PO-78236,Paid,2025-07-03,IT-0411,Switch,2025-06-03,MACRS,7,11472.22
+Atlas Cloud Services,INV-448005,PO-53393,Overdue,2023-10-15,IT-0412,Monitor,2023-08-31,Sum-of-Years-Digits,5,19031.03
+Meridian Consulting,INV-567315,PO-41502,Scheduled,2026-01-21,BL-0413,Parking Lot,2025-12-07,MACRS,3,4596.37
+Cornerstone IT,INV-396567,PO-13238,Scheduled,2019-07-13,EQ-0414,Generator,2019-06-13,Sum-of-Years-Digits,10,8879.37
+Redwood Analytics,INV-435872,PO-77357,Paid,2024-10-29,EQ-0415,Generator,2024-09-14,Straight-Line,7,34861.0
+Atlas Cloud Services,INV-818699,PO-65601,Paid,2025-01-22,IT-0416,Server,2025-01-12,Double Declining Balance,20,27483.0
+Granite Construction,INV-851690,PO-53478,Paid,2027-01-02,IT-0417,Switch,2026-11-18,Straight-Line,20,2185.64
+Summit Logistics,INV-371212,PO-63429,Partial,2019-08-26,FF-0418,Desk,2019-08-11,Units of Production,15,18165.79
+Metro Print & Copy,INV-106185,PO-94072,Scheduled,2023-08-29,FF-0419,Desk,2023-07-15,Straight-Line,10,11991.09
+Phoenix Data Centers,INV-819195,PO-49498,Scheduled,2025-08-05,IT-0420,Monitor,2025-07-26,Straight-Line,15,2647.41
+Evergreen Facilities,INV-243006,PO-61248,Scheduled,2024-01-12,EQ-0421,Generator,2023-11-28,Sum-of-Years-Digits,10,5393.11
+Metro Print & Copy,INV-229221,PO-15475,Paid,2020-09-12,FF-0422,Desk,2020-08-13,MACRS,15,30625.12
+Catalyst Training Group,INV-460554,PO-37752,Partial,2023-06-13,FF-0423,Chair,2023-06-03,MACRS,20,36152.94
+Pinnacle Manufacturing,INV-938504,PO-84356,Paid,2020-11-05,VH-0424,Forklift,2020-10-21,MACRS,5,2358.34
+BlueSky Marketing,INV-708798,PO-73857,Overdue,2026-04-04,FF-0425,Desk,2026-03-25,Sum-of-Years-Digits,7,2089.27
+Pinnacle Manufacturing,INV-433222,PO-73682,Partial,2026-07-27,IT-0426,Monitor,2026-07-12,Sum-of-Years-Digits,15,3478.15
+Catalyst Training Group,INV-431699,PO-66139,Pending,2026-06-23,BL-0427,Office Renovation,2026-05-24,Straight-Line,15,15606.79
+Horizon Telecom,INV-447668,PO-72908,Partial,2021-10-20,EQ-0428,CNC Machine,2021-10-05,Units of Production,7,5425.22
+Sterling Furniture,INV-982683,PO-46780,Pending,2022-07-20,BL-0429,Office Renovation,2022-06-05,MACRS,5,23930.51
+Meridian Consulting,INV-710156,PO-85877,Partial,2021-12-24,IT-0430,Laptop,2021-12-14,MACRS,15,9080.95
+Meridian Consulting,INV-483588,PO-61445,Pending,2019-06-30,BL-0431,Parking Lot,2019-05-31,MACRS,10,28586.45
+Oasis Water Services,INV-794868,PO-41310,Scheduled,2022-04-21,EQ-0432,Generator,2022-04-06,Double Declining Balance,10,12016.8
+Phoenix Data Centers,INV-791444,PO-29162,Partial,2024-10-21,EQ-0433,Compressor,2024-10-06,Sum-of-Years-Digits,5,28647.36
+TechVault Solutions,INV-801062,PO-37102,Scheduled,2021-07-30,VH-0434,Truck,2021-06-15,Sum-of-Years-Digits,7,8284.33
+Nexus Software,INV-646699,PO-93042,Overdue,2024-05-22,IT-0435,Laptop,2024-04-07,Sum-of-Years-Digits,20,5595.78
+Apex Janitorial,INV-976052,PO-20202,Scheduled,2025-02-22,EQ-0436,HVAC Unit,2025-02-07,Sum-of-Years-Digits,7,22874.36
+Nexus Software,INV-733561,PO-10864,Scheduled,2021-08-15,FF-0437,Filing Cabinet,2021-07-01,Double Declining Balance,10,25477.31
+BlueSky Marketing,INV-295984,PO-30625,Overdue,2020-11-24,IT-0438,Router,2020-11-09,MACRS,20,6056.99
+Trident HVAC Systems,INV-602073,PO-72786,Pending,2020-05-14,EQ-0439,CNC Machine,2020-04-29,MACRS,20,3692.61
+Atlas Cloud Services,INV-268956,PO-27658,Scheduled,2026-05-20,IT-0440,Server,2026-04-05,Straight-Line,3,4628.05
+Quantum Electronics,INV-525151,PO-88558,Scheduled,2025-06-17,IT-0441,Server,2025-06-02,Straight-Line,7,18659.47
+Quantum Electronics,INV-605065,PO-32356,Pending,2026-07-03,IT-0442,Server,2026-06-03,Units of Production,10,31726.56
+Catalyst Training Group,INV-818894,PO-54914,Partial,2020-08-22,BL-0443,Parking Lot,2020-08-07,MACRS,15,5249.2
+Apex Janitorial,INV-648102,PO-76107,Partial,2019-10-24,EQ-0444,HVAC Unit,2019-10-09,Double Declining Balance,5,1520.0
+Catalyst Training Group,INV-197716,PO-73208,Pending,2020-02-14,EQ-0445,Generator,2020-01-30,MACRS,15,21569.5
+Granite Construction,INV-655552,PO-66224,Pending,2019-02-19,BL-0446,Warehouse Expansion,2019-01-05,Units of Production,7,12988.96
+Keystone Legal Services,INV-240386,PO-43360,Partial,2023-05-11,BL-0447,Parking Lot,2023-04-11,Double Declining Balance,20,9797.3
+Bridgeport Packaging,INV-843596,PO-10932,Scheduled,2020-01-09,BL-0448,Parking Lot,2019-12-10,MACRS,10,5334.44
+Greenfield Energy,INV-479867,PO-23970,Pending,2024-11-08,EQ-0449,Compressor,2024-10-29,Units of Production,20,20581.3
+Metro Print & Copy,INV-813666,PO-62095,Pending,2025-08-24,FF-0450,Conference Table,2025-07-25,Units of Production,15,13660.85
+Granite Construction,INV-421549,PO-85713,Overdue,2025-05-17,VH-0451,Forklift,2025-04-02,Units of Production,15,17890.18
+Oasis Water Services,INV-324875,PO-76629,Partial,2020-07-29,VH-0452,Company Car,2020-07-19,Sum-of-Years-Digits,20,18518.15
+Keystone Legal Services,INV-963245,PO-29048,Partial,2025-03-15,VH-0453,Company Car,2025-03-05,MACRS,20,321.86
+Ironclad Security,INV-859687,PO-60374,Partial,2020-01-07,FF-0454,Chair,2019-12-28,MACRS,7,3036.43
+Metro Print & Copy,INV-111230,PO-36438,Scheduled,2024-12-04,BL-0455,Office Renovation,2024-11-04,Sum-of-Years-Digits,5,20901.29
+Meridian Consulting,INV-786837,PO-10037,Pending,2019-06-02,BL-0456,Office Renovation,2019-05-18,Straight-Line,20,1034.72
+Vanguard Equipment Co,INV-872722,PO-18993,Paid,2023-07-25,EQ-0457,HVAC Unit,2023-06-25,MACRS,15,6767.33
+Evergreen Facilities,INV-576849,PO-62947,Scheduled,2025-05-09,FF-0458,Filing Cabinet,2025-04-09,Straight-Line,5,31007.2
+Vanguard Equipment Co,INV-456480,PO-25336,Scheduled,2021-01-31,BL-0459,Office Renovation,2020-12-17,Sum-of-Years-Digits,15,2443.63
+Quantum Electronics,INV-894268,PO-54520,Partial,2025-02-11,EQ-0460,HVAC Unit,2025-01-12,Units of Production,15,21064.21
+Quantum Electronics,INV-926965,PO-38885,Pending,2025-08-10,EQ-0461,Generator,2025-07-31,Sum-of-Years-Digits,7,1955.56
+Ironclad Security,INV-885161,PO-54825,Paid,2022-12-27,FF-0462,Chair,2022-12-17,MACRS,7,2732.92
+Bridgeport Packaging,INV-291663,PO-99536,Pending,2021-02-15,FF-0463,Filing Cabinet,2021-01-01,Units of Production,5,31965.07
+Oasis Water Services,INV-361824,PO-91080,Overdue,2021-04-12,VH-0464,Forklift,2021-03-28,Double Declining Balance,5,4871.94
+Phoenix Data Centers,INV-901368,PO-80972,Paid,2020-03-22,IT-0465,Switch,2020-03-12,Units of Production,20,18419.76
+Sterling Furniture,INV-635962,PO-46735,Partial,2026-01-16,EQ-0466,CNC Machine,2025-12-17,Double Declining Balance,10,9574.22
+Phoenix Data Centers,INV-134144,PO-75860,Overdue,2025-07-05,IT-0467,Router,2025-06-20,Units of Production,10,24038.08
+Crestview Landscaping,INV-822689,PO-11103,Paid,2026-09-27,EQ-0468,Generator,2026-09-12,Double Declining Balance,20,16226.38
+Nexus Software,INV-675210,PO-44452,Pending,2025-07-17,FF-0469,Filing Cabinet,2025-07-07,Sum-of-Years-Digits,15,20141.75
+Pacific Fleet Services,INV-834750,PO-58799,Overdue,2025-12-16,FF-0470,Chair,2025-11-16,Units of Production,10,9107.09
+Vanguard Equipment Co,INV-204721,PO-45382,Pending,2024-02-05,BL-0471,Office Renovation,2024-01-21,MACRS,15,15199.37
+Ironclad Security,INV-541996,PO-75483,Pending,2023-04-25,VH-0472,Van,2023-04-10,MACRS,10,10894.42
+Granite Construction,INV-517754,PO-22972,Pending,2022-08-31,FF-0473,Filing Cabinet,2022-07-17,Straight-Line,15,30488.9
+Meridian Consulting,INV-477808,PO-83446,Scheduled,2021-12-22,IT-0474,Printer,2021-11-07,Sum-of-Years-Digits,20,7849.24
+Sterling Furniture,INV-703869,PO-95179,Scheduled,2019-05-07,IT-0475,Monitor,2019-03-23,Double Declining Balance,20,12714.95
+Phoenix Data Centers,INV-499581,PO-90434,Overdue,2022-04-10,FF-0476,Conference Table,2022-03-11,Units of Production,20,21584.12
+Metro Print & Copy,INV-990136,PO-19351,Paid,2020-08-31,FF-0477,Conference Table,2020-08-16,Double Declining Balance,20,21856.81
+Horizon Telecom,INV-514664,PO-45553,Partial,2021-08-22,FF-0478,Filing Cabinet,2021-07-23,Sum-of-Years-Digits,20,9943.28
+Oasis Water Services,INV-863124,PO-40753,Overdue,2025-09-15,EQ-0479,Compressor,2025-08-01,Straight-Line,5,11998.97
+Meridian Consulting,INV-675074,PO-17055,Paid,2020-12-29,IT-0480,Laptop,2020-11-14,Units of Production,3,44737.15
+Redwood Analytics,INV-508783,PO-50549,Pending,2019-12-17,FF-0481,Chair,2019-12-07,Double Declining Balance,3,32665.37
+Oasis Water Services,INV-136862,PO-96972,Overdue,2022-04-23,VH-0482,Van,2022-03-09,Sum-of-Years-Digits,15,16653.65
+Crestview Landscaping,INV-831510,PO-80685,Pending,2024-06-18,BL-0483,Warehouse Expansion,2024-05-04,MACRS,15,8229.21
+Catalyst Training Group,INV-464032,PO-73131,Scheduled,2024-03-30,BL-0484,Parking Lot,2024-02-14,Double Declining Balance,20,13544.17
+Keystone Legal Services,INV-111068,PO-10012,Scheduled,2020-02-16,FF-0485,Filing Cabinet,2020-01-02,Double Declining Balance,10,5032.77
+Sterling Furniture,INV-892170,PO-72530,Overdue,2022-05-04,BL-0486,Office Renovation,2022-03-20,Straight-Line,20,29984.23
+Phoenix Data Centers,INV-531736,PO-83472,Partial,2023-11-29,BL-0487,Office Renovation,2023-10-30,Units of Production,3,15292.98
+Cornerstone IT,INV-351198,PO-77713,Scheduled,2020-12-14,EQ-0488,Compressor,2020-10-30,Sum-of-Years-Digits,7,2409.97
+Evergreen Facilities,INV-215717,PO-93478,Partial,2026-05-10,EQ-0489,Compressor,2026-04-10,MACRS,3,3405.97
+BlueSky Marketing,INV-660957,PO-12900,Pending,2022-03-05,VH-0490,Forklift,2022-01-19,Straight-Line,3,2319.91
+Evergreen Facilities,INV-617555,PO-38467,Overdue,2022-01-22,EQ-0491,Generator,2022-01-07,Units of Production,5,1752.92
+Evergreen Facilities,INV-253184,PO-17345,Overdue,2024-09-02,EQ-0492,Generator,2024-08-03,Units of Production,7,3800.73
+Summit Logistics,INV-113228,PO-25985,Pending,2025-03-19,VH-0493,Van,2025-02-02,Units of Production,7,23027.67
+Phoenix Data Centers,INV-646453,PO-97294,Pending,2024-01-04,IT-0494,Server,2023-12-20,Units of Production,10,32013.4
+Nexus Software,INV-676276,PO-78278,Paid,2026-09-22,FF-0495,Chair,2026-08-23,Sum-of-Years-Digits,20,10781.27
+Pacific Fleet Services,INV-218414,PO-40928,Partial,2026-03-30,VH-0496,Forklift,2026-02-28,Sum-of-Years-Digits,3,34036.26
+Acme Office Supplies,INV-144033,PO-86162,Partial,2020-12-16,BL-0497,Office Renovation,2020-11-16,MACRS,10,17929.83
+Pinnacle Manufacturing,INV-454861,PO-91937,Paid,2023-03-12,VH-0498,Van,2023-03-02,Straight-Line,10,3739.73
+Sterling Furniture,INV-685472,PO-94495,Overdue,2026-04-09,BL-0499,Office Renovation,2026-03-25,Units of Production,5,10900.04
+Oasis Water Services,INV-141406,PO-73609,Partial,2021-03-11,EQ-0500,CNC Machine,2021-03-01,MACRS,20,3137.9
+Evergreen Facilities,INV-591147,PO-46087,Scheduled,2025-03-18,VH-0501,Van,2025-02-01,MACRS,15,9031.12
+Atlas Cloud Services,INV-100754,PO-93627,Scheduled,2019-10-25,EQ-0502,CNC Machine,2019-10-10,Units of Production,7,14969.72
+Oasis Water Services,INV-166418,PO-96283,Scheduled,2021-02-08,BL-0503,Warehouse Expansion,2021-01-29,Units of Production,15,6189.98
+Meridian Consulting,INV-772036,PO-52208,Paid,2024-12-31,BL-0504,Office Renovation,2024-11-16,Straight-Line,15,7351.7
+Redwood Analytics,INV-212255,PO-73618,Pending,2026-06-01,IT-0505,Server,2026-05-22,Straight-Line,5,12550.51
+TechVault Solutions,INV-852715,PO-19289,Paid,2025-07-11,EQ-0506,CNC Machine,2025-05-27,Double Declining Balance,3,8023.04
+Metro Print & Copy,INV-536158,PO-58374,Paid,2024-07-15,EQ-0507,Generator,2024-07-05,MACRS,7,23708.3
+Vanguard Equipment Co,INV-644719,PO-22729,Paid,2024-12-16,IT-0508,Monitor,2024-12-06,Double Declining Balance,3,20441.53
+Granite Construction,INV-685549,PO-83156,Partial,2023-05-13,VH-0509,Van,2023-04-28,Straight-Line,15,31590.24
+Phoenix Data Centers,INV-676680,PO-62632,Scheduled,2026-03-30,EQ-0510,HVAC Unit,2026-02-28,Sum-of-Years-Digits,3,7468.75
+Silverline Insurance,INV-532373,PO-93000,Partial,2020-11-23,FF-0511,Filing Cabinet,2020-10-09,Sum-of-Years-Digits,15,15128.99
+Catalyst Training Group,INV-516379,PO-10025,Paid,2021-09-27,EQ-0512,CNC Machine,2021-09-12,Sum-of-Years-Digits,7,13948.88
+Catalyst Training Group,INV-430201,PO-12844,Overdue,2019-03-23,FF-0513,Desk,2019-03-08,MACRS,7,4823.72
+Redwood Analytics,INV-377860,PO-58114,Scheduled,2025-04-12,IT-0514,Laptop,2025-03-28,Double Declining Balance,10,6881.51
+Cornerstone IT,INV-869933,PO-20118,Overdue,2021-12-15,IT-0515,Router,2021-11-15,Units of Production,10,28091.53
+Atlas Cloud Services,INV-704277,PO-60010,Paid,2024-07-02,BL-0516,Parking Lot,2024-06-22,Straight-Line,7,1643.43
+Bridgeport Packaging,INV-883997,PO-95561,Scheduled,2022-10-31,EQ-0517,HVAC Unit,2022-10-01,Straight-Line,3,37831.61
+Metro Print & Copy,INV-692354,PO-29605,Overdue,2026-03-19,IT-0518,Monitor,2026-02-02,MACRS,15,1105.75
+Trident HVAC Systems,INV-889410,PO-88005,Scheduled,2021-07-08,IT-0519,Switch,2021-06-23,MACRS,20,20248.64
+Summit Logistics,INV-598969,PO-84899,Paid,2021-08-12,FF-0520,Conference Table,2021-06-28,MACRS,5,3530.15
+Nexus Software,INV-604283,PO-83308,Pending,2021-12-21,EQ-0521,HVAC Unit,2021-12-11,Units of Production,20,5697.6
+Nexus Software,INV-175124,PO-44898,Partial,2026-05-10,BL-0522,Parking Lot,2026-04-25,Sum-of-Years-Digits,20,11991.03
+Silverline Insurance,INV-299742,PO-52039,Overdue,2025-06-27,IT-0523,Switch,2025-06-17,MACRS,10,11687.04
+Metro Print & Copy,INV-563690,PO-91681,Pending,2019-05-10,VH-0524,Forklift,2019-04-10,Units of Production,15,42855.94
+TechVault Solutions,INV-875507,PO-17148,Pending,2021-08-29,FF-0525,Chair,2021-08-14,MACRS,20,14086.32
+Bridgeport Packaging,INV-571923,PO-71759,Paid,2020-09-26,IT-0526,Monitor,2020-08-27,Sum-of-Years-Digits,20,14094.42
+Meridian Consulting,INV-248213,PO-97590,Paid,2025-01-27,VH-0527,Forklift,2025-01-12,Units of Production,15,18236.45
+Apex Janitorial,INV-830361,PO-90997,Overdue,2026-06-20,FF-0528,Chair,2026-06-10,Straight-Line,3,6003.99
+BlueSky Marketing,INV-792165,PO-57214,Paid,2026-05-15,IT-0529,Printer,2026-05-05,Straight-Line,20,10703.71
+Evergreen Facilities,INV-430779,PO-73525,Scheduled,2026-05-28,VH-0530,Company Car,2026-04-13,MACRS,15,12114.01
+Summit Logistics,INV-141683,PO-42426,Scheduled,2021-02-17,BL-0531,Warehouse Expansion,2021-02-02,Sum-of-Years-Digits,15,38172.37
+Horizon Telecom,INV-755602,PO-49626,Pending,2024-08-13,VH-0532,Truck,2024-06-29,MACRS,7,18490.14
+Vanguard Equipment Co,INV-259077,PO-54798,Partial,2019-10-11,EQ-0533,Generator,2019-09-11,Double Declining Balance,15,22943.31
+Summit Logistics,INV-427557,PO-89346,Overdue,2023-04-30,EQ-0534,Compressor,2023-04-15,Units of Production,15,4620.56
+Granite Construction,INV-649249,PO-27727,Partial,2020-07-08,VH-0535,Van,2020-06-23,Double Declining Balance,5,12492.61
+Metro Print & Copy,INV-224138,PO-34134,Overdue,2025-05-17,FF-0536,Desk,2025-05-02,Double Declining Balance,15,26961.4
+Oasis Water Services,INV-961613,PO-93472,Overdue,2019-05-31,EQ-0537,HVAC Unit,2019-05-01,Double Declining Balance,7,18875.57
+Phoenix Data Centers,INV-746915,PO-44978,Scheduled,2021-02-18,VH-0538,Van,2021-02-08,MACRS,3,39652.09
+Catalyst Training Group,INV-599753,PO-27575,Scheduled,2021-08-18,VH-0539,Truck,2021-08-03,MACRS,7,3268.82
+Pacific Fleet Services,INV-302647,PO-39658,Paid,2027-01-25,VH-0540,Company Car,2026-12-26,Units of Production,10,8808.31
+Phoenix Data Centers,INV-894586,PO-36812,Paid,2019-04-02,EQ-0541,Compressor,2019-03-03,Double Declining Balance,20,34986.17
+Bridgeport Packaging,INV-143858,PO-89682,Partial,2024-01-19,FF-0542,Conference Table,2023-12-05,Sum-of-Years-Digits,5,12466.1
+Nexus Software,INV-144476,PO-42207,Scheduled,2025-11-19,BL-0543,Office Renovation,2025-11-09,MACRS,10,20933.7
+Nexus Software,INV-517375,PO-49918,Overdue,2019-07-25,BL-0544,Parking Lot,2019-06-10,Units of Production,3,4708.95
+Atlas Cloud Services,INV-586097,PO-94685,Partial,2023-10-27,BL-0545,Office Renovation,2023-09-27,Straight-Line,20,25238.69
+Oasis Water Services,INV-126122,PO-33445,Partial,2024-08-22,VH-0546,Van,2024-08-12,MACRS,10,10729.92
+Quantum Electronics,INV-846030,PO-31495,Paid,2027-01-12,EQ-0547,Generator,2026-12-28,Straight-Line,7,13139.2
+Greenfield Energy,INV-929493,PO-77065,Scheduled,2027-01-16,FF-0548,Desk,2026-12-02,Double Declining Balance,15,20006.14
+Nexus Software,INV-257380,PO-31249,Pending,2025-04-18,IT-0549,Server,2025-03-04,Double Declining Balance,7,26876.69
+Phoenix Data Centers,INV-567935,PO-47851,Pending,2027-01-05,EQ-0550,CNC Machine,2026-12-26,Straight-Line,7,31721.18
+Quantum Electronics,INV-996963,PO-75358,Scheduled,2020-07-07,IT-0551,Router,2020-06-22,Straight-Line,7,439.55
+Catalyst Training Group,INV-730421,PO-88656,Paid,2024-07-29,VH-0552,Company Car,2024-07-14,Double Declining Balance,10,12560.47
+Quantum Electronics,INV-151295,PO-34227,Pending,2025-03-21,BL-0553,Parking Lot,2025-02-19,Straight-Line,15,37449.38
+Metro Print & Copy,INV-412938,PO-53399,Paid,2022-12-10,VH-0554,Truck,2022-11-30,Straight-Line,20,26714.28
+Greenfield Energy,INV-723870,PO-85010,Scheduled,2023-09-19,VH-0555,Forklift,2023-09-04,Double Declining Balance,15,26711.15
+BlueSky Marketing,INV-497346,PO-18869,Partial,2025-07-29,IT-0556,Laptop,2025-06-29,MACRS,7,8962.42
+Summit Logistics,INV-652654,PO-64232,Scheduled,2022-05-29,VH-0557,Truck,2022-04-14,Double Declining Balance,20,20583.46
+Trident HVAC Systems,INV-191928,PO-73394,Scheduled,2021-05-16,IT-0558,Router,2021-05-06,Sum-of-Years-Digits,20,21390.84
+Ironclad Security,INV-644951,PO-92818,Partial,2025-11-28,FF-0559,Filing Cabinet,2025-10-29,Units of Production,5,21709.12
+Keystone Legal Services,INV-755843,PO-25456,Pending,2021-01-21,FF-0560,Chair,2021-01-06,MACRS,3,1687.64
+Ironclad Security,INV-111846,PO-93967,Pending,2023-09-02,FF-0561,Filing Cabinet,2023-08-23,Sum-of-Years-Digits,15,30843.34
+Vanguard Equipment Co,INV-457943,PO-61910,Scheduled,2019-11-04,FF-0562,Filing Cabinet,2019-10-05,MACRS,3,4638.39
+Acme Office Supplies,INV-935981,PO-14660,Pending,2021-01-04,FF-0563,Filing Cabinet,2020-12-20,Units of Production,20,23633.29
+Pinnacle Manufacturing,INV-878656,PO-17342,Scheduled,2026-02-27,BL-0564,Warehouse Expansion,2026-01-13,Sum-of-Years-Digits,10,35460.85
+Apex Janitorial,INV-447832,PO-56346,Paid,2026-09-08,BL-0565,Parking Lot,2026-08-09,Double Declining Balance,3,7526.37
+Vanguard Equipment Co,INV-724103,PO-25315,Overdue,2019-06-07,EQ-0566,Compressor,2019-05-08,Sum-of-Years-Digits,15,17271.19
+Trident HVAC Systems,INV-573858,PO-49666,Pending,2019-06-09,EQ-0567,Generator,2019-05-10,MACRS,10,19734.03
+Evergreen Facilities,INV-630573,PO-13268,Partial,2020-12-27,FF-0568,Desk,2020-12-17,MACRS,5,15329.28
+Pinnacle Manufacturing,INV-203024,PO-77652,Pending,2021-03-20,EQ-0569,CNC Machine,2021-02-18,Double Declining Balance,7,6296.47
+Oasis Water Services,INV-820426,PO-87894,Paid,2019-07-14,EQ-0570,Generator,2019-05-30,Sum-of-Years-Digits,3,15571.74
+BlueSky Marketing,INV-895338,PO-50913,Pending,2019-07-18,BL-0571,Parking Lot,2019-07-08,Sum-of-Years-Digits,20,4398.6
+Meridian Consulting,INV-256574,PO-30643,Overdue,2021-03-29,FF-0572,Filing Cabinet,2021-02-27,Straight-Line,10,11935.14
+Acme Office Supplies,INV-838568,PO-47128,Scheduled,2026-01-05,VH-0573,Forklift,2025-12-26,Double Declining Balance,15,7614.17
+Atlas Cloud Services,INV-130401,PO-71700,Paid,2019-11-18,BL-0574,Warehouse Expansion,2019-10-19,Straight-Line,15,6728.67
+Nexus Software,INV-721549,PO-92505,Partial,2019-08-19,EQ-0575,HVAC Unit,2019-08-09,MACRS,5,25824.02
+Sterling Furniture,INV-952336,PO-71377,Paid,2022-08-02,VH-0576,Truck,2022-07-03,Units of Production,10,10419.49
+Evergreen Facilities,INV-746910,PO-43823,Overdue,2026-10-19,EQ-0577,Compressor,2026-09-04,Units of Production,5,6839.6
+Atlas Cloud Services,INV-218370,PO-56064,Partial,2026-12-05,FF-0578,Conference Table,2026-11-05,Units of Production,10,504.33
+Crestview Landscaping,INV-848969,PO-24022,Overdue,2020-12-30,FF-0579,Chair,2020-11-30,MACRS,15,3046.57
+Metro Print & Copy,INV-751034,PO-41941,Scheduled,2019-11-17,BL-0580,Warehouse Expansion,2019-10-18,Double Declining Balance,10,17396.69
+Pacific Fleet Services,INV-556501,PO-84345,Overdue,2023-05-02,FF-0581,Chair,2023-04-22,MACRS,20,17822.25
+Trident HVAC Systems,INV-219876,PO-87616,Scheduled,2021-09-09,IT-0582,Switch,2021-08-25,Units of Production,20,26505.86
+Horizon Telecom,INV-214027,PO-99850,Scheduled,2025-04-02,EQ-0583,Compressor,2025-03-23,Units of Production,7,6459.71
+Horizon Telecom,INV-891662,PO-93379,Paid,2024-07-27,IT-0584,Server,2024-07-17,Double Declining Balance,5,31960.18
+Silverline Insurance,INV-305171,PO-36956,Overdue,2020-10-18,BL-0585,Warehouse Expansion,2020-09-03,Sum-of-Years-Digits,10,22125.69
+Apex Janitorial,INV-635218,PO-62978,Pending,2026-09-14,EQ-0586,CNC Machine,2026-08-15,Sum-of-Years-Digits,3,7849.55
+TechVault Solutions,INV-215027,PO-46989,Paid,2023-03-03,IT-0587,Switch,2023-02-21,Double Declining Balance,15,42441.86
+Ironclad Security,INV-321476,PO-96833,Pending,2026-12-31,FF-0588,Conference Table,2026-11-16,Units of Production,10,11588.26
+Pinnacle Manufacturing,INV-802615,PO-26455,Pending,2021-03-26,FF-0589,Conference Table,2021-02-09,Straight-Line,5,15194.95
+Summit Logistics,INV-242371,PO-21097,Pending,2026-04-19,VH-0590,Company Car,2026-04-09,Units of Production,20,22565.77
+Crestview Landscaping,INV-959907,PO-68988,Partial,2024-03-27,BL-0591,Office Renovation,2024-02-11,Sum-of-Years-Digits,10,15229.45
+Cornerstone IT,INV-348250,PO-75762,Overdue,2021-03-17,BL-0592,Office Renovation,2021-01-31,Units of Production,15,23205.27
+Bridgeport Packaging,INV-218661,PO-86056,Partial,2025-03-17,IT-0593,Laptop,2025-02-15,Straight-Line,15,19806.82
+Pinnacle Manufacturing,INV-357143,PO-71925,Paid,2024-12-26,EQ-0594,Generator,2024-11-26,MACRS,15,33083.2
+Keystone Legal Services,INV-591644,PO-69511,Scheduled,2025-08-01,BL-0595,Office Renovation,2025-07-02,Units of Production,7,23474.99
+Apex Janitorial,INV-726667,PO-49855,Scheduled,2022-11-03,FF-0596,Filing Cabinet,2022-09-19,Sum-of-Years-Digits,7,2455.88
+TechVault Solutions,INV-405925,PO-91830,Paid,2026-03-07,BL-0597,Office Renovation,2026-01-21,Sum-of-Years-Digits,15,2082.87
+Pacific Fleet Services,INV-394620,PO-46073,Overdue,2019-12-19,BL-0598,Office Renovation,2019-12-04,Straight-Line,7,4652.18
+Oasis Water Services,INV-947082,PO-32989,Overdue,2020-04-16,BL-0599,Parking Lot,2020-04-01,Double Declining Balance,5,20274.93
+Pacific Fleet Services,INV-261638,PO-75004,Partial,2021-01-20,FF-0600,Desk,2021-01-10,Units of Production,5,29771.72
+Cornerstone IT,INV-156964,PO-94182,Overdue,2026-07-14,VH-0601,Van,2026-05-30,Straight-Line,15,34022.48
+TechVault Solutions,INV-888977,PO-79798,Pending,2021-01-01,EQ-0602,HVAC Unit,2020-11-17,Units of Production,7,20297.0
+Silverline Insurance,INV-112439,PO-47852,Partial,2027-01-14,EQ-0603,CNC Machine,2026-11-30,Units of Production,5,25194.95
+Silverline Insurance,INV-552760,PO-90017,Overdue,2022-07-27,IT-0604,Router,2022-07-17,Sum-of-Years-Digits,20,18037.7
+Vanguard Equipment Co,INV-353542,PO-98065,Scheduled,2022-01-08,FF-0605,Conference Table,2021-12-29,Double Declining Balance,10,30739.24
+Redwood Analytics,INV-112542,PO-63903,Paid,2022-10-29,FF-0606,Desk,2022-10-14,MACRS,20,475.5
+Greenfield Energy,INV-135695,PO-13106,Scheduled,2026-10-23,FF-0607,Chair,2026-09-08,Straight-Line,20,6563.11
+TechVault Solutions,INV-190582,PO-89257,Pending,2025-09-14,BL-0608,Parking Lot,2025-08-30,Units of Production,3,36045.15
+Silverline Insurance,INV-792561,PO-19924,Partial,2026-04-22,IT-0609,Switch,2026-04-07,Sum-of-Years-Digits,5,6301.94
+Phoenix Data Centers,INV-501393,PO-60933,Overdue,2023-11-14,FF-0610,Chair,2023-10-15,Straight-Line,3,12190.79
+Vanguard Equipment Co,INV-511707,PO-33388,Partial,2022-01-04,EQ-0611,Generator,2021-12-20,Straight-Line,10,19538.32
+Pinnacle Manufacturing,INV-136554,PO-19557,Paid,2025-03-09,VH-0612,Truck,2025-01-23,MACRS,10,16706.98
+Oasis Water Services,INV-139673,PO-97111,Partial,2021-12-07,IT-0613,Printer,2021-10-23,Sum-of-Years-Digits,5,25068.66
+Pinnacle Manufacturing,INV-614514,PO-72670,Partial,2026-12-07,EQ-0614,Generator,2026-11-07,Units of Production,15,35522.37
+Crestview Landscaping,INV-227091,PO-84349,Scheduled,2019-10-30,IT-0615,Printer,2019-10-15,Sum-of-Years-Digits,20,35887.32
+Horizon Telecom,INV-660596,PO-54572,Paid,2026-09-23,EQ-0616,Generator,2026-08-24,Units of Production,20,10820.02
+Phoenix Data Centers,INV-829685,PO-61131,Paid,2022-04-17,VH-0617,Truck,2022-04-02,Sum-of-Years-Digits,10,13662.14
+Pacific Fleet Services,INV-721748,PO-41258,Partial,2020-01-28,VH-0618,Van,2019-12-14,Units of Production,3,2750.39
+Summit Logistics,INV-454123,PO-15611,Partial,2025-02-22,EQ-0619,HVAC Unit,2025-01-23,Straight-Line,3,1030.12
+Meridian Consulting,INV-175532,PO-14833,Pending,2026-06-16,BL-0620,Office Renovation,2026-05-02,Units of Production,20,12943.67
+Metro Print & Copy,INV-115063,PO-32577,Paid,2019-05-04,BL-0621,Office Renovation,2019-03-20,Sum-of-Years-Digits,5,27156.59
+Harbor Freight Supplies,INV-211496,PO-24965,Partial,2020-03-19,BL-0622,Office Renovation,2020-02-03,MACRS,15,2981.32
+Keystone Legal Services,INV-873774,PO-98918,Partial,2025-12-11,IT-0623,Server,2025-11-26,Sum-of-Years-Digits,10,15272.13
+Greenfield Energy,INV-166292,PO-25826,Overdue,2026-09-18,FF-0624,Chair,2026-09-03,Double Declining Balance,3,11856.62
+Phoenix Data Centers,INV-142675,PO-27481,Paid,2023-09-12,FF-0625,Chair,2023-08-28,MACRS,10,12156.17
+Nexus Software,INV-193471,PO-95426,Scheduled,2020-10-18,EQ-0626,Generator,2020-10-08,Sum-of-Years-Digits,3,184.05
+Ironclad Security,INV-572298,PO-64005,Pending,2026-11-25,VH-0627,Van,2026-10-11,Double Declining Balance,5,15248.42
+Catalyst Training Group,INV-192296,PO-92207,Overdue,2026-10-14,BL-0628,Office Renovation,2026-10-04,Sum-of-Years-Digits,20,18653.64
+Ironclad Security,INV-898100,PO-80742,Scheduled,2019-02-03,VH-0629,Truck,2019-01-19,Double Declining Balance,15,3654.09
+BlueSky Marketing,INV-818530,PO-72182,Partial,2026-01-24,FF-0630,Desk,2026-01-09,Double Declining Balance,5,5091.2
+Atlas Cloud Services,INV-363592,PO-53816,Scheduled,2026-07-17,IT-0631,Switch,2026-07-07,Units of Production,7,6126.37
+TechVault Solutions,INV-639915,PO-25212,Paid,2020-03-13,BL-0632,Office Renovation,2020-03-03,Double Declining Balance,5,11220.51
+Oasis Water Services,INV-341238,PO-24435,Overdue,2024-01-26,EQ-0633,Compressor,2023-12-27,Double Declining Balance,20,32873.99
+Greenfield Energy,INV-607938,PO-17122,Partial,2021-10-13,VH-0634,Company Car,2021-08-29,Double Declining Balance,5,2385.82
+Meridian Consulting,INV-303586,PO-92840,Overdue,2025-12-16,VH-0635,Company Car,2025-11-01,Sum-of-Years-Digits,7,4302.29
+Meridian Consulting,INV-216506,PO-71018,Partial,2022-10-22,IT-0636,Switch,2022-10-07,Units of Production,15,1486.07
+Atlas Cloud Services,INV-706204,PO-82450,Pending,2022-11-23,FF-0637,Chair,2022-11-08,Straight-Line,20,29884.03
+Ironclad Security,INV-548906,PO-42329,Pending,2024-12-22,VH-0638,Company Car,2024-11-07,Sum-of-Years-Digits,10,3844.4
+Ironclad Security,INV-146372,PO-15250,Partial,2025-07-16,BL-0639,Office Renovation,2025-07-01,MACRS,15,11978.27
+TechVault Solutions,INV-685616,PO-11628,Partial,2023-11-24,EQ-0640,Generator,2023-10-10,Double Declining Balance,10,11218.9
+Pinnacle Manufacturing,INV-269662,PO-70199,Scheduled,2023-02-07,VH-0641,Truck,2023-01-08,MACRS,3,18985.67
+Acme Office Supplies,INV-757258,PO-70856,Paid,2024-03-23,VH-0642,Company Car,2024-02-07,Straight-Line,5,37512.17
+Nexus Software,INV-831963,PO-90281,Scheduled,2026-10-30,BL-0643,Office Renovation,2026-09-30,MACRS,7,18272.47
+Keystone Legal Services,INV-807424,PO-57708,Paid,2021-05-08,BL-0644,Warehouse Expansion,2021-04-28,Straight-Line,20,14257.4
+Nexus Software,INV-685934,PO-18782,Scheduled,2023-03-23,BL-0645,Office Renovation,2023-02-06,Double Declining Balance,7,7366.42
+Pinnacle Manufacturing,INV-888819,PO-86037,Pending,2022-10-18,BL-0646,Office Renovation,2022-10-03,Double Declining Balance,20,20225.88
+Horizon Telecom,INV-490923,PO-55249,Partial,2023-01-14,BL-0647,Parking Lot,2022-12-15,Units of Production,10,4255.12
+Redwood Analytics,INV-806013,PO-18601,Pending,2024-12-07,EQ-0648,CNC Machine,2024-11-27,Units of Production,10,17180.42
+Summit Logistics,INV-217466,PO-29392,Partial,2020-01-09,VH-0649,Forklift,2019-11-25,Double Declining Balance,3,2179.36
+Crestview Landscaping,INV-596925,PO-55442,Partial,2021-04-26,FF-0650,Conference Table,2021-04-16,Units of Production,20,27027.83
+Oasis Water Services,INV-343613,PO-78107,Overdue,2026-04-04,FF-0651,Chair,2026-03-25,Units of Production,3,1134.51
+Apex Janitorial,INV-927691,PO-50172,Pending,2022-12-05,EQ-0652,HVAC Unit,2022-11-05,Sum-of-Years-Digits,10,10835.79
+Cornerstone IT,INV-274444,PO-91085,Pending,2024-07-06,FF-0653,Desk,2024-06-06,MACRS,5,8623.43
+Evergreen Facilities,INV-432006,PO-85304,Pending,2021-01-31,VH-0654,Van,2021-01-16,Units of Production,5,1749.72
+Vanguard Equipment Co,INV-255130,PO-58878,Partial,2023-03-10,VH-0655,Truck,2023-02-23,MACRS,20,16441.26
+Atlas Cloud Services,INV-252446,PO-70036,Overdue,2025-01-24,IT-0656,Laptop,2024-12-25,Double Declining Balance,10,30550.36
+Acme Office Supplies,INV-701596,PO-97410,Pending,2025-03-17,FF-0657,Conference Table,2025-02-15,MACRS,7,40449.27
+Oasis Water Services,INV-810943,PO-82215,Paid,2024-01-15,IT-0658,Switch,2023-12-16,Sum-of-Years-Digits,10,13245.47
+Acme Office Supplies,INV-772465,PO-35578,Scheduled,2023-07-19,EQ-0659,CNC Machine,2023-07-04,MACRS,3,5013.14
+Cornerstone IT,INV-804179,PO-21452,Scheduled,2022-02-27,IT-0660,Laptop,2022-02-12,Units of Production,15,26071.37
+Meridian Consulting,INV-799155,PO-57325,Partial,2024-07-31,BL-0661,Parking Lot,2024-07-01,Double Declining Balance,15,14473.7
+Trident HVAC Systems,INV-423050,PO-68402,Scheduled,2023-11-17,EQ-0662,CNC Machine,2023-10-18,Straight-Line,3,7642.46
+Meridian Consulting,INV-544420,PO-64289,Pending,2024-02-08,EQ-0663,CNC Machine,2023-12-25,MACRS,5,33702.98
+Catalyst Training Group,INV-451709,PO-18665,Scheduled,2020-01-03,VH-0664,Forklift,2019-12-19,Units of Production,10,29354.48
+Summit Logistics,INV-695503,PO-27947,Pending,2019-03-14,FF-0665,Conference Table,2019-01-28,Double Declining Balance,5,17444.65
+Harbor Freight Supplies,INV-975126,PO-86704,Overdue,2023-05-13,BL-0666,Warehouse Expansion,2023-04-13,Units of Production,3,37603.67
+Granite Construction,INV-771670,PO-93435,Partial,2024-03-28,IT-0667,Laptop,2024-03-13,Straight-Line,5,6590.87
+Metro Print & Copy,INV-356639,PO-13728,Paid,2026-07-20,EQ-0668,Compressor,2026-06-20,Sum-of-Years-Digits,10,36488.17
+Pacific Fleet Services,INV-758501,PO-99903,Partial,2019-10-31,BL-0669,Warehouse Expansion,2019-10-01,Straight-Line,15,20695.08
+Sterling Furniture,INV-583439,PO-27759,Overdue,2024-10-10,FF-0670,Chair,2024-09-30,Double Declining Balance,15,1139.08
+TechVault Solutions,INV-769983,PO-20069,Scheduled,2022-02-20,EQ-0671,CNC Machine,2022-01-21,Double Declining Balance,3,7170.35
+Phoenix Data Centers,INV-431570,PO-99780,Overdue,2026-01-31,IT-0672,Router,2026-01-16,Sum-of-Years-Digits,5,14072.87
+Silverline Insurance,INV-113524,PO-27950,Scheduled,2026-11-28,IT-0673,Router,2026-10-29,Sum-of-Years-Digits,15,16079.2
+Sterling Furniture,INV-331854,PO-34696,Scheduled,2024-07-24,FF-0674,Chair,2024-06-09,MACRS,3,4216.38
+Trident HVAC Systems,INV-118223,PO-72851,Overdue,2024-12-03,EQ-0675,HVAC Unit,2024-11-23,Sum-of-Years-Digits,3,5367.31
+Trident HVAC Systems,INV-880623,PO-25544,Pending,2023-02-09,EQ-0676,CNC Machine,2023-01-25,Double Declining Balance,5,17857.54
+Crestview Landscaping,INV-182423,PO-65680,Paid,2026-10-29,VH-0677,Forklift,2026-10-14,Straight-Line,5,3859.62
+Acme Office Supplies,INV-638421,PO-87748,Paid,2024-07-21,IT-0678,Server,2024-06-06,Units of Production,3,1536.84
+Greenfield Energy,INV-920375,PO-26225,Scheduled,2021-11-12,IT-0679,Monitor,2021-11-02,Double Declining Balance,20,520.88
+Apex Janitorial,INV-390849,PO-85989,Overdue,2021-04-14,FF-0680,Desk,2021-03-30,Sum-of-Years-Digits,3,6837.44
+Atlas Cloud Services,INV-900319,PO-11832,Scheduled,2024-08-27,BL-0681,Parking Lot,2024-08-12,Double Declining Balance,3,4579.22
+Trident HVAC Systems,INV-628687,PO-72221,Overdue,2021-03-25,VH-0682,Truck,2021-02-23,MACRS,20,4974.11
+Atlas Cloud Services,INV-338607,PO-63422,Paid,2023-12-16,VH-0683,Forklift,2023-12-06,Sum-of-Years-Digits,10,9172.94
+Greenfield Energy,INV-402274,PO-83024,Paid,2024-04-02,BL-0684,Office Renovation,2024-03-23,Straight-Line,10,20871.37
+Horizon Telecom,INV-820420,PO-68190,Pending,2024-07-25,EQ-0685,CNC Machine,2024-07-15,MACRS,10,25329.37
+Ironclad Security,INV-288006,PO-11675,Partial,2022-05-20,VH-0686,Truck,2022-04-05,Straight-Line,10,37462.3
+Nexus Software,INV-206663,PO-32114,Paid,2023-12-10,IT-0687,Server,2023-11-30,Sum-of-Years-Digits,10,16277.2
+Meridian Consulting,INV-860427,PO-75419,Overdue,2022-11-03,BL-0688,Warehouse Expansion,2022-10-19,MACRS,3,10814.46
+Apex Janitorial,INV-608069,PO-77032,Overdue,2022-03-09,FF-0689,Conference Table,2022-01-23,Double Declining Balance,20,30536.88
+Phoenix Data Centers,INV-241147,PO-13895,Paid,2024-02-16,IT-0690,Monitor,2024-02-06,Straight-Line,10,11073.55
+Harbor Freight Supplies,INV-260155,PO-49682,Scheduled,2019-11-21,IT-0691,Server,2019-10-07,MACRS,10,24147.2
+Greenfield Energy,INV-629315,PO-44296,Scheduled,2019-12-25,EQ-0692,Compressor,2019-11-10,Sum-of-Years-Digits,7,21703.02
+Keystone Legal Services,INV-994303,PO-59327,Partial,2025-02-02,IT-0693,Printer,2025-01-23,Units of Production,3,11877.01
+TechVault Solutions,INV-615353,PO-66450,Pending,2019-05-30,BL-0694,Parking Lot,2019-05-15,Sum-of-Years-Digits,7,36236.03
+Trident HVAC Systems,INV-818666,PO-80699,Scheduled,2023-06-27,IT-0695,Router,2023-05-13,Units of Production,20,19236.68
+Pacific Fleet Services,INV-496149,PO-90863,Overdue,2025-05-06,BL-0696,Office Renovation,2025-04-21,Sum-of-Years-Digits,10,8637.87
+Horizon Telecom,INV-948878,PO-86541,Paid,2019-09-19,BL-0697,Office Renovation,2019-09-09,Sum-of-Years-Digits,5,23080.72
+Nexus Software,INV-356092,PO-42455,Pending,2020-03-19,FF-0698,Filing Cabinet,2020-02-03,Sum-of-Years-Digits,10,5413.09
+Apex Janitorial,INV-441958,PO-14899,Partial,2019-12-24,FF-0699,Desk,2019-12-14,Units of Production,7,2383.37
+Apex Janitorial,INV-431889,PO-59510,Scheduled,2024-11-23,FF-0700,Desk,2024-10-09,Units of Production,20,17085.33
+Horizon Telecom,INV-620860,PO-75898,Overdue,2025-06-13,EQ-0701,Generator,2025-06-03,Double Declining Balance,20,14355.37
+Catalyst Training Group,INV-925386,PO-19872,Scheduled,2022-06-10,EQ-0702,Compressor,2022-05-11,Double Declining Balance,10,29589.36
+Evergreen Facilities,INV-196424,PO-85784,Paid,2022-01-01,FF-0703,Conference Table,2021-12-22,MACRS,5,26511.69
+Horizon Telecom,INV-934301,PO-20048,Overdue,2022-02-03,BL-0704,Parking Lot,2022-01-24,MACRS,10,9161.33
+Keystone Legal Services,INV-755322,PO-77550,Partial,2022-06-27,BL-0705,Warehouse Expansion,2022-05-13,MACRS,5,12039.65
+Atlas Cloud Services,INV-878261,PO-71249,Overdue,2019-04-02,BL-0706,Warehouse Expansion,2019-03-18,MACRS,5,33758.01
+Keystone Legal Services,INV-481969,PO-70619,Pending,2026-01-05,BL-0707,Parking Lot,2025-11-21,Double Declining Balance,20,2078.73
+Pinnacle Manufacturing,INV-167557,PO-93090,Pending,2026-10-08,EQ-0708,HVAC Unit,2026-09-08,Units of Production,7,39442.87
+Vanguard Equipment Co,INV-301238,PO-13631,Pending,2022-04-05,FF-0709,Chair,2022-03-21,Sum-of-Years-Digits,10,4224.2
+BlueSky Marketing,INV-130557,PO-43868,Overdue,2024-07-26,EQ-0710,Generator,2024-06-11,MACRS,5,3842.99
+Atlas Cloud Services,INV-429153,PO-88852,Overdue,2026-04-03,EQ-0711,Generator,2026-03-24,Straight-Line,3,41660.91
+Quantum Electronics,INV-217369,PO-84838,Scheduled,2023-08-25,IT-0712,Printer,2023-07-26,Straight-Line,20,15739.5
+Redwood Analytics,INV-945872,PO-51079,Overdue,2026-07-13,EQ-0713,Generator,2026-06-13,MACRS,5,10780.12
+Oasis Water Services,INV-387883,PO-67602,Partial,2023-06-01,EQ-0714,Compressor,2023-05-17,Sum-of-Years-Digits,5,2173.78
+Crestview Landscaping,INV-672255,PO-65545,Partial,2025-08-21,EQ-0715,CNC Machine,2025-08-11,Double Declining Balance,20,16682.36
+Vanguard Equipment Co,INV-735242,PO-14562,Paid,2020-09-15,EQ-0716,CNC Machine,2020-08-16,Double Declining Balance,7,884.38
+Vanguard Equipment Co,INV-347864,PO-67986,Partial,2025-04-27,FF-0717,Filing Cabinet,2025-03-13,Straight-Line,20,4232.04
+Bridgeport Packaging,INV-268010,PO-67520,Overdue,2023-06-28,FF-0718,Desk,2023-05-29,Units of Production,5,6399.61
+Keystone Legal Services,INV-982023,PO-53610,Partial,2019-06-18,IT-0719,Printer,2019-05-19,Straight-Line,10,21681.8
+Harbor Freight Supplies,INV-952941,PO-81791,Overdue,2020-11-17,BL-0720,Office Renovation,2020-10-18,Units of Production,7,15551.1
+Trident HVAC Systems,INV-309794,PO-92352,Overdue,2019-05-03,VH-0721,Company Car,2019-04-23,Sum-of-Years-Digits,20,1825.44
+Apex Janitorial,INV-970969,PO-95089,Pending,2019-12-13,VH-0722,Van,2019-12-03,MACRS,15,36657.76
+Silverline Insurance,INV-820861,PO-87728,Overdue,2023-09-07,EQ-0723,HVAC Unit,2023-08-08,Sum-of-Years-Digits,20,3162.94
+Meridian Consulting,INV-975224,PO-84762,Pending,2020-01-26,FF-0724,Chair,2019-12-12,Straight-Line,10,24543.12
+Acme Office Supplies,INV-276953,PO-16525,Partial,2025-04-21,IT-0725,Printer,2025-04-06,MACRS,5,10727.3
+Ironclad Security,INV-223050,PO-11850,Scheduled,2025-10-25,VH-0726,Truck,2025-09-25,Units of Production,7,8662.33
+Phoenix Data Centers,INV-952924,PO-44891,Overdue,2024-03-18,IT-0727,Server,2024-02-02,Units of Production,20,4224.0
+Nexus Software,INV-538651,PO-33641,Partial,2020-08-01,VH-0728,Van,2020-06-17,Double Declining Balance,7,28951.76
+Acme Office Supplies,INV-778675,PO-70052,Paid,2022-05-03,VH-0729,Company Car,2022-04-03,Straight-Line,5,13385.94
+Pacific Fleet Services,INV-871861,PO-88275,Overdue,2020-07-29,EQ-0730,Compressor,2020-06-29,Straight-Line,20,15787.91
+Greenfield Energy,INV-735829,PO-97921,Scheduled,2025-04-10,IT-0731,Monitor,2025-03-31,Straight-Line,5,23084.07
+Acme Office Supplies,INV-686741,PO-15390,Scheduled,2021-12-19,FF-0732,Conference Table,2021-11-04,Double Declining Balance,20,6824.98
+Vanguard Equipment Co,INV-656189,PO-66744,Pending,2021-01-10,FF-0733,Conference Table,2020-11-26,Sum-of-Years-Digits,5,2342.34
+Greenfield Energy,INV-550977,PO-47083,Overdue,2022-07-17,VH-0734,Company Car,2022-07-07,MACRS,7,20457.31
+Harbor Freight Supplies,INV-900771,PO-29826,Scheduled,2022-01-15,EQ-0735,Compressor,2021-12-16,Units of Production,7,38575.12
+TechVault Solutions,INV-271499,PO-71228,Partial,2021-02-27,IT-0736,Server,2021-02-12,Straight-Line,5,1193.44
+Quantum Electronics,INV-616935,PO-24744,Pending,2024-07-30,EQ-0737,CNC Machine,2024-07-20,Straight-Line,20,18112.99
+Sterling Furniture,INV-386042,PO-83825,Scheduled,2020-02-03,FF-0738,Chair,2020-01-19,Double Declining Balance,5,24894.7
+Apex Janitorial,INV-198886,PO-53077,Paid,2019-02-01,EQ-0739,Generator,2019-01-17,Sum-of-Years-Digits,5,25179.41
+Silverline Insurance,INV-977634,PO-52406,Pending,2026-08-29,EQ-0740,CNC Machine,2026-08-19,Straight-Line,15,47028.13
+Summit Logistics,INV-145976,PO-96005,Scheduled,2024-04-14,EQ-0741,CNC Machine,2024-02-29,Units of Production,15,8800.24
+Horizon Telecom,INV-158232,PO-19269,Scheduled,2025-06-04,VH-0742,Truck,2025-05-20,MACRS,20,7353.57
+Nexus Software,INV-193520,PO-12688,Pending,2020-02-29,FF-0743,Chair,2020-01-15,Double Declining Balance,5,36429.42
+Nexus Software,INV-871635,PO-50645,Scheduled,2023-08-06,VH-0744,Truck,2023-07-07,Double Declining Balance,7,21980.56
+Sterling Furniture,INV-599583,PO-45190,Scheduled,2026-06-28,FF-0745,Chair,2026-06-18,MACRS,10,21438.36
+Ironclad Security,INV-142402,PO-77284,Overdue,2020-02-19,FF-0746,Chair,2020-01-05,Units of Production,10,18888.46
+Silverline Insurance,INV-940480,PO-72601,Overdue,2021-07-22,EQ-0747,Generator,2021-07-07,Double Declining Balance,7,14246.95
+Pinnacle Manufacturing,INV-180250,PO-15910,Scheduled,2026-10-03,VH-0748,Company Car,2026-09-03,Straight-Line,7,8547.48
+Redwood Analytics,INV-365688,PO-56590,Overdue,2023-11-21,IT-0749,Printer,2023-10-07,MACRS,20,25610.19
+Summit Logistics,INV-291059,PO-61505,Paid,2024-09-03,IT-0750,Switch,2024-08-24,Straight-Line,20,9373.5
+Ironclad Security,INV-377950,PO-54739,Pending,2026-12-25,FF-0751,Conference Table,2026-11-25,Double Declining Balance,20,17006.19
+Atlas Cloud Services,INV-222346,PO-11743,Pending,2019-12-17,IT-0752,Printer,2019-11-17,Units of Production,15,264.36
+BlueSky Marketing,INV-746703,PO-57281,Partial,2026-11-18,BL-0753,Parking Lot,2026-10-04,Sum-of-Years-Digits,10,11404.43
+Summit Logistics,INV-297364,PO-13514,Pending,2020-06-11,IT-0754,Server,2020-05-27,Units of Production,3,11230.92
+Metro Print & Copy,INV-255362,PO-72126,Partial,2020-09-01,EQ-0755,Compressor,2020-08-17,Straight-Line,3,13134.57
+Greenfield Energy,INV-713654,PO-41801,Pending,2020-11-26,EQ-0756,HVAC Unit,2020-11-11,Sum-of-Years-Digits,10,1010.28
+Apex Janitorial,INV-552762,PO-64484,Partial,2023-06-03,FF-0757,Desk,2023-05-24,MACRS,3,29363.11
+Catalyst Training Group,INV-859813,PO-90149,Partial,2025-04-19,IT-0758,Printer,2025-03-20,Double Declining Balance,10,16247.29
+Trident HVAC Systems,INV-779792,PO-64675,Partial,2019-09-16,EQ-0759,CNC Machine,2019-09-06,Straight-Line,15,1546.36
+Pacific Fleet Services,INV-301537,PO-71504,Overdue,2026-01-24,EQ-0760,HVAC Unit,2025-12-25,Units of Production,3,3988.28
+Cornerstone IT,INV-983390,PO-96108,Partial,2024-09-25,BL-0761,Parking Lot,2024-09-10,Double Declining Balance,7,33974.05
+Quantum Electronics,INV-269896,PO-91506,Pending,2022-05-31,EQ-0762,CNC Machine,2022-04-16,Sum-of-Years-Digits,10,41114.01
+Trident HVAC Systems,INV-205805,PO-64523,Partial,2020-02-03,VH-0763,Van,2019-12-20,Sum-of-Years-Digits,5,5842.41
+Cornerstone IT,INV-283201,PO-75991,Paid,2021-05-17,IT-0764,Monitor,2021-05-07,Straight-Line,7,14259.23
+Horizon Telecom,INV-370346,PO-54606,Overdue,2023-11-09,BL-0765,Office Renovation,2023-10-30,Straight-Line,3,12359.87
+Phoenix Data Centers,INV-559094,PO-69917,Paid,2025-04-30,VH-0766,Truck,2025-03-31,Straight-Line,20,2592.44
+Keystone Legal Services,INV-223794,PO-36920,Overdue,2025-11-15,BL-0767,Office Renovation,2025-11-05,Double Declining Balance,15,2111.5
+Oasis Water Services,INV-778526,PO-57675,Overdue,2022-05-26,BL-0768,Warehouse Expansion,2022-04-11,Double Declining Balance,20,14840.9
+Greenfield Energy,INV-457900,PO-47585,Scheduled,2021-05-21,EQ-0769,Generator,2021-04-06,Double Declining Balance,5,37588.86
+Summit Logistics,INV-889794,PO-79422,Partial,2022-01-24,EQ-0770,CNC Machine,2021-12-25,Double Declining Balance,20,15177.82
+Pinnacle Manufacturing,INV-131208,PO-68009,Pending,2023-12-07,EQ-0771,HVAC Unit,2023-10-23,Straight-Line,15,31806.61
+Trident HVAC Systems,INV-272306,PO-66894,Paid,2024-10-30,IT-0772,Monitor,2024-10-20,Units of Production,7,20871.49
+Phoenix Data Centers,INV-645027,PO-48761,Partial,2019-06-16,BL-0773,Office Renovation,2019-06-01,Units of Production,20,31849.71
+Quantum Electronics,INV-653429,PO-90006,Pending,2026-09-19,FF-0774,Filing Cabinet,2026-08-20,Units of Production,3,19983.9
+BlueSky Marketing,INV-462021,PO-95033,Partial,2026-04-06,BL-0775,Parking Lot,2026-03-22,Double Declining Balance,15,19940.66
+Quantum Electronics,INV-876000,PO-26515,Scheduled,2022-05-30,IT-0776,Router,2022-05-20,MACRS,7,16310.54
+Evergreen Facilities,INV-766564,PO-30975,Paid,2021-06-04,BL-0777,Parking Lot,2021-05-25,Straight-Line,7,13868.25
+Quantum Electronics,INV-215806,PO-17857,Overdue,2025-02-19,VH-0778,Forklift,2025-01-20,Sum-of-Years-Digits,20,22046.17
+Metro Print & Copy,INV-412434,PO-85030,Paid,2024-10-09,IT-0779,Laptop,2024-09-09,Units of Production,20,16990.33
+Horizon Telecom,INV-849579,PO-85073,Pending,2021-09-09,FF-0780,Filing Cabinet,2021-08-25,Units of Production,7,29405.9
+Redwood Analytics,INV-846209,PO-65796,Partial,2021-10-21,FF-0781,Chair,2021-10-11,Straight-Line,7,7737.51
+Summit Logistics,INV-809699,PO-78977,Partial,2019-10-27,VH-0782,Company Car,2019-09-12,MACRS,5,7248.5
+Granite Construction,INV-822487,PO-74165,Partial,2024-12-10,FF-0783,Conference Table,2024-10-26,Double Declining Balance,20,22241.06
+Pinnacle Manufacturing,INV-654844,PO-25474,Pending,2024-09-17,EQ-0784,HVAC Unit,2024-09-02,Units of Production,5,23514.52
+Pacific Fleet Services,INV-215695,PO-25842,Overdue,2019-05-29,BL-0785,Warehouse Expansion,2019-05-14,MACRS,3,28136.39
+Evergreen Facilities,INV-609529,PO-13667,Pending,2019-06-29,IT-0786,Monitor,2019-06-14,Double Declining Balance,7,9421.14
+Keystone Legal Services,INV-875590,PO-74067,Paid,2025-09-26,IT-0787,Monitor,2025-08-12,Straight-Line,7,4416.32
+Granite Construction,INV-574348,PO-54279,Partial,2022-12-09,IT-0788,Printer,2022-11-29,Units of Production,10,14538.13
+Harbor Freight Supplies,INV-863220,PO-52626,Paid,2025-10-31,VH-0789,Company Car,2025-10-16,MACRS,10,20585.98
+Silverline Insurance,INV-803011,PO-68077,Overdue,2026-02-12,EQ-0790,Compressor,2025-12-29,Straight-Line,10,11720.28
+Crestview Landscaping,INV-229794,PO-94399,Scheduled,2020-11-19,BL-0791,Parking Lot,2020-11-09,Straight-Line,20,10928.67
+Meridian Consulting,INV-119570,PO-25765,Scheduled,2025-12-19,BL-0792,Parking Lot,2025-12-09,Double Declining Balance,5,23941.77
+Acme Office Supplies,INV-435996,PO-62664,Scheduled,2022-02-15,VH-0793,Company Car,2022-01-31,Straight-Line,3,27570.47
+Pacific Fleet Services,INV-432799,PO-60070,Overdue,2019-05-06,EQ-0794,Compressor,2019-04-06,Straight-Line,10,1217.92
+Greenfield Energy,INV-261719,PO-50212,Partial,2020-02-26,FF-0795,Chair,2020-02-11,Double Declining Balance,5,11152.76
+TechVault Solutions,INV-203540,PO-51948,Pending,2025-12-21,VH-0796,Truck,2025-11-21,Units of Production,20,1499.63
+Quantum Electronics,INV-726004,PO-86812,Pending,2022-09-19,EQ-0797,Generator,2022-08-20,Units of Production,3,4606.48
+Redwood Analytics,INV-526850,PO-18579,Partial,2024-10-12,IT-0798,Monitor,2024-08-28,Straight-Line,3,10050.67
+Ironclad Security,INV-358281,PO-82706,Pending,2026-02-22,IT-0799,Monitor,2026-02-07,Sum-of-Years-Digits,15,23319.1
+Apex Janitorial,INV-249282,PO-58929,Scheduled,2023-09-08,IT-0800,Switch,2023-07-25,Double Declining Balance,15,9013.71
+Keystone Legal Services,INV-969659,PO-91360,Overdue,2021-11-15,BL-0801,Warehouse Expansion,2021-10-01,Double Declining Balance,3,130.99
+Acme Office Supplies,INV-983360,PO-92864,Pending,2019-10-19,FF-0802,Filing Cabinet,2019-09-04,MACRS,20,20019.41
+Harbor Freight Supplies,INV-415242,PO-21759,Partial,2024-10-21,IT-0803,Server,2024-09-21,Straight-Line,20,18893.02
+Harbor Freight Supplies,INV-433765,PO-99404,Overdue,2020-08-25,EQ-0804,Compressor,2020-07-26,Sum-of-Years-Digits,15,25718.53
+Phoenix Data Centers,INV-582134,PO-88579,Overdue,2027-01-22,FF-0805,Chair,2026-12-08,Straight-Line,20,8587.05
+Bridgeport Packaging,INV-805383,PO-32745,Partial,2026-10-19,IT-0806,Router,2026-10-04,MACRS,10,300.24
+Quantum Electronics,INV-132450,PO-98029,Partial,2026-12-07,EQ-0807,Generator,2026-10-23,Straight-Line,20,10552.33
+Sterling Furniture,INV-488477,PO-35295,Partial,2023-04-21,EQ-0808,Compressor,2023-03-22,Straight-Line,20,186.22
+Cornerstone IT,INV-417905,PO-38986,Pending,2019-04-22,FF-0809,Chair,2019-03-23,Units of Production,3,30460.1
+Sterling Furniture,INV-769448,PO-61915,Paid,2019-06-30,EQ-0810,Compressor,2019-05-31,Sum-of-Years-Digits,3,10257.89
+Apex Janitorial,INV-815531,PO-89032,Scheduled,2024-09-25,VH-0811,Van,2024-08-11,Double Declining Balance,20,26185.67
+Summit Logistics,INV-339038,PO-78561,Overdue,2025-08-21,IT-0812,Server,2025-08-06,Double Declining Balance,7,33224.84
+Crestview Landscaping,INV-575976,PO-10256,Partial,2026-08-19,BL-0813,Parking Lot,2026-08-09,Straight-Line,7,23980.54
+Crestview Landscaping,INV-619647,PO-57378,Scheduled,2022-09-30,EQ-0814,CNC Machine,2022-08-16,Straight-Line,3,22841.06
+Quantum Electronics,INV-510893,PO-35507,Overdue,2021-07-18,FF-0815,Conference Table,2021-07-08,Straight-Line,15,11513.66
+Quantum Electronics,INV-272471,PO-53152,Overdue,2025-06-10,VH-0816,Company Car,2025-05-31,Straight-Line,3,21076.78
+Metro Print & Copy,INV-935946,PO-92090,Overdue,2026-01-15,IT-0817,Printer,2026-01-05,Sum-of-Years-Digits,10,11381.48
+Cornerstone IT,INV-932685,PO-41030,Paid,2020-05-01,VH-0818,Forklift,2020-03-17,MACRS,3,21596.86
+Catalyst Training Group,INV-495727,PO-51062,Paid,2023-12-12,EQ-0819,Generator,2023-12-02,Double Declining Balance,3,3076.62
+TechVault Solutions,INV-686424,PO-16842,Overdue,2023-12-26,FF-0820,Conference Table,2023-12-16,Units of Production,3,4123.4
+Nexus Software,INV-548901,PO-91292,Scheduled,2020-03-13,VH-0821,Truck,2020-01-28,Straight-Line,10,12099.76
+Horizon Telecom,INV-112885,PO-88010,Paid,2026-04-30,EQ-0822,CNC Machine,2026-04-20,MACRS,15,3373.4
+Keystone Legal Services,INV-751009,PO-68277,Pending,2021-03-19,BL-0823,Warehouse Expansion,2021-03-04,Double Declining Balance,7,13548.68
+Pinnacle Manufacturing,INV-783362,PO-56890,Overdue,2019-07-10,VH-0824,Forklift,2019-06-30,MACRS,15,14570.18
+Quantum Electronics,INV-486746,PO-11059,Scheduled,2025-02-09,VH-0825,Company Car,2025-01-25,MACRS,7,16093.58
+Silverline Insurance,INV-157259,PO-65320,Overdue,2026-08-25,IT-0826,Server,2026-08-10,Double Declining Balance,15,37727.16
+Meridian Consulting,INV-825447,PO-71263,Scheduled,2026-03-23,IT-0827,Monitor,2026-03-08,Sum-of-Years-Digits,5,21307.56
+Crestview Landscaping,INV-576370,PO-15530,Partial,2025-07-27,BL-0828,Warehouse Expansion,2025-06-27,Double Declining Balance,10,6441.36
+Bridgeport Packaging,INV-870269,PO-53452,Partial,2019-01-31,VH-0829,Company Car,2019-01-16,Double Declining Balance,15,4839.7
+Nexus Software,INV-220784,PO-28664,Overdue,2021-02-03,FF-0830,Desk,2021-01-24,Units of Production,3,5140.53
+Meridian Consulting,INV-329580,PO-44340,Pending,2026-02-28,IT-0831,Laptop,2026-01-29,Sum-of-Years-Digits,5,4849.14
+Crestview Landscaping,INV-206105,PO-12751,Pending,2025-04-05,VH-0832,Van,2025-03-21,Units of Production,3,8231.8
+Metro Print & Copy,INV-490437,PO-96626,Pending,2020-04-29,VH-0833,Forklift,2020-03-30,MACRS,10,6690.87
+Keystone Legal Services,INV-933511,PO-34856,Pending,2026-02-10,IT-0834,Laptop,2025-12-27,MACRS,5,43741.75
+Nexus Software,INV-900149,PO-90744,Scheduled,2026-11-14,FF-0835,Conference Table,2026-10-15,Double Declining Balance,20,12155.94
+Crestview Landscaping,INV-393678,PO-26575,Scheduled,2025-02-01,VH-0836,Forklift,2025-01-02,MACRS,5,2088.44
+Quantum Electronics,INV-633320,PO-60871,Scheduled,2024-07-10,IT-0837,Printer,2024-06-25,Sum-of-Years-Digits,20,9657.78
+Pacific Fleet Services,INV-606773,PO-74853,Partial,2024-12-10,VH-0838,Forklift,2024-10-26,Sum-of-Years-Digits,20,12690.19
+Apex Janitorial,INV-515131,PO-38651,Overdue,2023-07-11,VH-0839,Van,2023-07-01,Units of Production,5,21359.35
+Quantum Electronics,INV-188109,PO-48672,Partial,2023-04-09,FF-0840,Filing Cabinet,2023-03-25,MACRS,15,1593.73
+Sterling Furniture,INV-528818,PO-58170,Partial,2021-08-10,EQ-0841,CNC Machine,2021-07-31,Sum-of-Years-Digits,10,14267.67
+Vanguard Equipment Co,INV-476536,PO-20802,Overdue,2023-04-26,VH-0842,Company Car,2023-04-16,MACRS,5,10295.46
+Redwood Analytics,INV-140140,PO-81568,Pending,2025-02-27,FF-0843,Chair,2025-02-17,Sum-of-Years-Digits,3,1917.4
+Meridian Consulting,INV-986516,PO-45974,Pending,2026-08-27,FF-0844,Filing Cabinet,2026-07-28,MACRS,20,35417.05
+Pinnacle Manufacturing,INV-523426,PO-63183,Scheduled,2025-03-04,IT-0845,Monitor,2025-02-02,Straight-Line,7,22037.31
+Pacific Fleet Services,INV-597484,PO-40634,Scheduled,2026-05-18,EQ-0846,Compressor,2026-05-03,MACRS,5,30869.57
+Keystone Legal Services,INV-549622,PO-64747,Pending,2025-04-27,EQ-0847,CNC Machine,2025-03-13,Units of Production,3,14604.18
+BlueSky Marketing,INV-873644,PO-11268,Partial,2025-04-16,FF-0848,Chair,2025-04-06,Sum-of-Years-Digits,15,15896.62
+Horizon Telecom,INV-715467,PO-13046,Scheduled,2021-08-26,EQ-0849,HVAC Unit,2021-07-12,Straight-Line,20,13428.06
+Bridgeport Packaging,INV-166803,PO-80056,Partial,2020-08-07,FF-0850,Conference Table,2020-07-23,Double Declining Balance,10,10390.37
+Pacific Fleet Services,INV-279750,PO-23672,Scheduled,2020-04-19,BL-0851,Warehouse Expansion,2020-03-20,Double Declining Balance,20,22493.63
+TechVault Solutions,INV-504639,PO-47200,Pending,2026-11-07,IT-0852,Server,2026-09-23,Double Declining Balance,5,3494.31
+Evergreen Facilities,INV-442645,PO-63852,Partial,2026-06-04,EQ-0853,Generator,2026-05-25,Double Declining Balance,7,7047.52
+Greenfield Energy,INV-236243,PO-36958,Overdue,2020-07-27,EQ-0854,Generator,2020-06-12,Units of Production,10,42692.16
+Harbor Freight Supplies,INV-818102,PO-70156,Overdue,2027-01-30,VH-0855,Forklift,2026-12-16,Double Declining Balance,15,6733.44
+Acme Office Supplies,INV-444867,PO-84609,Partial,2020-09-21,IT-0856,Printer,2020-08-07,Units of Production,15,18466.75
+BlueSky Marketing,INV-463627,PO-48987,Partial,2025-06-27,IT-0857,Monitor,2025-06-17,MACRS,20,43473.7
+Harbor Freight Supplies,INV-503350,PO-96386,Pending,2021-02-01,VH-0858,Van,2020-12-18,MACRS,15,22125.9
+Greenfield Energy,INV-406068,PO-97380,Paid,2023-06-10,VH-0859,Van,2023-05-31,Double Declining Balance,7,33436.53
+Bridgeport Packaging,INV-628896,PO-52731,Partial,2024-08-28,BL-0860,Office Renovation,2024-07-14,Units of Production,7,3357.97
+Atlas Cloud Services,INV-828221,PO-98555,Partial,2021-11-16,BL-0861,Office Renovation,2021-11-01,Units of Production,10,457.53
+Horizon Telecom,INV-243110,PO-52875,Partial,2023-07-09,EQ-0862,Generator,2023-06-24,Units of Production,3,4448.4
+BlueSky Marketing,INV-247068,PO-71707,Overdue,2019-10-17,BL-0863,Parking Lot,2019-10-07,Double Declining Balance,5,36106.01
+Atlas Cloud Services,INV-276636,PO-20169,Paid,2019-03-25,VH-0864,Forklift,2019-03-15,Sum-of-Years-Digits,3,22676.13
+Pinnacle Manufacturing,INV-658155,PO-38333,Partial,2024-01-09,VH-0865,Van,2023-12-10,Straight-Line,20,1752.41
+Harbor Freight Supplies,INV-151028,PO-59465,Pending,2026-02-23,EQ-0866,CNC Machine,2026-02-13,Double Declining Balance,10,1989.77
+Sterling Furniture,INV-453492,PO-35185,Paid,2021-09-19,IT-0867,Laptop,2021-09-04,Double Declining Balance,10,1552.43
+Quantum Electronics,INV-443032,PO-52294,Scheduled,2020-02-15,VH-0868,Truck,2020-01-31,Double Declining Balance,10,8920.54
+Catalyst Training Group,INV-439075,PO-32756,Paid,2021-06-12,EQ-0869,Generator,2021-04-28,Units of Production,5,3725.08
+Metro Print & Copy,INV-954678,PO-46497,Scheduled,2022-07-29,EQ-0870,Compressor,2022-07-19,Sum-of-Years-Digits,10,3486.08
+TechVault Solutions,INV-206759,PO-80278,Scheduled,2019-10-18,EQ-0871,CNC Machine,2019-10-03,Double Declining Balance,15,25958.8
+Vanguard Equipment Co,INV-821027,PO-51676,Partial,2020-02-23,EQ-0872,Compressor,2020-01-24,Straight-Line,7,6750.92
+Horizon Telecom,INV-113937,PO-40488,Paid,2019-04-28,EQ-0873,Compressor,2019-03-14,MACRS,15,24054.94
+Phoenix Data Centers,INV-244237,PO-59089,Partial,2020-06-22,VH-0874,Company Car,2020-05-23,Sum-of-Years-Digits,5,10089.03
+Meridian Consulting,INV-565280,PO-53082,Pending,2020-10-28,VH-0875,Truck,2020-09-13,Sum-of-Years-Digits,5,38518.57
+Horizon Telecom,INV-124844,PO-40016,Overdue,2026-03-31,BL-0876,Warehouse Expansion,2026-03-21,Sum-of-Years-Digits,20,19917.16
+Cornerstone IT,INV-437260,PO-34057,Partial,2021-05-03,VH-0877,Van,2021-04-23,Straight-Line,15,24583.42
+Summit Logistics,INV-231660,PO-22027,Pending,2024-07-16,VH-0878,Truck,2024-07-06,MACRS,20,7172.06
+Granite Construction,INV-272132,PO-35891,Pending,2021-05-02,BL-0879,Office Renovation,2021-04-17,Units of Production,10,22877.77
+Atlas Cloud Services,INV-311184,PO-45633,Partial,2025-11-01,FF-0880,Filing Cabinet,2025-10-17,Straight-Line,15,23030.89
+Sterling Furniture,INV-870627,PO-66810,Pending,2023-08-04,VH-0881,Company Car,2023-06-20,Units of Production,10,14001.74
+Acme Office Supplies,INV-861945,PO-33029,Overdue,2023-05-27,IT-0882,Monitor,2023-04-12,Units of Production,15,10305.25
+BlueSky Marketing,INV-449421,PO-27911,Partial,2022-07-21,FF-0883,Conference Table,2022-06-06,Double Declining Balance,15,19462.71
+Pinnacle Manufacturing,INV-524206,PO-64502,Partial,2021-02-25,IT-0884,Router,2021-02-15,Sum-of-Years-Digits,20,20234.7
+Nexus Software,INV-230524,PO-60439,Scheduled,2024-07-28,BL-0885,Office Renovation,2024-06-28,Double Declining Balance,10,12978.92
+Meridian Consulting,INV-160507,PO-95315,Partial,2023-12-23,FF-0886,Conference Table,2023-11-23,Units of Production,20,19044.31
+Oasis Water Services,INV-129628,PO-97251,Pending,2021-10-22,EQ-0887,Generator,2021-10-07,Sum-of-Years-Digits,7,25877.72
+Catalyst Training Group,INV-982393,PO-31158,Paid,2024-02-24,FF-0888,Chair,2024-02-09,Straight-Line,15,29321.36
+Phoenix Data Centers,INV-543489,PO-31734,Partial,2020-02-28,EQ-0889,Generator,2020-01-14,Sum-of-Years-Digits,15,18722.21
+Trident HVAC Systems,INV-862998,PO-21648,Paid,2022-07-06,BL-0890,Warehouse Expansion,2022-05-22,MACRS,20,17655.04
+Phoenix Data Centers,INV-106732,PO-32072,Partial,2022-11-26,FF-0891,Chair,2022-11-11,Straight-Line,20,16232.29
+Greenfield Energy,INV-278922,PO-33121,Overdue,2019-11-28,BL-0892,Warehouse Expansion,2019-10-14,Double Declining Balance,20,12170.44
+Trident HVAC Systems,INV-694639,PO-37862,Pending,2020-07-19,EQ-0893,Compressor,2020-07-04,Double Declining Balance,15,16576.65
+TechVault Solutions,INV-214499,PO-93418,Pending,2021-02-02,FF-0894,Conference Table,2021-01-18,Straight-Line,10,30812.58
+Evergreen Facilities,INV-346184,PO-72638,Partial,2020-02-01,IT-0895,Monitor,2019-12-18,Straight-Line,3,4911.01
+Acme Office Supplies,INV-201546,PO-37665,Scheduled,2019-10-08,IT-0896,Switch,2019-09-08,Straight-Line,15,41091.85
+Nexus Software,INV-488796,PO-99372,Overdue,2025-11-04,EQ-0897,HVAC Unit,2025-10-05,Sum-of-Years-Digits,7,18184.69
+Harbor Freight Supplies,INV-446297,PO-23130,Paid,2021-10-08,EQ-0898,HVAC Unit,2021-09-08,Units of Production,15,3043.57
+Crestview Landscaping,INV-393042,PO-42576,Overdue,2026-12-15,VH-0899,Truck,2026-10-31,Units of Production,15,5900.36
+Catalyst Training Group,INV-769068,PO-52229,Paid,2026-10-26,BL-0900,Warehouse Expansion,2026-09-11,Sum-of-Years-Digits,20,2511.66
+Crestview Landscaping,INV-742349,PO-20665,Overdue,2019-08-06,EQ-0901,Compressor,2019-07-07,Units of Production,15,14030.14
+Bridgeport Packaging,INV-645316,PO-84959,Scheduled,2024-05-14,EQ-0902,CNC Machine,2024-05-04,Straight-Line,15,8096.39
+Pinnacle Manufacturing,INV-221297,PO-73198,Scheduled,2024-08-11,FF-0903,Conference Table,2024-08-01,Double Declining Balance,5,27538.67
+Cornerstone IT,INV-442360,PO-60264,Overdue,2021-05-31,IT-0904,Laptop,2021-05-16,Double Declining Balance,10,10231.29
+Oasis Water Services,INV-860652,PO-74482,Paid,2022-01-05,IT-0905,Switch,2021-11-21,Sum-of-Years-Digits,5,31554.56
+Crestview Landscaping,INV-500189,PO-95710,Scheduled,2021-07-15,FF-0906,Conference Table,2021-07-05,Units of Production,20,31320.42
+Keystone Legal Services,INV-456765,PO-87620,Pending,2021-08-28,FF-0907,Desk,2021-08-13,Straight-Line,7,1566.56
+Apex Janitorial,INV-164891,PO-87340,Scheduled,2023-03-02,FF-0908,Conference Table,2023-02-15,Double Declining Balance,15,9732.66
+Crestview Landscaping,INV-644998,PO-96998,Scheduled,2023-06-23,FF-0909,Filing Cabinet,2023-05-09,MACRS,20,41578.35
+Cornerstone IT,INV-411242,PO-38692,Partial,2020-04-26,IT-0910,Router,2020-03-12,Units of Production,10,5974.33
+Pinnacle Manufacturing,INV-822049,PO-26182,Overdue,2025-10-29,VH-0911,Truck,2025-09-29,MACRS,15,8132.68
+Pacific Fleet Services,INV-949566,PO-53665,Pending,2026-02-12,EQ-0912,CNC Machine,2026-01-28,Double Declining Balance,20,5838.13
+Crestview Landscaping,INV-954602,PO-96409,Pending,2021-07-20,VH-0913,Company Car,2021-07-10,Straight-Line,20,9791.04
+Granite Construction,INV-175312,PO-79185,Overdue,2023-06-25,EQ-0914,HVAC Unit,2023-05-26,Sum-of-Years-Digits,7,21646.31
+Trident HVAC Systems,INV-944178,PO-17094,Overdue,2021-04-24,IT-0915,Server,2021-03-10,Units of Production,7,33350.67
+Metro Print & Copy,INV-328732,PO-35644,Paid,2020-11-16,EQ-0916,HVAC Unit,2020-11-01,Sum-of-Years-Digits,7,16905.21
+Oasis Water Services,INV-159067,PO-22589,Overdue,2025-06-25,VH-0917,Company Car,2025-06-15,Units of Production,10,31480.19
+Atlas Cloud Services,INV-255785,PO-92178,Partial,2019-08-13,BL-0918,Parking Lot,2019-08-03,Double Declining Balance,7,17957.64
+TechVault Solutions,INV-280865,PO-95563,Partial,2020-05-16,EQ-0919,HVAC Unit,2020-05-01,Straight-Line,7,25214.71
+Phoenix Data Centers,INV-186651,PO-25997,Partial,2024-04-28,FF-0920,Conference Table,2024-03-14,MACRS,7,240.79
+Cornerstone IT,INV-775908,PO-66840,Overdue,2019-05-20,FF-0921,Desk,2019-04-05,MACRS,15,5161.61
+Pinnacle Manufacturing,INV-834781,PO-12588,Partial,2020-03-13,IT-0922,Switch,2020-02-12,MACRS,15,5425.52
+Harbor Freight Supplies,INV-928446,PO-95419,Paid,2025-02-20,IT-0923,Router,2025-01-06,Double Declining Balance,15,22269.87
+Silverline Insurance,INV-939398,PO-51195,Paid,2020-05-10,BL-0924,Parking Lot,2020-04-25,Straight-Line,5,252.43
+Pinnacle Manufacturing,INV-136705,PO-21090,Paid,2025-06-28,VH-0925,Truck,2025-06-13,MACRS,15,12050.67
+Evergreen Facilities,INV-644675,PO-48456,Scheduled,2023-02-13,EQ-0926,Generator,2023-01-29,Units of Production,5,4514.15
+Pinnacle Manufacturing,INV-821347,PO-22977,Paid,2025-08-05,FF-0927,Filing Cabinet,2025-06-21,Double Declining Balance,15,17923.42
+TechVault Solutions,INV-720529,PO-57063,Overdue,2021-02-24,FF-0928,Chair,2021-02-09,Double Declining Balance,5,21030.29
+Oasis Water Services,INV-271252,PO-62436,Partial,2026-02-06,IT-0929,Router,2025-12-23,Straight-Line,7,7383.64
+Vanguard Equipment Co,INV-763874,PO-94616,Pending,2026-09-17,VH-0930,Van,2026-08-03,Sum-of-Years-Digits,3,26469.57
+Apex Janitorial,INV-127168,PO-89116,Pending,2026-05-31,EQ-0931,Compressor,2026-05-16,Straight-Line,7,23815.5
+Vanguard Equipment Co,INV-480443,PO-53714,Overdue,2020-06-04,BL-0932,Warehouse Expansion,2020-05-25,Double Declining Balance,3,12680.81
+Crestview Landscaping,INV-210103,PO-26187,Pending,2021-08-12,IT-0933,Laptop,2021-07-13,MACRS,10,6274.73
+Oasis Water Services,INV-395694,PO-82291,Overdue,2022-07-24,IT-0934,Router,2022-06-09,MACRS,7,25007.86
+Greenfield Energy,INV-810737,PO-79688,Scheduled,2019-07-31,FF-0935,Conference Table,2019-07-16,MACRS,5,15550.5
+Quantum Electronics,INV-847868,PO-30380,Pending,2023-08-22,BL-0936,Office Renovation,2023-07-08,Double Declining Balance,7,457.31
+Nexus Software,INV-361212,PO-98895,Scheduled,2025-06-12,IT-0937,Switch,2025-05-13,Units of Production,20,15227.22
+Trident HVAC Systems,INV-548544,PO-78235,Pending,2024-03-05,EQ-0938,CNC Machine,2024-02-19,Sum-of-Years-Digits,10,12293.54
+Metro Print & Copy,INV-865411,PO-41462,Paid,2020-01-22,EQ-0939,CNC Machine,2019-12-23,Double Declining Balance,3,10333.17
+Apex Janitorial,INV-633392,PO-27881,Partial,2019-09-03,FF-0940,Conference Table,2019-08-24,Units of Production,3,28298.97
+Redwood Analytics,INV-882150,PO-10955,Partial,2026-09-17,EQ-0941,Generator,2026-09-07,MACRS,15,9397.9
+Oasis Water Services,INV-276718,PO-98410,Scheduled,2022-11-29,BL-0942,Parking Lot,2022-11-14,Double Declining Balance,15,1637.25
+Atlas Cloud Services,INV-278765,PO-58927,Paid,2019-12-04,VH-0943,Forklift,2019-11-04,Sum-of-Years-Digits,3,13839.24
+Bridgeport Packaging,INV-377611,PO-37926,Paid,2026-08-28,BL-0944,Office Renovation,2026-08-13,MACRS,7,9666.09
+Nexus Software,INV-611984,PO-17536,Overdue,2021-07-09,BL-0945,Office Renovation,2021-06-09,Straight-Line,10,33448.75
+Catalyst Training Group,INV-857526,PO-34400,Partial,2024-03-30,FF-0946,Filing Cabinet,2024-02-29,Sum-of-Years-Digits,3,189.65
+Acme Office Supplies,INV-261177,PO-63833,Paid,2020-04-05,EQ-0947,Compressor,2020-02-20,Units of Production,3,17698.85
+Acme Office Supplies,INV-549148,PO-33878,Scheduled,2020-10-29,VH-0948,Company Car,2020-09-29,Sum-of-Years-Digits,10,9358.51
+Greenfield Energy,INV-476687,PO-36013,Paid,2024-01-16,VH-0949,Van,2023-12-02,Double Declining Balance,7,22598.14
+Evergreen Facilities,INV-268099,PO-97320,Pending,2019-06-29,EQ-0950,HVAC Unit,2019-06-14,Units of Production,20,16168.2
+Silverline Insurance,INV-849019,PO-26703,Overdue,2022-01-03,EQ-0951,HVAC Unit,2021-12-24,Units of Production,15,22166.18
+Redwood Analytics,INV-624288,PO-11788,Pending,2023-05-27,IT-0952,Laptop,2023-05-12,Straight-Line,3,2461.15
+Silverline Insurance,INV-395932,PO-73691,Paid,2022-12-17,BL-0953,Parking Lot,2022-11-02,Units of Production,3,13954.74
+Cornerstone IT,INV-376331,PO-42421,Partial,2025-12-19,BL-0954,Office Renovation,2025-12-04,Double Declining Balance,5,12243.35
+Pacific Fleet Services,INV-719914,PO-92432,Pending,2026-12-13,BL-0955,Parking Lot,2026-12-03,Double Declining Balance,5,9935.78
+Greenfield Energy,INV-118519,PO-90801,Pending,2020-08-09,IT-0956,Monitor,2020-06-25,Straight-Line,5,17555.35
+Crestview Landscaping,INV-332548,PO-54063,Partial,2019-09-11,EQ-0957,CNC Machine,2019-07-28,Units of Production,20,32807.15
+TechVault Solutions,INV-468075,PO-64797,Pending,2024-11-03,IT-0958,Monitor,2024-09-19,Sum-of-Years-Digits,3,7430.55
+Quantum Electronics,INV-322274,PO-47397,Partial,2019-07-29,IT-0959,Laptop,2019-07-14,Sum-of-Years-Digits,3,28077.78
+Bridgeport Packaging,INV-450520,PO-49892,Paid,2025-10-30,EQ-0960,Compressor,2025-10-20,Straight-Line,7,30811.67
+Silverline Insurance,INV-916639,PO-87189,Scheduled,2019-03-12,FF-0961,Filing Cabinet,2019-02-25,MACRS,20,22180.1
+Sterling Furniture,INV-760140,PO-88883,Paid,2021-10-02,VH-0962,Company Car,2021-09-02,Straight-Line,3,15372.22
+Apex Janitorial,INV-749079,PO-54944,Overdue,2026-05-19,VH-0963,Company Car,2026-05-04,Units of Production,3,3850.13
+Phoenix Data Centers,INV-364792,PO-83445,Overdue,2021-04-22,IT-0964,Server,2021-04-07,Sum-of-Years-Digits,5,14600.55
+BlueSky Marketing,INV-628345,PO-12867,Pending,2026-02-02,EQ-0965,Generator,2026-01-23,MACRS,10,14185.67
+Vanguard Equipment Co,INV-827505,PO-34928,Partial,2026-11-08,FF-0966,Desk,2026-10-24,Units of Production,15,2780.29
+Silverline Insurance,INV-509203,PO-62540,Scheduled,2024-12-30,VH-0967,Company Car,2024-12-20,Sum-of-Years-Digits,15,13599.0
+Meridian Consulting,INV-929053,PO-77213,Partial,2021-02-02,VH-0968,Van,2021-01-23,MACRS,15,9400.48
+Trident HVAC Systems,INV-224888,PO-32427,Pending,2024-12-20,FF-0969,Chair,2024-11-20,Straight-Line,7,16806.36
+Granite Construction,INV-239430,PO-45446,Paid,2021-10-02,IT-0970,Switch,2021-09-02,Double Declining Balance,5,45169.8
+Harbor Freight Supplies,INV-487040,PO-52540,Paid,2021-05-20,IT-0971,Switch,2021-05-10,MACRS,7,23418.31
+Vanguard Equipment Co,INV-110913,PO-56593,Pending,2020-08-15,BL-0972,Warehouse Expansion,2020-07-01,Sum-of-Years-Digits,7,2231.93
+Atlas Cloud Services,INV-821541,PO-60067,Overdue,2021-11-24,BL-0973,Parking Lot,2021-11-14,MACRS,15,4498.76
+Granite Construction,INV-946969,PO-61834,Pending,2021-06-08,VH-0974,Forklift,2021-04-24,Units of Production,7,7405.44
+Cornerstone IT,INV-294015,PO-33083,Pending,2023-12-13,VH-0975,Company Car,2023-11-13,MACRS,3,10079.13
+Pacific Fleet Services,INV-513345,PO-89668,Pending,2021-02-07,IT-0976,Monitor,2021-01-08,Straight-Line,5,17828.31
+Pinnacle Manufacturing,INV-652367,PO-27995,Paid,2019-12-07,VH-0977,Company Car,2019-10-23,MACRS,20,6894.63
+Greenfield Energy,INV-145864,PO-27324,Pending,2023-05-12,IT-0978,Laptop,2023-03-28,Straight-Line,3,35025.85
+Vanguard Equipment Co,INV-994141,PO-21136,Pending,2020-08-17,IT-0979,Laptop,2020-08-07,Double Declining Balance,15,33420.03
+Pacific Fleet Services,INV-158589,PO-81241,Overdue,2025-06-08,VH-0980,Forklift,2025-04-24,MACRS,7,9223.38
+Greenfield Energy,INV-977116,PO-64432,Pending,2019-04-07,IT-0981,Router,2019-03-28,Straight-Line,7,3470.79
+Bridgeport Packaging,INV-400780,PO-39607,Partial,2021-07-17,VH-0982,Company Car,2021-07-07,Straight-Line,10,4030.56
+Pacific Fleet Services,INV-449935,PO-25512,Overdue,2020-12-05,VH-0983,Truck,2020-11-25,Straight-Line,7,5785.89
+Quantum Electronics,INV-812437,PO-65737,Pending,2019-07-12,VH-0984,Company Car,2019-06-27,Sum-of-Years-Digits,15,12353.64
+Catalyst Training Group,INV-378293,PO-20009,Paid,2022-04-20,IT-0985,Monitor,2022-03-21,Double Declining Balance,10,18330.46
+Phoenix Data Centers,INV-923704,PO-72709,Paid,2026-05-25,FF-0986,Chair,2026-05-10,Straight-Line,10,18604.18
+Apex Janitorial,INV-503720,PO-56217,Overdue,2023-11-16,VH-0987,Truck,2023-10-17,Units of Production,7,2622.29
+Ironclad Security,INV-785720,PO-42231,Partial,2024-07-09,BL-0988,Parking Lot,2024-05-25,Units of Production,7,6256.41
+Granite Construction,INV-849649,PO-65291,Scheduled,2024-09-12,BL-0989,Parking Lot,2024-07-29,MACRS,5,6337.26
+Phoenix Data Centers,INV-991913,PO-12248,Overdue,2026-10-26,IT-0990,Server,2026-10-11,MACRS,7,100.7
+Pacific Fleet Services,INV-916470,PO-28264,Overdue,2020-07-11,IT-0991,Monitor,2020-07-01,Units of Production,7,39559.17
+Pinnacle Manufacturing,INV-222930,PO-28753,Partial,2025-04-22,VH-0992,Van,2025-03-08,Straight-Line,5,2454.07
+Trident HVAC Systems,INV-599988,PO-87847,Pending,2023-11-05,IT-0993,Switch,2023-10-06,Straight-Line,3,23912.2
+Pinnacle Manufacturing,INV-953238,PO-64590,Pending,2023-02-20,IT-0994,Server,2023-02-05,Double Declining Balance,3,510.37
+Pacific Fleet Services,INV-776171,PO-11731,Overdue,2020-08-26,EQ-0995,HVAC Unit,2020-07-27,Straight-Line,20,10368.89
+Pinnacle Manufacturing,INV-973128,PO-65524,Partial,2019-09-13,BL-0996,Office Renovation,2019-09-03,MACRS,15,2196.04
+Trident HVAC Systems,INV-646833,PO-59487,Pending,2021-12-22,VH-0997,Company Car,2021-11-22,Double Declining Balance,5,14062.1
+Nexus Software,INV-686462,PO-89309,Paid,2025-12-20,VH-0998,Company Car,2025-12-10,Units of Production,5,34988.72
+Pacific Fleet Services,INV-544828,PO-35523,Overdue,2022-08-20,EQ-0999,Compressor,2022-07-06,Straight-Line,3,22316.8
+Greenfield Energy,INV-667875,PO-23954,Paid,2019-12-15,BL-1000,Warehouse Expansion,2019-11-15,Double Declining Balance,3,5843.72
