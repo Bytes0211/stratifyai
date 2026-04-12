@@ -2957,7 +2957,7 @@ def interactive(
             )
 
         console.print(
-            "[dim]Commands: /file <path> | /attach <path> | /mcp | /clear | /save [path] | /provider | /help | exit[/dim]"
+            "[dim]Commands: /file <path> | /attach <path> | /mcp [on|off|tools|refresh] | /clear | /save | /provider | /help | exit[/dim]"
         )
         console.print(
             f"[dim]File size limit: {MAX_FILE_SIZE_MB} MB | Ctrl+C to exit[/dim]\n"
@@ -3319,40 +3319,201 @@ def interactive(
                 console.print("[dim]Conversation history preserved[/dim]\n")
                 continue
 
-            elif user_input.lower() == "/mcp":
-                # Show MCP server status
-                if not use_mcp or mcp_engine is None:
-                    console.print("[dim]MCP is not active for this session.[/dim]")
-                else:
-                    _mcp_table = Table(
-                        title="MCP Servers",
-                        show_header=True,
-                        header_style="bold cyan",
-                    )
-                    _mcp_table.add_column("Server", style="cyan")
-                    _mcp_table.add_column("Status")
-                    _mcp_table.add_column("Tools")
-                    for _status in mcp_engine.list_servers():
-                        _is_active = _status.server_id in active_mcp_servers
-                        _tool_count = tools_by_server.get(_status.server_id, 0)
-                        _indicator = "● " if _is_active else "  "
-                        if _status.status == "connected":
-                            _status_str = "[green]connected[/green]"
-                        elif _status.status in ("stopped", "disabled"):
-                            _status_str = f"[dim]{_status.status}[/dim]"
+            elif user_input.lower().startswith("/mcp"):
+                # ── /mcp subcommand dispatcher (Phase 3) ──
+                _mcp_parts = user_input.split(maxsplit=2)
+                _mcp_sub = _mcp_parts[1].lower() if len(_mcp_parts) > 1 else ""
+                _mcp_arg = _mcp_parts[2].strip() if len(_mcp_parts) > 2 else ""
+
+                if _mcp_sub == "" or _mcp_sub == "status":
+                    # /mcp  or  /mcp status — show server overview
+                    if not use_mcp or mcp_engine is None:
+                        console.print(
+                            "[dim]MCP is not active for this session. "
+                            "Use --mcp-server or --mcp-all when launching interactive mode.[/dim]"
+                        )
+                    else:
+                        # Refresh tool counts from the registry
+                        tools_by_server = {}
+                        for _td in mcp_engine.list_tools():
+                            tools_by_server[_td.server_id] = (
+                                tools_by_server.get(_td.server_id, 0) + 1
+                            )
+
+                        _mcp_table = Table(
+                            title="MCP Servers",
+                            show_header=True,
+                            header_style="bold cyan",
+                        )
+                        _mcp_table.add_column("Server", style="cyan")
+                        _mcp_table.add_column("Status")
+                        _mcp_table.add_column("Tools")
+                        _mcp_table.add_column("Active")
+                        for _status in mcp_engine.list_servers():
+                            _is_active = _status.server_id in active_mcp_servers
+                            _tool_count = tools_by_server.get(_status.server_id, 0)
+                            if _status.status == "connected":
+                                _status_str = "[green]connected[/green]"
+                            elif _status.status in ("stopped", "disabled"):
+                                _status_str = f"[dim]{_status.status}[/dim]"
+                            else:
+                                _status_str = f"[red]{_status.status}[/red]"
+                            _tools_str = (
+                                f"[green]{_tool_count}[/green]"
+                                if _tool_count > 0
+                                else "[dim]—[/dim]"
+                            )
+                            _active_str = (
+                                "[green]yes[/green]" if _is_active else "[dim]no[/dim]"
+                            )
+                            _mcp_table.add_row(
+                                _status.server_id,
+                                _status_str,
+                                _tools_str,
+                                _active_str,
+                            )
+                        console.print(_mcp_table)
+
+                elif _mcp_sub == "on":
+                    # /mcp on <server_id> — start and activate a server
+                    if not use_mcp or mcp_engine is None:
+                        console.print("[dim]MCP is not active for this session.[/dim]")
+                    elif not _mcp_arg:
+                        console.print("[yellow]Usage: /mcp on <server_id>[/yellow]")
+                    else:
+                        _target_id = _mcp_arg
+                        _known_ids = [s.server_id for s in mcp_engine.list_servers()]
+                        if _target_id not in _known_ids:
+                            console.print(
+                                f"[yellow]Unknown MCP server: '{_target_id}'[/yellow]"
+                            )
+                        elif _target_id in active_mcp_servers:
+                            console.print(f"[dim]{_target_id} is already active[/dim]")
                         else:
-                            _status_str = f"[red]{_status.status}[/red]"
-                        _tools_str = (
-                            f"[green]{_tool_count}[/green]"
-                            if _is_active and _tool_count > 0
-                            else "[dim]—[/dim]"
+                            # Start the server if it isn't already connected
+                            _cur_status = mcp_engine.get_server_status(_target_id)
+                            if _cur_status.status != "connected":
+                                try:
+                                    with console.status(
+                                        f"[cyan]Starting MCP server: {_target_id}...",
+                                        spinner="dots",
+                                    ):
+                                        run_sync(mcp_engine.start_server(_target_id))
+                                except Exception as _start_exc:
+                                    console.print(
+                                        f"[red]Failed to start '{_target_id}': {_start_exc}[/red]"
+                                    )
+                                    console.print()
+                                    continue
+                            active_mcp_servers.append(_target_id)
+                            # Refresh tool counts
+                            tools_by_server = {}
+                            for _td in mcp_engine.list_tools():
+                                tools_by_server[_td.server_id] = (
+                                    tools_by_server.get(_td.server_id, 0) + 1
+                                )
+                            _tc = tools_by_server.get(_target_id, 0)
+                            console.print(
+                                f"[green]✓ Activated {_target_id}[/green] "
+                                f"[dim]({_tc} tools)[/dim]"
+                            )
+
+                elif _mcp_sub == "off":
+                    # /mcp off <server_id> — deactivate a server for this session
+                    if not use_mcp or mcp_engine is None:
+                        console.print("[dim]MCP is not active for this session.[/dim]")
+                    elif not _mcp_arg:
+                        console.print("[yellow]Usage: /mcp off <server_id>[/yellow]")
+                    else:
+                        _target_id = _mcp_arg
+                        if _target_id in active_mcp_servers:
+                            active_mcp_servers.remove(_target_id)
+                            console.print(
+                                f"[yellow]✓ Deactivated {_target_id}[/yellow] "
+                                "[dim](server still running)[/dim]"
+                            )
+                        else:
+                            console.print(
+                                f"[dim]{_target_id} is not in the active list[/dim]"
+                            )
+
+                elif _mcp_sub == "tools":
+                    # /mcp tools [server_id] — list discovered tools
+                    if not use_mcp or mcp_engine is None:
+                        console.print("[dim]MCP is not active for this session.[/dim]")
+                    else:
+                        _all_tools = mcp_engine.list_tools()
+                        if _mcp_arg:
+                            _all_tools = [
+                                t for t in _all_tools if t.server_id == _mcp_arg
+                            ]
+                            if not _all_tools:
+                                console.print(
+                                    f"[dim]No tools found for server '{_mcp_arg}'[/dim]"
+                                )
+                                console.print()
+                                continue
+
+                        _tool_table = Table(
+                            title="MCP Tools",
+                            show_header=True,
+                            header_style="bold cyan",
                         )
-                        _mcp_table.add_row(
-                            f"{_indicator}{_status.server_id}",
-                            _status_str,
-                            _tools_str,
-                        )
-                    console.print(_mcp_table)
+                        _tool_table.add_column("Namespace", style="cyan")
+                        _tool_table.add_column("Description")
+                        _tool_table.add_column("Permission")
+                        for _td in _all_tools:
+                            _desc = _td.description or ""
+                            if len(_desc) > 60:
+                                _desc = _desc[:57] + "..."
+                            _perm = mcp_engine._permission_manager.evaluate(
+                                _td.server_id, _td.tool_name
+                            )
+                            _perm_str = _perm.mode.value
+                            if _perm_str == "allow":
+                                _perm_display = "[green]allow[/green]"
+                            elif _perm_str == "confirm":
+                                _perm_display = "[yellow]confirm[/yellow]"
+                            else:
+                                _perm_display = "[red]deny[/red]"
+                            _tool_table.add_row(_td.namespace, _desc, _perm_display)
+                        console.print(_tool_table)
+
+                elif _mcp_sub == "refresh":
+                    # /mcp refresh — re-read local client configs
+                    if not use_mcp or mcp_engine is None:
+                        console.print("[dim]MCP is not active for this session.[/dim]")
+                    else:
+                        try:
+                            with console.status(
+                                "[cyan]Refreshing MCP server configs...",
+                                spinner="dots",
+                            ):
+                                run_sync(
+                                    mcp_engine.sync_configured_servers(client="auto")
+                                )
+                            # Refresh tool counts
+                            tools_by_server = {}
+                            for _td in mcp_engine.list_tools():
+                                tools_by_server[_td.server_id] = (
+                                    tools_by_server.get(_td.server_id, 0) + 1
+                                )
+                            _server_count = len(mcp_engine.list_servers())
+                            console.print(
+                                f"[green]✓ Refreshed[/green] "
+                                f"[dim]({_server_count} servers discovered)[/dim]"
+                            )
+                        except Exception as _refresh_exc:
+                            console.print(f"[red]Refresh failed: {_refresh_exc}[/red]")
+
+                else:
+                    console.print(
+                        f"[yellow]Unknown /mcp subcommand: {_mcp_sub}[/yellow]"
+                    )
+                    console.print(
+                        "[dim]Usage: /mcp [status] | /mcp on <id> | /mcp off <id> | /mcp tools [id] | /mcp refresh[/dim]"
+                    )
+
                 console.print()
                 continue
 
@@ -3360,27 +3521,41 @@ def interactive(
                 # Display help information
                 console.print("\n[bold cyan]Available Commands:[/bold cyan]")
                 console.print(
-                    "  [green]/file <path>[/green]   - Load and send file immediately"
+                    "  [green]/file <path>[/green]       - Load and send file immediately"
                 )
                 console.print(
-                    "  [green]/attach <path>[/green] - Stage file for next message"
+                    "  [green]/attach <path>[/green]     - Stage file for next message"
                 )
                 console.print(
-                    "  [green]/clear[/green]         - Clear staged attachments"
+                    "  [green]/clear[/green]             - Clear staged attachments"
                 )
                 console.print(
-                    "  [green]/save [path][/green]   - Save last response to file (markdown format)"
+                    "  [green]/save [path][/green]       - Save last response to file (markdown format)"
                 )
                 console.print(
-                    "  [green]/provider[/green]      - Switch provider and model"
+                    "  [green]/provider[/green]          - Switch provider and model"
                 )
                 console.print(
-                    "  [green]/mcp[/green]           - Show MCP server status"
+                    "  [green]/mcp[/green]               - Show MCP server status"
                 )
                 console.print(
-                    "  [green]/help[/green]          - Show this help message"
+                    "  [green]/mcp on <id>[/green]       - Activate an MCP server"
                 )
-                console.print("  [green]exit, quit, q[/green]  - Exit interactive mode")
+                console.print(
+                    "  [green]/mcp off <id>[/green]      - Deactivate an MCP server"
+                )
+                console.print(
+                    "  [green]/mcp tools [id][/green]    - List discovered MCP tools"
+                )
+                console.print(
+                    "  [green]/mcp refresh[/green]       - Re-read MCP server configs"
+                )
+                console.print(
+                    "  [green]/help[/green]              - Show this help message"
+                )
+                console.print(
+                    "  [green]exit, quit, q[/green]      - Exit interactive mode"
+                )
                 console.print("\n[bold cyan]Session Info:[/bold cyan]")
                 console.print(f"  Provider: [cyan]{provider}[/cyan]")
                 console.print(f"  Model: [cyan]{model}[/cyan]")
@@ -3389,6 +3564,10 @@ def interactive(
                 if staged_file_content:
                     console.print(
                         f"  Staged file: [yellow]📎 {staged_file_name}[/yellow]"
+                    )
+                if active_mcp_servers:
+                    console.print(
+                        f"  MCP active: [cyan]{', '.join(active_mcp_servers)}[/cyan]"
                     )
                 if last_response:
                     console.print("  Last response: [green]✓ Available to save[/green]")
@@ -3401,7 +3580,7 @@ def interactive(
                     f"[yellow]Unknown command: {user_input.split()[0]}[/yellow]"
                 )
                 console.print(
-                    "[dim]Available commands: /file, /attach, /mcp, /clear, /save, /provider, /help | Type 'exit' to quit[/dim]"
+                    "[dim]Available: /file, /attach, /mcp [on|off|tools|refresh], /clear, /save, /provider, /help | exit[/dim]"
                 )
                 continue
 
