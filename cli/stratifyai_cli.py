@@ -3466,20 +3466,48 @@ def interactive(
                 )
 
             # Create request and get response
-            request = ChatRequest(
-                model=model, messages=messages, temperature=temperature
-            )
-
             try:
                 # Show spinner while waiting for response
                 with console.status("[cyan]Thinking...", spinner="dots"):
-                    response = client.chat_completion_sync(request)
+                    if use_mcp and mcp_engine is not None and active_mcp_servers:
+                        response = client.chat_with_mcp_sync(
+                            model=model,
+                            messages=messages,
+                            mcp_engine=mcp_engine,
+                            active_servers=active_mcp_servers,
+                            temperature=temperature,
+                        )
+                    else:
+                        request = ChatRequest(
+                            model=model,
+                            messages=messages,
+                            temperature=temperature,
+                        )
+                        response = client.chat_completion_sync(request)
 
                 # Add assistant message to history
                 messages.append(Message(role="assistant", content=response.content))
 
                 # Store last response for /save command
                 last_response = response
+
+                # Display MCP warnings and tool results (only for MCP sessions)
+                mcp_tool_results: list[dict] = []
+                if use_mcp:
+                    for _warning in response.raw_response.get("mcp_warnings", []):
+                        console.print(f"[yellow]⚠ MCP: {_warning}[/yellow]")
+
+                    mcp_tool_results = list(
+                        response.raw_response.get("mcp_tool_results", [])
+                    )
+                    for _tr in mcp_tool_results:
+                        _server = _tr.get("server_id", "?")
+                        _tool = _tr.get("tool_name", "?")
+                        _content = str(_tr.get("content", ""))
+                        _preview = (
+                            _content[:80] + "..." if len(_content) > 80 else _content
+                        )
+                        console.print(f"[dim][MCP: {_server}.{_tool}] {_preview}[/dim]")
 
                 # Display metadata and response (interactive mode - cyan)
                 console.print(
@@ -3501,6 +3529,10 @@ def interactive(
                 # Add latency if available
                 if response.latency_ms is not None:
                     usage_parts.append(f"Latency: {response.latency_ms:.0f}ms")
+
+                # Add MCP tool count if tools were invoked
+                if mcp_tool_results:
+                    usage_parts.append(f"MCP tools: {len(mcp_tool_results)}")
 
                 # Add cache statistics if available
                 if response.usage.cached_tokens > 0:
