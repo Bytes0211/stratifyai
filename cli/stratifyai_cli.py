@@ -3491,21 +3491,23 @@ def interactive(
                 # Store last response for /save command
                 last_response = response
 
-                # Display MCP warnings (before tool results)
-                mcp_warnings = list(response.raw_response.get("mcp_warnings", []))
-                for _warning in mcp_warnings:
-                    console.print(f"[yellow]⚠ MCP: {_warning}[/yellow]")
+                # Display MCP warnings and tool results (only for MCP sessions)
+                mcp_tool_results: list[dict] = []
+                if use_mcp:
+                    for _warning in response.raw_response.get("mcp_warnings", []):
+                        console.print(f"[yellow]⚠ MCP: {_warning}[/yellow]")
 
-                # Display MCP tool results (before assistant response)
-                mcp_tool_results = list(
-                    response.raw_response.get("mcp_tool_results", [])
-                )
-                for _tr in mcp_tool_results:
-                    _server = _tr.get("server_id", "?")
-                    _tool = _tr.get("tool_name", "?")
-                    _content = str(_tr.get("content", ""))
-                    _preview = _content[:80] + "..." if len(_content) > 80 else _content
-                    console.print(f"[dim][MCP: {_server}.{_tool}] {_preview}[/dim]")
+                    mcp_tool_results = list(
+                        response.raw_response.get("mcp_tool_results", [])
+                    )
+                    for _tr in mcp_tool_results:
+                        _server = _tr.get("server_id", "?")
+                        _tool = _tr.get("tool_name", "?")
+                        _content = str(_tr.get("content", ""))
+                        _preview = (
+                            _content[:80] + "..." if len(_content) > 80 else _content
+                        )
+                        console.print(f"[dim][MCP: {_server}.{_tool}] {_preview}[/dim]")
 
                 # Display metadata and response (interactive mode - cyan)
                 console.print(
