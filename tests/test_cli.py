@@ -10,6 +10,7 @@ import pytest
 from typer.testing import CliRunner
 
 from cli.stratifyai_cli import app
+from stratifyai.mcp_client.permissions import PermissionDecision, PermissionMode
 from stratifyai.mcp_client.server_manager import ServerStatus
 from stratifyai.mcp_client.tool_registry import ToolDescriptor
 from stratifyai.models import ChatResponse, Usage
@@ -532,3 +533,477 @@ class TestMCPToolResultDisplay:
 
         assert result.exit_code == 0, result.output
         assert "MCP tools: 2" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — Interactive /mcp commands
+# ---------------------------------------------------------------------------
+
+
+def _make_rich_tool_descriptor(
+    server_id: str,
+    tool_name: str = "query",
+    description: str = "Execute a SQL query",
+) -> ToolDescriptor:
+    """Create a ToolDescriptor with all fields populated for /mcp tools tests.
+
+    Args:
+        server_id: The server ID to assign.
+        tool_name: The tool name to assign.
+        description: The tool description.
+
+    Returns:
+        A ToolDescriptor with populated fields.
+    """
+    td = MagicMock(spec=ToolDescriptor)
+    td.server_id = server_id
+    td.tool_name = tool_name
+    td.namespace = f"{server_id}.{tool_name}"
+    td.description = description
+    return td
+
+
+def _invoke_interactive_with_mcp_command(
+    runner: CliRunner,
+    simple_catalog: dict,
+    mock_engine: MagicMock,
+    mcp_command: str,
+    *,
+    extra_prompt_values: list[str] | None = None,
+):
+    """Invoke interactive mode, send an /mcp command, then exit.
+
+    Args:
+        runner: Typer CliRunner.
+        simple_catalog: Mocked MODEL_CATALOG dict.
+        mock_engine: Pre-configured MCPClientEngine mock.
+        mcp_command: The /mcp command to send (e.g. '/mcp tools').
+        extra_prompt_values: Additional prompt values before exit.
+
+    Returns:
+        The invocation Result.
+    """
+    prompt_values = ["", mcp_command]
+    if extra_prompt_values:
+        prompt_values.extend(extra_prompt_values)
+    prompt_values.append("exit")
+
+    return _invoke_interactive_with_mcp(
+        runner,
+        extra_args=["--mcp-server", "postgresql"],
+        simple_catalog=simple_catalog,
+        mock_engine=mock_engine,
+        prompt_side_effect=prompt_values,
+    )
+
+
+class TestMCPStatusCommand:
+    """Verify /mcp (or /mcp status) displays the server overview table (step 3.1)."""
+
+    def test_mcp_status_displays_server_list(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp' must display a table with server IDs, status, and active column.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+            ServerStatus(server_id="brave-search", status="stopped"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+            _make_tool_descriptor("postgresql", "schema"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "postgresql" in out
+        assert "brave-search" in out
+        assert "connected" in out
+        assert "stopped" in out
+
+    def test_mcp_status_shows_active_column(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """The active column must show 'yes' for active servers and 'no' for others.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+            ServerStatus(server_id="brave-search", status="stopped"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp status"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        # postgresql should be active (it was started via --mcp-server)
+        assert "yes" in out
+        # brave-search was not requested, so should show 'no'
+        assert "no" in out
+
+
+class TestMCPOnCommand:
+    """Verify /mcp on <server_id> activates a server for the session (step 3.2)."""
+
+    def test_mcp_on_adds_server_to_active_list(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp on brave-search' must activate the server and show confirmation.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+            ServerStatus(server_id="brave-search", status="stopped"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+        mock_engine.get_server_status.return_value = ServerStatus(
+            server_id="brave-search", status="stopped"
+        )
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp on brave-search"
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Activated brave-search" in strip_ansi(result.output)
+
+    def test_mcp_on_already_active_shows_message(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp on postgresql' when already active must say so.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp on postgresql"
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "already active" in strip_ansi(result.output)
+
+    def test_mcp_on_unknown_server_shows_warning(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp on nonexistent' must warn about unknown server.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp on nonexistent"
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Unknown MCP server" in strip_ansi(result.output)
+
+
+class TestMCPOffCommand:
+    """Verify /mcp off <server_id> deactivates a server for the session (step 3.2)."""
+
+    def test_mcp_off_removes_server_from_active_list(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp off postgresql' must deactivate the server.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp off postgresql"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "Deactivated postgresql" in out
+        assert "server still running" in out
+
+    def test_mcp_off_not_active_shows_message(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp off brave-search' when not active must say so.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp off brave-search"
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "not in the active list" in strip_ansi(result.output)
+
+
+class TestMCPToolsCommand:
+    """Verify /mcp tools lists discovered MCP tools (step 3.3)."""
+
+    def test_mcp_tools_lists_all_tools(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp tools' must display namespace, description, and permission.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        perm_mock = MagicMock()
+        perm_mock.evaluate.return_value = PermissionDecision(
+            mode=PermissionMode.ALLOW, reason="test"
+        )
+
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_rich_tool_descriptor("postgresql", "query", "Execute a SQL query"),
+            _make_rich_tool_descriptor("postgresql", "schema", "Get table schema"),
+        ]
+        mock_engine._permission_manager = perm_mock
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp tools"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "postgresql.query" in out
+        assert "postgresql.schema" in out
+        assert "Execute a SQL query" in out
+        assert "allow" in out
+
+    def test_mcp_tools_filters_by_server_id(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp tools postgresql' must only show tools for that server.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        perm_mock = MagicMock()
+        perm_mock.evaluate.return_value = PermissionDecision(
+            mode=PermissionMode.ALLOW, reason="test"
+        )
+
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_rich_tool_descriptor("postgresql", "query"),
+            _make_rich_tool_descriptor("filesystem", "read_file", "Read a file"),
+        ]
+        mock_engine._permission_manager = perm_mock
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp tools postgresql"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "postgresql.query" in out
+        # filesystem tools should NOT appear
+        assert "filesystem.read_file" not in out
+
+    def test_mcp_tools_unknown_server_shows_empty(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp tools nonexistent' must show no-tools message.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_rich_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/mcp tools nonexistent"
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "No tools found" in strip_ansi(result.output)
+
+
+class TestMCPRefreshCommand:
+    """Verify /mcp refresh re-reads local client configs (step 3.4)."""
+
+    def test_mcp_refresh_calls_sync(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/mcp refresh' must invoke sync_configured_servers on the engine.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        # Track whether run_sync was called with the sync coroutine
+        sync_called = []
+
+        def track_run_sync(coro=None):
+            """Track calls to run_sync, identifying sync_configured_servers."""
+            if coro is not None:
+                sync_called.append(str(coro))
+            return None
+
+        base_args = [
+            "interactive",
+            "--provider",
+            "openai",
+            "--model",
+            "gpt-4o-mini",
+            "--mcp-server",
+            "postgresql",
+        ]
+
+        with (
+            patch("cli.stratifyai_cli.MODEL_CATALOG", simple_catalog),
+            patch("cli.stratifyai_cli.LLMClient"),
+            patch(
+                "stratifyai.mcp_client.MCPClientEngine",
+                return_value=mock_engine,
+            ),
+            patch("cli.stratifyai_cli.run_sync", side_effect=track_run_sync),
+            patch(
+                "cli.stratifyai_cli.Prompt.ask",
+                side_effect=["", "/mcp refresh", "exit"],
+            ),
+        ):
+            result = runner.invoke(app, base_args)
+
+        assert result.exit_code == 0, result.output
+        assert "Refreshed" in strip_ansi(result.output)
+        # sync_configured_servers must have been called (via run_sync)
+        mock_engine.sync_configured_servers.assert_called_once_with(client="auto")
+
+
+class TestMCPHelpUpdate:
+    """Verify /help output includes the new /mcp subcommands (step 3.5)."""
+
+    def test_help_includes_mcp_subcommands(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/help' must list /mcp on, /mcp off, /mcp tools, /mcp refresh.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/help"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "/mcp on <id>" in out
+        assert "/mcp off <id>" in out
+        assert "/mcp tools" in out
+        assert "/mcp refresh" in out
+
+    def test_help_shows_active_mcp_servers(
+        self, runner: CliRunner, simple_catalog: dict
+    ) -> None:
+        """'/help' session info must show active MCP servers.
+
+        Args:
+            runner: Typer CliRunner fixture.
+            simple_catalog: Minimal model catalog fixture.
+        """
+        mock_engine = MagicMock()
+        mock_engine.list_servers.return_value = [
+            ServerStatus(server_id="postgresql", status="connected"),
+        ]
+        mock_engine.list_tools.return_value = [
+            _make_tool_descriptor("postgresql", "query"),
+        ]
+
+        result = _invoke_interactive_with_mcp_command(
+            runner, simple_catalog, mock_engine, "/help"
+        )
+
+        assert result.exit_code == 0, result.output
+        out = strip_ansi(result.output)
+        assert "MCP active:" in out
+        assert "postgresql" in out
