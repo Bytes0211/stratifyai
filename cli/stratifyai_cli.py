@@ -2825,7 +2825,7 @@ def interactive(
                     mcp_table.add_column("Status")
                     mcp_table.add_column("Tools")
 
-                    for _status in mcp_engine.list_servers():
+                    for _status in all_statuses:
                         _is_active = _status.server_id in active_mcp_servers
                         _tool_count = tools_by_server.get(_status.server_id, 0)
                         _indicator = "● " if _is_active else "  "
@@ -2948,11 +2948,8 @@ def interactive(
 
         # Show active MCP servers in banner when enabled
         if active_mcp_servers and mcp_engine is not None:
-            _banner_tools: dict[str, int] = {}
-            for _td in mcp_engine.list_tools():
-                _banner_tools[_td.server_id] = _banner_tools.get(_td.server_id, 0) + 1
             _mcp_parts = [
-                f"{sid} ({_banner_tools.get(sid, 0)} tools)"
+                f"{sid} ({tools_by_server.get(sid, 0)} tools)"
                 for sid in active_mcp_servers
             ]
             console.print(
@@ -3322,6 +3319,43 @@ def interactive(
                 console.print("[dim]Conversation history preserved[/dim]\n")
                 continue
 
+            elif user_input.lower() == "/mcp":
+                # Show MCP server status
+                if not use_mcp or mcp_engine is None:
+                    console.print("[dim]MCP is not active for this session.[/dim]")
+                else:
+                    _mcp_table = Table(
+                        title="MCP Servers",
+                        show_header=True,
+                        header_style="bold cyan",
+                    )
+                    _mcp_table.add_column("Server", style="cyan")
+                    _mcp_table.add_column("Status")
+                    _mcp_table.add_column("Tools")
+                    for _status in mcp_engine.list_servers():
+                        _is_active = _status.server_id in active_mcp_servers
+                        _tool_count = tools_by_server.get(_status.server_id, 0)
+                        _indicator = "● " if _is_active else "  "
+                        if _status.status == "connected":
+                            _status_str = "[green]connected[/green]"
+                        elif _status.status in ("stopped", "disabled"):
+                            _status_str = f"[dim]{_status.status}[/dim]"
+                        else:
+                            _status_str = f"[red]{_status.status}[/red]"
+                        _tools_str = (
+                            f"[green]{_tool_count}[/green]"
+                            if _is_active and _tool_count > 0
+                            else "[dim]—[/dim]"
+                        )
+                        _mcp_table.add_row(
+                            f"{_indicator}{_status.server_id}",
+                            _status_str,
+                            _tools_str,
+                        )
+                    console.print(_mcp_table)
+                console.print()
+                continue
+
             elif user_input.lower() == "/help":
                 # Display help information
                 console.print("\n[bold cyan]Available Commands:[/bold cyan]")
@@ -3341,7 +3375,7 @@ def interactive(
                     "  [green]/provider[/green]      - Switch provider and model"
                 )
                 console.print(
-                    "  [green]/mcp[/green]           - Show MCP server status (Phase 2)"
+                    "  [green]/mcp[/green]           - Show MCP server status"
                 )
                 console.print(
                     "  [green]/help[/green]          - Show this help message"
