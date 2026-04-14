@@ -15,11 +15,18 @@ recursive-include api/static *
 prune .cursor
 prune .vscode
 prune .claude
+prune .zed
 prune .pytest_cache
 prune .mypy_cache
 prune .ruff_cache
 prune chroma_db
 prune logs
+prune images
+prune developer
+prune data
+prune htmlcov
+prune dist
+prune build
 prune node_modules
 prune frontend/node_modules
 prune frontend/.cursor
@@ -35,8 +42,14 @@ global-exclude *.sqlite3
 global-exclude *.db
 global-exclude mcp.json
 global-exclude mcp.json.backup
+global-exclude *.lock
+global-exclude .coverage
+global-exclude coverage.json
 
 exclude .env
 exclude .env.*
 exclude .env.local
 exclude .env.*.local
+exclude *.png
+exclude *.jpg
+exclude *.jpeg

@@ -128,6 +128,13 @@ def _get_executor_max_workers() -> int:
 # Shared ThreadPoolExecutor for async validation tasks (BUG-008)
 _executor = ThreadPoolExecutor(max_workers=_get_executor_max_workers())
 
+# Cache for catalog validation results with TTL (P1: avoid live API calls on every request)
+_catalog_cache: dict[str, Any] | None = None
+_catalog_cache_ts: float = 0.0
+_all_models_cache: dict[str, Any] | None = None
+_all_models_cache_ts: float = 0.0
+_CATALOG_CACHE_TTL = 300.0  # 5 minutes in seconds
+
 # Client cache for connection pooling (BUG-003)
 _client_cache: dict[str, LLMClient] = {}
 _client_cache_lock = threading.Lock()
@@ -2400,7 +2407,18 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
 
     Returns models with: provider, cost (input/output), context window,
     capabilities (vision, reasoning, tools, caching), and active status.
+
+    Results are cached for 5 minutes to avoid live API calls on every request.
     """
+    global _all_models_cache, _all_models_cache_ts
+
+    # Return cached result if still valid
+    if (
+        _all_models_cache is not None
+        and (time.time() - _all_models_cache_ts) < _CATALOG_CACHE_TTL
+    ):
+        return cast(AllModelsResponse, _all_models_cache)
+
     from stratifyai.api_key_helper import APIKeyHelper
     from stratifyai.utils.provider_validator import validate_provider_models
 
@@ -2478,7 +2496,7 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
         )
         total_models += len(models_list)
 
-    return AllModelsResponse(
+    response = AllModelsResponse(
         providers=result,
         summary={
             "total_models": total_models,
@@ -2487,40 +2505,90 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
         },
     )
 
+    # Cache the result
+    _all_models_cache = response
+    _all_models_cache_ts = time.time()
+
+    return response
+
 
 @app.get("/api/catalog")
 async def get_catalog(_: None = Depends(verify_api_key)):
-    """Get the full model catalog with metadata.
+    """Get the full model catalog with metadata and validation status.
 
     Returns data in frontend-compatible format:
     { [provider]: { [modelId]: CatalogModel } }
+
+    Only returns models that are API-validated when API key is set.
+    Falls back to full catalog when no API key is configured.
+
+    Results are cached for 5 minutes to avoid live API calls on every request.
     """
+    global _catalog_cache, _catalog_cache_ts
+
+    # Return cached result if still valid
+    if (
+        _catalog_cache is not None
+        and (time.time() - _catalog_cache_ts) < _CATALOG_CACHE_TTL
+    ):
+        return _catalog_cache
+
+    from stratifyai.utils.provider_validator import validate_provider_models
+
     catalog = load_catalog()
     providers = catalog.get("providers", {})
 
-    # Transform to frontend-expected format
+    # Run validation for all providers in parallel (BUG-007, BUG-008: use shared executor)
+    loop = asyncio.get_running_loop()
+    validation_tasks = []
+    for provider in providers.keys():
+        model_ids = list(providers[provider].keys())
+        task = loop.run_in_executor(
+            _executor, validate_provider_models, provider, model_ids
+        )
+        validation_tasks.append((provider, task))
+
+    # Gather validation results
+    validation_results = {}
+    for provider, task in validation_tasks:
+        validation_result = await task
+        validation_results[provider] = validation_result
+
+    # Transform to frontend-expected format (only include validated models)
     result: dict[str, dict[str, dict[str, Any]]] = {}
     for provider, models in providers.items():
         result[provider] = {}
+        validation = validation_results.get(provider, {})
+        valid_models = set(validation.get("valid_models", []))
+        has_error = validation.get("error") is not None
+
         for model_id, model_data in models.items():
-            result[provider][model_id] = {
-                "model_id": model_id,
-                "display_name": model_data.get("display_name", model_id),
-                "input_cost_per_1m": model_data.get("cost_input", 0),
-                "output_cost_per_1m": model_data.get("cost_output", 0),
-                "context_window": model_data.get("context", 0),
-                "max_output_tokens": model_data.get(
-                    "max_output", model_data.get("context", 0) // 4
-                ),
-                "supports_vision": model_data.get("supports_vision", False),
-                "supports_tools": model_data.get("supports_tools", False),
-                "is_reasoning_model": model_data.get("reasoning_model", False),
-                "category": model_data.get("category", ""),
-                "description": model_data.get("description", ""),
-                "deprecated": model_data.get("deprecated", False),
-                "deprecated_date": model_data.get("deprecated_date"),
-                "replacement_model": model_data.get("replacement_model"),
-            }
+            # Only include model if it's validated OR if validation failed (fallback to catalog)
+            if model_id in valid_models or has_error:
+                result[provider][model_id] = {
+                    "model_id": model_id,
+                    "display_name": model_data.get("display_name", model_id),
+                    "input_cost_per_1m": model_data.get("cost_input", 0),
+                    "output_cost_per_1m": model_data.get("cost_output", 0),
+                    "context_window": model_data.get("context", 0),
+                    "max_output_tokens": model_data.get(
+                        "max_output", model_data.get("context", 0) // 4
+                    ),
+                    "supports_vision": model_data.get("supports_vision", False),
+                    "supports_tools": model_data.get("supports_tools", False),
+                    "is_reasoning_model": model_data.get("reasoning_model", False),
+                    "category": model_data.get("category", ""),
+                    "description": model_data.get("description", ""),
+                    "deprecated": model_data.get("deprecated", False),
+                    "deprecated_date": model_data.get("deprecated_date"),
+                    "replacement_model": model_data.get("replacement_model"),
+                    # Only mark as truly validated when validation succeeded (P1: fix false validated status)
+                    "validated": (model_id in valid_models) and not has_error,
+                }
+
+    # Cache the result
+    _catalog_cache = result
+    _catalog_cache_ts = time.time()
 
     return cast(dict[str, Any], result)
 

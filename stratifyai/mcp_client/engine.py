@@ -557,11 +557,10 @@ class MCPClientEngine:
         descriptor: ToolDescriptor,
     ) -> str:
         """Return a provider-safe tool name for the given descriptor."""
-        if provider == "anthropic":
-            # Anthropic tool names cannot contain dots, so preserve the full
-            # namespace in a reversible alias that still stays human-readable.
-            return f"mcp_{descriptor.server_id}__{descriptor.tool_name}"
-        return descriptor.namespace
+        # Most providers (OpenAI, Anthropic, etc.) require tool names to match
+        # the pattern ^[a-zA-Z0-9_-]+$ (no dots allowed). Convert namespace
+        # to a reversible safe format that stays human-readable.
+        return f"mcp_{descriptor.server_id}__{descriptor.tool_name}"
 
     def _format_tool_definition(
         self,

@@ -76,6 +76,7 @@ export interface CatalogModel {
   deprecated?: boolean;
   deprecated_date?: string;
   replacement_model?: string;
+  validated?: boolean;  // Added: indicates if model is API-validated
 }
 
 export interface ProviderCatalog {

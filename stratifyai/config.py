@@ -120,18 +120,8 @@ INTERACTIVE_OPENAI_MODELS: dict[str, dict[str, Any]] = {
     },
 }
 
-# Anthropic - 5 curated models
+# Anthropic - 3 curated models (API-validated)
 INTERACTIVE_ANTHROPIC_MODELS: dict[str, dict[str, Any]] = {
-    "claude-sonnet-4-20250514": {
-        "display_name": "Claude Sonnet 4",
-        "description": "Latest flagship model",
-        "category": "Claude 4 (Latest)",
-    },
-    "claude-3-7-sonnet-20250219": {
-        "display_name": "Claude 3.7 Sonnet",
-        "description": "Advanced reasoning",
-        "category": "Claude 3.7",
-    },
     "claude-3-5-sonnet-20241022": {
         "display_name": "Claude 3.5 Sonnet",
         "description": "Proven stable, vision/tools",

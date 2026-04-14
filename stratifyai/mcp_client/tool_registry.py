@@ -35,7 +35,8 @@ class ToolRegistry:
         server_tools = self._tools_by_server.get(server_id)
         if server_tools is None:
             return False
-        return server_tools.pop(tool_name, None) is not None
+        removed_tool = server_tools.pop(tool_name, None)
+        return removed_tool is not None
 
     def find_tool(self, server_id: str, tool_name: str) -> Tool | None:
         return self._tools_by_server.get(server_id, {}).get(tool_name)

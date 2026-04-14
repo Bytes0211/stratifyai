@@ -1530,6 +1530,71 @@ class TestCatalogManager:
                 with pytest.raises(PermissionError):
                     load_catalog(force_reload=True)
 
+    def test_anthropic_only_api_validated_models(self):
+        """Verify only API-validated Anthropic models are in catalog.
+
+        This test ensures that unavailable models (claude-sonnet-4-20250514,
+        claude-3-7-sonnet-20250219) are removed and only API-available models remain.
+        """
+        from stratifyai.catalog_manager import get_provider_models
+
+        anthropic_models = get_provider_models("anthropic")
+        model_ids = set(anthropic_models.keys())
+
+        # Models that SHOULD be present (API-validated)
+        expected_models = {
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-haiku-20240307",
+        }
+
+        # Models that should NOT be present (not available via API)
+        unavailable_models = {
+            "claude-sonnet-4-20250514",
+            "claude-3-7-sonnet-20250219",
+        }
+
+        # Assert expected models are present
+        assert expected_models.issubset(model_ids), (
+            f"Missing expected models: {expected_models - model_ids}"
+        )
+
+        # Assert unavailable models are NOT present
+        assert unavailable_models.isdisjoint(model_ids), (
+            f"Unavailable models found in catalog: {unavailable_models & model_ids}"
+        )
+
+    def test_interactive_anthropic_models_api_validated(self):
+        """Verify INTERACTIVE_ANTHROPIC_MODELS only contains API-validated models."""
+        from stratifyai.config import INTERACTIVE_ANTHROPIC_MODELS
+
+        interactive_ids = set(INTERACTIVE_ANTHROPIC_MODELS.keys())
+
+        # Expected API-validated models only
+        expected_models = {
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+            "claude-3-haiku-20240307",
+        }
+
+        # Models that should NOT be in interactive list
+        unavailable_models = {
+            "claude-sonnet-4-20250514",
+            "claude-3-7-sonnet-20250219",
+        }
+
+        # Assert exact match with expected models
+        assert interactive_ids == expected_models, (
+            f"Interactive models mismatch. Expected: {expected_models}, "
+            f"Got: {interactive_ids}"
+        )
+
+        # Assert unavailable models are not present
+        assert unavailable_models.isdisjoint(interactive_ids), (
+            f"Unavailable models found in INTERACTIVE_ANTHROPIC_MODELS: "
+            f"{unavailable_models & interactive_ids}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # reasoning_detector.py coverage

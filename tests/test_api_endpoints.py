@@ -242,6 +242,9 @@ def test_catalog_and_all_models_endpoints_cover_validation_paths(monkeypatch):
     assert "display_name" in first_openai_model
     assert "context_window" in first_openai_model
     assert "max_output_tokens" in first_openai_model
+    assert (
+        "validated" in first_openai_model
+    )  # New: catalog now includes validation status
 
 
 @patch.dict("os.environ", {"STRATIFYAI_API_KEY": "api-secret"})

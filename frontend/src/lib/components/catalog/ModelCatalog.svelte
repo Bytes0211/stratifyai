@@ -145,6 +145,13 @@
   <div class="catalog-header">
     <h1>Model Catalog</h1>
     <p>Browse and compare models across all providers</p>
+    <p class="api-note">
+      {#if loading}
+        Validating models with provider APIs...
+      {:else}
+        Showing {filteredModels.length} API-validated models
+      {/if}
+    </p>
   </div>
   
   <ModelFilters
@@ -221,6 +228,12 @@
     p {
       font-size: $text-sm;
       color: var(--text-secondary);
+    }
+    
+    .api-note {
+      font-size: $text-xs;
+      color: var(--text-tertiary);
+      margin-top: $space-1;
     }
   }
   

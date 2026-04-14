@@ -62,12 +62,18 @@ Shared safeguard functions sourced by both deploy scripts. Not run directly.
 
 **Forbidden patterns** (build is rejected if any appear in the artifact):
 - `.env`, `.env.*` — environment secrets
-- `mcp.json`, `mcp.json.backup` — editor MCP server configs with API keys
-- `.cursor/`, `.vscode/`, `.claude/` — editor/IDE directories
-- `*.sqlite`, `*.sqlite3`, `*.db` — database files
-- `*.backup` — backup files
-- `credentials`, `secret` — sensitive files
+- `mcp.json`, `mcp.json.backup` — MCP server configs with API keys
+- `.cursor/`, `.vscode/`, `.claude/`, `.zed/` — IDE directories
+- `chroma_db/`, `*.sqlite`, `*.sqlite3`, `*.db` — database files
+- `developer/`, `data/`, `images/`, `htmlcov/` — development folders
+- `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `__pycache__/` — cache folders
+- `uv.lock`, `package-lock.json` — lock files
+- `.coverage`, `coverage.json` — coverage data files
+- `logs/`, `*.log` — log files
 - `node_modules/` — frontend dependencies
+- Top-level `dist/`, `build/` — build artifacts (but allows `api/static/dist/` for frontend bundle)
+- `credentials`, `secret` — sensitive files
+- `*.backup` — backup files
 
 ## test_deploy_stratifyai.sh
 
