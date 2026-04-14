@@ -2531,7 +2531,7 @@ async def get_catalog(_: None = Depends(verify_api_key)):
         _catalog_cache is not None
         and (time.time() - _catalog_cache_ts) < _CATALOG_CACHE_TTL
     ):
-        return cast(dict[str, Any], _catalog_cache)
+        return _catalog_cache
 
     from stratifyai.utils.provider_validator import validate_provider_models
 
