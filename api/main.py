@@ -128,6 +128,13 @@ def _get_executor_max_workers() -> int:
 # Shared ThreadPoolExecutor for async validation tasks (BUG-008)
 _executor = ThreadPoolExecutor(max_workers=_get_executor_max_workers())
 
+# Cache for catalog validation results with TTL (P1: avoid live API calls on every request)
+_catalog_cache: dict[str, Any] | None = None
+_catalog_cache_ts: float = 0.0
+_all_models_cache: dict[str, Any] | None = None
+_all_models_cache_ts: float = 0.0
+_CATALOG_CACHE_TTL = 300.0  # 5 minutes in seconds
+
 # Client cache for connection pooling (BUG-003)
 _client_cache: dict[str, LLMClient] = {}
 _client_cache_lock = threading.Lock()
@@ -2400,7 +2407,18 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
 
     Returns models with: provider, cost (input/output), context window,
     capabilities (vision, reasoning, tools, caching), and active status.
+
+    Results are cached for 5 minutes to avoid live API calls on every request.
     """
+    global _all_models_cache, _all_models_cache_ts
+
+    # Return cached result if still valid
+    if (
+        _all_models_cache is not None
+        and (time.time() - _all_models_cache_ts) < _CATALOG_CACHE_TTL
+    ):
+        return cast(AllModelsResponse, _all_models_cache)
+
     from stratifyai.api_key_helper import APIKeyHelper
     from stratifyai.utils.provider_validator import validate_provider_models
 
@@ -2478,7 +2496,7 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
         )
         total_models += len(models_list)
 
-    return AllModelsResponse(
+    response = AllModelsResponse(
         providers=result,
         summary={
             "total_models": total_models,
@@ -2486,6 +2504,12 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
             "active_providers": active_providers,
         },
     )
+
+    # Cache the result
+    _all_models_cache = response
+    _all_models_cache_ts = time.time()
+
+    return response
 
 
 @app.get("/api/catalog")
@@ -2497,7 +2521,18 @@ async def get_catalog(_: None = Depends(verify_api_key)):
 
     Only returns models that are API-validated when API key is set.
     Falls back to full catalog when no API key is configured.
+
+    Results are cached for 5 minutes to avoid live API calls on every request.
     """
+    global _catalog_cache, _catalog_cache_ts
+
+    # Return cached result if still valid
+    if (
+        _catalog_cache is not None
+        and (time.time() - _catalog_cache_ts) < _CATALOG_CACHE_TTL
+    ):
+        return cast(dict[str, Any], _catalog_cache)
+
     from stratifyai.utils.provider_validator import validate_provider_models
 
     catalog = load_catalog()
@@ -2547,8 +2582,13 @@ async def get_catalog(_: None = Depends(verify_api_key)):
                     "deprecated": model_data.get("deprecated", False),
                     "deprecated_date": model_data.get("deprecated_date"),
                     "replacement_model": model_data.get("replacement_model"),
-                    "validated": model_id in valid_models,
+                    # Only mark as truly validated when validation succeeded (P1: fix false validated status)
+                    "validated": (model_id in valid_models) and not has_error,
                 }
+
+    # Cache the result
+    _catalog_cache = result
+    _catalog_cache_ts = time.time()
 
     return cast(dict[str, Any], result)
 

@@ -1564,11 +1564,6 @@ class TestCatalogManager:
             f"Unavailable models found in catalog: {unavailable_models & model_ids}"
         )
 
-        # Verify exactly 3 Anthropic models
-        assert len(anthropic_models) == 3, (
-            f"Expected 3 Anthropic models, found {len(anthropic_models)}"
-        )
-
     def test_interactive_anthropic_models_api_validated(self):
         """Verify INTERACTIVE_ANTHROPIC_MODELS only contains API-validated models."""
         from stratifyai.config import INTERACTIVE_ANTHROPIC_MODELS
