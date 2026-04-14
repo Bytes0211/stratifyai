@@ -310,7 +310,7 @@ async def test_mcp_client_engine_blocks_destructive_tools_without_confirmation()
         provider="openai", active_servers=["demo"]
     )
 
-    assert [item["function"]["name"] for item in definitions] == ["demo.read_file"]
+    assert [item["function"]["name"] for item in definitions] == ["mcp_demo__read_file"]
 
     with pytest.raises(MCPConfirmationRequiredError):
         await engine.call_tool("demo", "delete_file", {"path": "/tmp/demo.txt"})
@@ -403,7 +403,7 @@ async def test_mcp_client_engine_build_tool_definitions_filters_active_servers()
         active_servers=["alpha", "beta", "missing"],
     )
 
-    assert [item["function"]["name"] for item in definitions] == ["alpha.echo"]
+    assert [item["function"]["name"] for item in definitions] == ["mcp_alpha__echo"]
     assert any("beta" in warning and "offline" in warning for warning in warnings)
     assert any("missing" in warning for warning in warnings)
 
@@ -562,7 +562,7 @@ async def test_mcp_client_engine_chat_with_mcp_executes_tool_calls() -> None:
     assert engine.call_tool.await_count == 1
     assert (
         fake_client.requests[0].extra_params["tools"][0]["function"]["name"]
-        == "demo.echo"
+        == "mcp_demo__echo"
     )
     assert "hello from tool" in fake_client.requests[1].messages[-1].content
     assert response.raw_response["mcp_tool_results"][0]["namespace"] == "demo.echo"

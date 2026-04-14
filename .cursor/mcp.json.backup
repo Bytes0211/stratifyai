@@ -1,49 +1,8 @@
 {
-  "mcpServers": {
-    "excel": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-xlsx"
-      ]
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
-    },
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/home/scotton/dev/projects/"
-      ]
-    }
-  },
+  "mcpServers": {},
   "stratifyai": {
     "mcpClient": {
-      "servers": {
-        "excel": {
-          "enabled": true,
-          "auto_start": true,
-          "permissions": {
-            "default_mode": "confirm",
-            "allow": [],
-            "deny": [],
-            "confirm": []
-          }
-        }
-      }
+      "servers": {}
     }
   }
 }

@@ -1,38 +1,8 @@
 {
   "version": "1.1.0",
-  "updated": "2026-02-11T14:51:00Z",
+  "updated": "2026-04-13T12:00:00Z",
   "providers": {
     "anthropic": {
-      "claude-sonnet-4-20250514": {
-        "display_name": "Claude Sonnet 4",
-        "description": "Latest flagship model",
-        "category": "Claude 4 (Latest)",
-        "context": 200000,
-        "cost_input": 3.0,
-        "cost_output": 15.0,
-        "cost_cache_write": 3.75,
-        "cost_cache_read": 0.3,
-        "supports_vision": true,
-        "supports_tools": true,
-        "supports_caching": true,
-        "quality_score": 0.94,
-        "avg_latency_ms": 2000
-      },
-      "claude-3-7-sonnet-20250219": {
-        "display_name": "Claude 3.7 Sonnet",
-        "description": "Advanced reasoning",
-        "category": "Claude 3.7",
-        "context": 200000,
-        "cost_input": 3.0,
-        "cost_output": 15.0,
-        "cost_cache_write": 3.75,
-        "cost_cache_read": 0.3,
-        "supports_vision": true,
-        "supports_tools": true,
-        "supports_caching": true,
-        "quality_score": 0.93,
-        "avg_latency_ms": 2200
-      },
       "claude-3-5-sonnet-20241022": {
         "display_name": "Claude 3.5 Sonnet",
         "description": "Proven stable, vision/tools",

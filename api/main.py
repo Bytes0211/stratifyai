@@ -2490,37 +2490,65 @@ async def get_all_validated_models(_: None = Depends(verify_api_key)):
 
 @app.get("/api/catalog")
 async def get_catalog(_: None = Depends(verify_api_key)):
-    """Get the full model catalog with metadata.
+    """Get the full model catalog with metadata and validation status.
 
     Returns data in frontend-compatible format:
     { [provider]: { [modelId]: CatalogModel } }
+
+    Only returns models that are API-validated when API key is set.
+    Falls back to full catalog when no API key is configured.
     """
+    from stratifyai.utils.provider_validator import validate_provider_models
+
     catalog = load_catalog()
     providers = catalog.get("providers", {})
 
-    # Transform to frontend-expected format
+    # Run validation for all providers in parallel (BUG-007, BUG-008: use shared executor)
+    loop = asyncio.get_running_loop()
+    validation_tasks = []
+    for provider in providers.keys():
+        model_ids = list(providers[provider].keys())
+        task = loop.run_in_executor(
+            _executor, validate_provider_models, provider, model_ids
+        )
+        validation_tasks.append((provider, task))
+
+    # Gather validation results
+    validation_results = {}
+    for provider, task in validation_tasks:
+        validation_result = await task
+        validation_results[provider] = validation_result
+
+    # Transform to frontend-expected format (only include validated models)
     result: dict[str, dict[str, dict[str, Any]]] = {}
     for provider, models in providers.items():
         result[provider] = {}
+        validation = validation_results.get(provider, {})
+        valid_models = set(validation.get("valid_models", []))
+        has_error = validation.get("error") is not None
+
         for model_id, model_data in models.items():
-            result[provider][model_id] = {
-                "model_id": model_id,
-                "display_name": model_data.get("display_name", model_id),
-                "input_cost_per_1m": model_data.get("cost_input", 0),
-                "output_cost_per_1m": model_data.get("cost_output", 0),
-                "context_window": model_data.get("context", 0),
-                "max_output_tokens": model_data.get(
-                    "max_output", model_data.get("context", 0) // 4
-                ),
-                "supports_vision": model_data.get("supports_vision", False),
-                "supports_tools": model_data.get("supports_tools", False),
-                "is_reasoning_model": model_data.get("reasoning_model", False),
-                "category": model_data.get("category", ""),
-                "description": model_data.get("description", ""),
-                "deprecated": model_data.get("deprecated", False),
-                "deprecated_date": model_data.get("deprecated_date"),
-                "replacement_model": model_data.get("replacement_model"),
-            }
+            # Only include model if it's validated OR if validation failed (fallback to catalog)
+            if model_id in valid_models or has_error:
+                result[provider][model_id] = {
+                    "model_id": model_id,
+                    "display_name": model_data.get("display_name", model_id),
+                    "input_cost_per_1m": model_data.get("cost_input", 0),
+                    "output_cost_per_1m": model_data.get("cost_output", 0),
+                    "context_window": model_data.get("context", 0),
+                    "max_output_tokens": model_data.get(
+                        "max_output", model_data.get("context", 0) // 4
+                    ),
+                    "supports_vision": model_data.get("supports_vision", False),
+                    "supports_tools": model_data.get("supports_tools", False),
+                    "is_reasoning_model": model_data.get("reasoning_model", False),
+                    "category": model_data.get("category", ""),
+                    "description": model_data.get("description", ""),
+                    "deprecated": model_data.get("deprecated", False),
+                    "deprecated_date": model_data.get("deprecated_date"),
+                    "replacement_model": model_data.get("replacement_model"),
+                    "validated": model_id in valid_models,
+                }
 
     return cast(dict[str, Any], result)
 

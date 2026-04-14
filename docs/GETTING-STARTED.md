@@ -25,47 +25,42 @@ For security hardening operations and deployment guidance, see:
 
 ---
 
+## Prerequisites
+
+- **Python 3.10+** — `python3 --version`
+- **uv** — `uv --version` (install: `curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- **Node.js 18+** — `node --version` (required for the Web UI and MCP servers that use `npx`)
+
+---
+
 ## Recommended Path
 
-If you only need the fastest route to a working setup, follow this order:
-
-1. **Install dependencies** with `uv sync` (preferred) or `pip install -r requirements-dev.txt`
-2. **Add one provider key** to `.env` (for example `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
-3. **Verify configuration** with `stratifyai check-keys`
-4. **Send a first request** using the CLI or Python example below
-5. **Explore next steps** using `examples/README.md`, `docs/API-REFERENCE.md`, and `docs/VISION-SUPPORT.md`
+1. **Install** with `uv pip install stratifyai`
+2. **Set one provider key** as an environment variable
+3. **Verify** with `uv run stratifyai check-keys`
+4. **Send a request** using the CLI or Python API
+5. **Explore** — `examples/README.md`, `docs/API-REFERENCE.md`, `docs/VISION-SUPPORT.md`
 
 ## 5-Minute Quick Start
 
-If you want the shortest path from clone → first response, use this checklist.
-
-### 1) Install and activate
+### 1) Install StratifyAI
 
 ```bash
-git clone https://github.com/Bytes0211/stratifyai.git
-cd stratifyai
-uv sync
-source .venv/bin/activate
+uv pip install stratifyai
 ```
 
-### 2) Add one provider key
+### 2) Set a provider key
 
 ```bash
-cp .env.example .env
-```
-
-Then open `.env` and set **at least one** key, for example:
-
-```bash
-OPENAI_API_KEY=your-openai-key
+export OPENAI_API_KEY=your-openai-key
 # or
-ANTHROPIC_API_KEY=your-anthropic-key
+export ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
 ### 3) Verify setup
 
 ```bash
-stratifyai check-keys
+uv run stratifyai check-keys
 ```
 
 You should see at least one provider reported as **Configured**.
@@ -73,7 +68,7 @@ You should see at least one provider reported as **Configured**.
 ### 4) Send your first request
 
 ```bash
-stratifyai chat -p openai -m gpt-4o-mini -t "Say hello from StratifyAI in one sentence."
+uv run stratifyai chat -p openai -m gpt-4o-mini -t "Say hello from StratifyAI in one sentence."
 ```
 
 ### 5) Try the Python API
@@ -94,6 +89,14 @@ response = client.chat_completion_sync(
 
 print(response.content)
 print(response.usage.total_tokens)
+```
+
+### From source (contributors)
+
+```bash
+git clone https://github.com/Bytes0211/stratifyai.git
+cd stratifyai
+uv sync
 ```
 
 ### 6) Optional: launch the Web UI
@@ -904,65 +907,113 @@ StratifyAI includes a powerful CLI for terminal usage.
 
 ### Interactive Mode
 
+Start a multi-turn conversation in the terminal:
+
 ```bash
-# Start interactive chat
-python -m cli.stratifyai_cli interactive \
-  --provider anthropic \
-  --model claude-sonnet-4-5-20250929
-
-# Now chat back and forth:
-You: What is machine learning?
-Assistant: Machine learning is...
-
-You: Give me an example
-Assistant: For example...
-
-You: exit  # Exit the conversation
+uv run stratifyai interactive -p openai -m gpt-4o-mini
 ```
+
+You'll see an interactive prompt:
+
+```text
+StratifyAI Interactive Mode
+Provider: openai | Model: gpt-4o-mini | Context: 128,000 tokens
+Commands: /file <path> | /attach <path> | /mcp | /clear | /save [path] | /provider | /help | exit
+
+⚡ You: What is machine learning?
+⚡ Assistant
+Provider: openai | Model: gpt-4o-mini
+Context: 128,000 tokens | In: 12 | Out: 85 | Total: 97 | Cost: $0.000019
+
+Machine learning is...
+
+⚡ You: Give me an example
+⚡ Assistant
+...
+
+⚡ You: exit
+```
+
+#### Interactive commands
+
+| Command | Description |
+| ------- | ----------- |
+| `/file <path>` | Load and send a file immediately |
+| `/attach <path>` | Stage a file for the next message |
+| `/clear` | Clear staged attachments |
+| `/save [path]` | Save the last response to a file |
+| `/provider` | Switch provider and model mid-session |
+| `/help` | Show all commands and session info |
+
+### Interactive Mode with MCP
+
+Enable MCP servers for tool-augmented chat:
+
+```bash
+# Enable specific servers
+uv run stratifyai interactive --mcp-server postgresql --mcp-server filesystem
+
+# Enable all discovered servers
+uv run stratifyai interactive --mcp-all
+```
+
+When MCP is active, the assistant can use external tools. Tool results appear before the response:
+
+```text
+⚡ You: Show me the users table
+[MCP: postgresql.query] 3 rows returned
+⚡ Assistant
+Provider: openai | Model: gpt-4o | MCP tools: 1
+...
+```
+
+#### MCP runtime commands
+
+| Command | Description |
+| ------- | ----------- |
+| `/mcp` | Show MCP server status |
+| `/mcp on <id>` | Activate a server for this session |
+| `/mcp off <id>` | Deactivate a server |
+| `/mcp tools [id]` | List discovered tools |
+| `/mcp refresh` | Re-read MCP configs (pick up changes from Web UI) |
 
 ### Quick Commands
 
 ```bash
 # Single message
-python -m cli.stratifyai_cli chat "Hello" -p openai -m gpt-4o-mini
+uv run stratifyai chat "Hello" -p openai -m gpt-4o-mini
 
 # Streaming
-python -m cli.stratifyai_cli chat "Write a poem" -p openai -m gpt-4o-mini --stream
+uv run stratifyai chat "Write a poem" -p openai -m gpt-4o-mini --stream
 
 # List all models
-python -m cli.stratifyai_cli models
+uv run stratifyai models
 
 # List models for specific provider
-python -m cli.stratifyai_cli models --provider anthropic
-
-# List all providers
-python -m cli.stratifyai_cli providers
+uv run stratifyai models --provider anthropic
 
 # Auto-route to best model
-python -m cli.stratifyai_cli route "Complex question" --strategy quality
+uv run stratifyai route "Complex question" --strategy quality
 ```
 
 ### Environment Variables
 
 ```bash
-# Set defaults
+# Set defaults so you can omit --provider and --model
 export STRATIFYAI_PROVIDER=anthropic
 export STRATIFYAI_MODEL=claude-sonnet-4-5-20250929
 
-# Now you can omit --provider and --model
-python -m cli.stratifyai_cli chat "Hello"
+uv run stratifyai chat "Hello"
 ```
 
 ### Load Content from Files
 
 ```bash
 # Chat about a file
-python -m cli.stratifyai_cli chat --file document.txt \
-  -p openai -m gpt-4o-mini
+uv run stratifyai chat --file document.txt -p openai -m gpt-4o-mini
 
 # With custom prompt
-python -m cli.stratifyai_cli chat "Summarize this:" --file document.txt \
-  -p openai -m gpt-4o-mini
+uv run stratifyai chat "Summarize this:" --file document.txt -p openai -m gpt-4o-mini
 ```
 
 See [cli-usage.md](cli-usage.md) for complete CLI documentation.
