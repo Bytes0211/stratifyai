@@ -442,5 +442,4 @@ pytest -v        # Verbose output
 
 ## License
 
-Internal project — All rights reserved.
 
